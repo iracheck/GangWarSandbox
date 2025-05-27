@@ -55,7 +55,6 @@
     <Compile Include="Core\MapElements\CapturePoint.cs" />
     <Compile Include="Core\Backend\Faction.cs" />
     <Compile Include="Core\Backend\GangWarSandbox.cs" />
-    <Compile Include="Core\Peds\SquadManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\Peds\Squad.cs" />
     <Compile Include="Core\Backend\Team.cs" />

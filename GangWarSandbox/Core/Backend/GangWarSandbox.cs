@@ -20,7 +20,11 @@ namespace GangWarSandbox
 {
     public class GangWarSandbox : Script
     {
+        public static GangWarSandbox Instance { get; private set; }
+
         private readonly Random rand = new Random();
+
+        private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
 
         private ObjectPool _menuPool;
         private NativeMenu _mainMenu;
@@ -32,10 +36,13 @@ namespace GangWarSandbox
 
         public List<Team> Teams = new List<Team>();
         private Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
-        private Dictionary<Ped, Vector3?> PedTargets = new Dictionary<Ped, Vector3?>();
+
+        public List<Ped> DeadPeds = new List<Ped>();
 
         public GangWarSandbox()
         {
+            Instance = this;
+
             Tick += OnTick;
             KeyDown += OnKeyDown;
 
@@ -135,71 +142,25 @@ namespace GangWarSandbox
 
             if (isBattleRunning)
             {
-                CleanupDead();
-            }
-        }
+                SpawnSquads(); // spawn squads that may be missing
 
-        private void UnitAIHandler()
-        {
-            Ped ped;
-
-            for (int i = 0; i < Teams.Count; i++)
-            {
-                List<Team> enemyTeams = Teams;
-                Team team = Teams[i];
- 
-
-                for (int j = 0; j < Teams[i].Peds.Count; j++)
+                foreach (var squad in Teams.SelectMany(t => t.Squads))
                 {
-                    ped = team.Peds[j];
-                    Vector3? currentTarget = PedTargets.ContainsKey(ped) ? PedTargets[ped] : null;
-                    Ped nearbyEnemy = FindNearbyEnemy(ped, team);
+                    bool squadState = squad.SquadAIHandler(); // update squad ai
 
-                    if (ped == null || !ped.IsAlive || ped.IsInCombat) continue;
-
-                    if (nearbyEnemy != null)
+                    if (squadState == false)
                     {
-                        ped.Task.FightAgainst(nearbyEnemy);
+                        squad.Destroy();
                     }
-                    else if (currentTarget.HasValue && ped.Position.DistanceTo(currentTarget.Value) < 8f)
+                    List<Ped> deadPeds = squad.CleanupDead();
+                    DeadPeds.AddRange(deadPeds); 
+
+                    // Remove corpses if there are too many
+                    if (DeadPeds.Count >= MAX_CORPSES)
                     {
-                        currentTarget = null;
-                        ped.Task.FightAgainstHatedTargets(999f);
+                        DeadPeds[0].Delete();
+                        DeadPeds.RemoveAt(0);
                     }
-                    else if (currentTarget == null && nearbyEnemy == null)
-                    {
-                        currentTarget = FindRandomEnemySpawnpoint(team);
-                        ped.Task.RunTo(currentTarget.Value);
-                    }
-
-                    PedTargets[ped] = currentTarget;
-
-                }
-            }
-        }
-
-        private void CleanupDead()
-        {
-            foreach (var team in Teams)
-            {
-                for (int i = team.Peds.Count - 1; i >= 0; i--)
-                {
-                    Ped ped = team.Peds[i];
-                    if (!ped.Exists() || ped.IsDead)
-                    {
-                        if (ped.AttachedBlip.Exists()) ped.AttachedBlip.Delete();
-                        team.Peds.RemoveAt(i);
-                        team.DeadPeds.Add(ped);
-                    }
-                }
-
-                if (team.DeadPeds.Count > 20)
-                {
-                    Ped corpse = team.DeadPeds[0];
-
-                    if (corpse.Exists()) 
-                        corpse.Delete();
-                    team.DeadPeds.RemoveAt(0);
                 }
             }
         }
@@ -302,6 +263,28 @@ namespace GangWarSandbox
                     team.Group.SetRelationshipBetweenGroups(other.Group, relationship);
                 }
             }
+            SpawnSquads();
+        }
+
+        private void SpawnSquads()
+        {
+            foreach (var team in Teams)
+            {
+                if (team.SpawnPoints.Count == 0)
+                {
+                    GTA.UI.Screen.ShowSubtitle($"No spawn points for {team.Name}!");
+                    continue;
+                }
+
+                int teamMaxSquads = team.Faction.MaxSoldiers / team.GetSquadSize();
+                int currentTeamSquads = team.Squads.Count;
+
+                for (int i = 0; i < teamMaxSquads - currentTeamSquads; i++)
+                {
+                    var squad = new Squad(team, 0);
+                    team.Squads.Add(squad);
+                }
+            }
         }
 
         private void StopBattle()
@@ -315,12 +298,12 @@ namespace GangWarSandbox
         {
             foreach (var team in Teams)
             {
-                foreach (var ped in team.Peds)
+                foreach (var squad in team.Squads)
                 {
-                    if (ped.AttachedBlip.Exists()) ped.AttachedBlip.Delete();
-                    if (ped.Exists()) ped.Delete();
+                    squad.Destroy();
                 }
-                team.Peds.Clear();
+
+                team.Squads.Clear();
             }
         }
     }

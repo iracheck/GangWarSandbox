@@ -22,7 +22,7 @@ namespace GangWarSandbox
         public int Accuracy { get; set; } = 5;
         public List<Vector3> SpawnPoints { get; } = new List<Vector3>();
 
-        public List<Ped> Peds { get; } = new List<Ped>();
+        public List<Squad> Squads = new List<Squad>();
         public List<Ped> DeadPeds { get; } = new List<Ped>();
         public Ped Tier4Ped = null;
 
@@ -35,9 +35,6 @@ namespace GangWarSandbox
         public string[] Tier3Weapons { get; set; } = Array.Empty<string>();
 
         public float TierUpgradeMultiplier;
-
-
-
 
         public BlipColor BlipColor { get; set; } = BlipColor.White;
         public BlipSprite BlipSprite { get; set; } = BlipSprite.Standard;
@@ -58,6 +55,24 @@ namespace GangWarSandbox
             return squadSize;
         }
 
+        public void DestroySquads()
+        {
+            foreach (var squad in Squads)
+            {
+                if (squad.isEmpty()) continue;
+
+                foreach (var ped in squad.Members)
+                {
+                    if (ped.Exists())
+                    {
+                        ped.Delete();
+                    }
+                }
+                squad.Members.Clear();
+                squad.SquadLeader = null;
+            }
+        }
+
 
         public void AddSpawnpoint(Vector3 position)
         {
@@ -72,8 +87,8 @@ namespace GangWarSandbox
 
         public void Cleanup()
         {
-            foreach (var ped in Peds)
-                if (ped.Exists()) ped.Delete();
+            foreach (var squad in Squads)
+                if (squad.isEmpty()) squad.Destroy();
 
             foreach (var ped in DeadPeds)
                 if (ped.Exists()) ped.Delete();
@@ -82,8 +97,8 @@ namespace GangWarSandbox
                 if (blip.Exists()) blip.Delete();
 
             Blips.Clear();
-            Peds.Clear();
+            Squads.Clear();
             SpawnPoints.Clear();
         }
     }
-    }
+}
