@@ -25,14 +25,22 @@ namespace GangWarSandbox
         private readonly Random rand = new Random();
 
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
+        private static int NUM_TEAMS = 2; // loaded once from ini-- in current phase its a constant
 
+        // UI Elements
         private ObjectPool _menuPool;
         private NativeMenu _mainMenu;
-        private NativeListItem<string> _playerRoleItem;
         private NativeListItem<string> _team1FactionItem;
         private NativeListItem<string> _team2FactionItem;
-        private bool isBattleRunning = false;
-        private bool isNeutral = true;
+        private NativeListItem<string> _team3FactionItem;
+        private NativeListItem<string> _team4FactionItem;
+        private NativeListItem<string> _team5FactionItem;
+        private NativeListItem<string> _team6FactionItem;
+        private List<NativeListItem<string>> _teamFactionItems = new List<NativeListItem<string>>();
+
+
+        private bool IsBattleRunning = false;
+        private bool IsNeutral = true;
 
         public List<Team> Teams = new List<Team>();
         private Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
@@ -47,6 +55,13 @@ namespace GangWarSandbox
             KeyDown += OnKeyDown;
 
             _menuPool = new ObjectPool();
+
+            _teamFactionItems.Add(_team1FactionItem);
+            _teamFactionItems.Add(_team2FactionItem);
+            _teamFactionItems.Add(_team3FactionItem);
+            _teamFactionItems.Add(_team4FactionItem);
+            _teamFactionItems.Add(_team5FactionItem);
+            _teamFactionItems.Add(_team6FactionItem);
 
             Teams.Add(new Team("One"));
             Teams.Add(new Team("Two"));
@@ -140,25 +155,32 @@ namespace GangWarSandbox
         {
             _menuPool.Process();
 
-            if (isBattleRunning)
+            if (IsBattleRunning)
             {
                 SpawnSquads(); // spawn squads that may be missing
 
-                foreach (var squad in Teams.SelectMany(t => t.Squads))
+                // Make a snapshot copy of all squads to avoid collection modification issues
+                var allSquads = Teams.SelectMany(t => t.Squads).ToList();
+
+                foreach (var squad in allSquads)
                 {
                     bool squadState = squad.SquadAIHandler(); // update squad ai
 
-                    if (squadState == false)
+                    if (!squadState)
                     {
-                        squad.Destroy();
+                        squad.Destroy(); // This internally removes from the original list
                     }
+
                     List<Ped> deadPeds = squad.CleanupDead();
-                    DeadPeds.AddRange(deadPeds); 
+                    DeadPeds.AddRange(deadPeds);
 
                     // Remove corpses if there are too many
-                    if (DeadPeds.Count >= MAX_CORPSES)
+                    while (DeadPeds.Count >= MAX_CORPSES)
                     {
-                        DeadPeds[0].Delete();
+                        if (DeadPeds[0] != null && DeadPeds[0].Exists())
+                        {
+                            DeadPeds[0].Delete();
+                        }
                         DeadPeds.RemoveAt(0);
                     }
                 }
@@ -170,7 +192,6 @@ namespace GangWarSandbox
             if (e.KeyCode == Keys.F10)
             {
                 _mainMenu.Visible = !_mainMenu.Visible;
-                isNeutral = _playerRoleItem.SelectedItem == "Neutral";
             }
         }
 
@@ -179,13 +200,11 @@ namespace GangWarSandbox
             _mainMenu = new NativeMenu("Gang War Sandbox", "OPTIONS");
             _menuPool.Add(_mainMenu);
 
-            _playerRoleItem = new NativeListItem<string>("Player Role", new[] { "Neutral", "Team 1" });
-            _team1FactionItem = new NativeListItem<string>("Team 1 Faction", Factions.Keys.ToArray());
-            _team2FactionItem = new NativeListItem<string>("Team 2 Faction", Factions.Keys.ToArray());
-
-            _mainMenu.Add(_playerRoleItem);
-            _mainMenu.Add(_team1FactionItem);
-            _mainMenu.Add(_team2FactionItem);
+            for (int i = 0; i < NUM_TEAMS; i++)
+            {
+                _teamFactionItems[i] = new NativeListItem<string>("Team " + (i + 1) + " Faction", Factions.Keys.ToArray());
+                _mainMenu.Add(_teamFactionItems[i]);
+            }
 
             var addT1 = new NativeItem("Add Spawnpoint - Team 1");
             var addT2 = new NativeItem("Add Spawnpoint - Team 2");
@@ -198,8 +217,10 @@ namespace GangWarSandbox
             clear.Activated += (item, args) => ClearAllSpawnpoints();
             start.Activated += (item, args) =>
             {
-                ApplyFactionToTeam(Teams[0], _team1FactionItem.SelectedItem);
-                ApplyFactionToTeam(Teams[1], _team2FactionItem.SelectedItem);
+                for (int i = 0; i < NUM_TEAMS; i++)
+                {
+                    ApplyFactionToTeam(Teams[i], _teamFactionItems[i].SelectedItem);
+                }
                 StartBattle();
             };
             stop.Activated += (item, args) => StopBattle();
@@ -248,12 +269,22 @@ namespace GangWarSandbox
 
         private void StartBattle()
         {
-            isBattleRunning = true;
+            IsBattleRunning = true;
             GTA.UI.Screen.ShowSubtitle("Battle Started!");
 
-            RelationshipGroup player = Game.Player.Character.RelationshipGroup;
+            Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, 5, Teams[0].Group, Teams[1].Group);
+            Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, 5, Teams[1].Group, Teams[0].Group);
 
-            Game.Player.Character.RelationshipGroup = Teams[0].Group;
+            Ped player = Game.Player.Character;
+
+            if (IsNeutral)
+            {
+                player.RelationshipGroup = "PLAYER";
+            }
+            else
+            {
+                player.RelationshipGroup = Teams[0].Group;
+            }
 
             foreach (var team in Teams)
             {
@@ -272,16 +303,20 @@ namespace GangWarSandbox
             {
                 if (team.SpawnPoints.Count == 0)
                 {
-                    GTA.UI.Screen.ShowSubtitle($"No spawn points for {team.Name}!");
+                    GTA.UI.Screen.ShowSubtitle($"No spawn points for Team {team.Name}!");
                     continue;
                 }
 
-                int teamMaxSquads = team.Faction.MaxSoldiers / team.GetSquadSize();
-                int currentTeamSquads = team.Squads.Count;
+                int currentTeamAlive = 0;
 
-                for (int i = 0; i < teamMaxSquads - currentTeamSquads; i++)
+                foreach (var squad in team.Squads)
                 {
-                    var squad = new Squad(team, 0);
+                    currentTeamAlive += squad.Members.Count;
+                }
+
+                if (currentTeamAlive + team.GetSquadSize() <= team.Faction.MaxSoldiers)
+                {
+                    Squad squad = new Squad(team, 0);
                     team.Squads.Add(squad);
                 }
             }
@@ -289,7 +324,7 @@ namespace GangWarSandbox
 
         private void StopBattle()
         {
-            isBattleRunning = false;
+            IsBattleRunning = false;
             GTA.UI.Screen.ShowSubtitle("Battle Ended!");
             CleanupAll();
         }
@@ -298,13 +333,39 @@ namespace GangWarSandbox
         {
             foreach (var team in Teams)
             {
-                foreach (var squad in team.Squads)
+                // Make a copy of the list to avoid modifying it while iterating
+                var squadsToRemove = team.Squads.ToList();
+
+                foreach (var squad in squadsToRemove)
                 {
-                    squad.Destroy();
+                    try
+                    {
+                        squad.Destroy(); // This can safely remove it from team.Squads now
+                    }
+                    catch (Exception ex)
+                    {
+                        GTA.UI.Screen.ShowSubtitle($"Squad cleanup error: {ex.Message}");
+                    }
                 }
 
-                team.Squads.Clear();
+                team.Squads.Clear(); // extra safety to make sure it's empty
             }
+
+            // Also clean up DeadPeds if needed
+            foreach (var ped in DeadPeds.ToList())
+            {
+                try
+                {
+                    if (ped != null && ped.Exists())
+                        ped.Delete();
+                }
+                catch (Exception ex)
+                {
+                    GTA.UI.Screen.ShowSubtitle($"Dead ped cleanup error: {ex.Message}");
+                }
+            }
+
+            DeadPeds.Clear();
         }
     }
 }

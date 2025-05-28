@@ -11,67 +11,147 @@ using LemonUI;
 using LemonUI.Menus;
 using GangWarSandbox;
 using System.Runtime.InteropServices;
+using System.Drawing;
+using System.Runtime.Serialization;
+using System.Security.Cryptography.X509Certificates;
 
 namespace GangWarSandbox
 {
     public class Squad
     {
         Random rand = new Random();
+        PedAI pedAI = new PedAI();
+
         GangWarSandbox ModData = GangWarSandbox.Instance;
 
         // Squad Logic begins here
 
         public Ped SquadLeader;
         public List<Ped> Members = new List<Ped>();
-        public Dictionary<Ped, Vector3> currentTarget = new Dictionary<Ped, Vector3>();
+        public Vector3 CurrentTarget = Vector3.Zero;
         public Team Owner;
 
         public int squadValue; // lower value squads may be assigned to less important tasks
+        public float squadAttackRange = 80f;
+
+        public float moraleLastCheckTime;
+        public float squadMorale = 100f;
+        public int squadMatesKilledRecently = 0;
+        
+
+
         public Vector3 SpawnPos;
 
+        public Dictionary<Ped, PedAssignment> PedAssignments = new Dictionary<Ped, PedAssignment>();
+
+        // Squad Stuck Timer-- if the squad leader is stuck for too long, it will try to move again
+        private float SquadLeaderStuckTime = 0f;
+        private const float StuckThreshold = 2.0f;
+
         public SquadRole Role;
-        public SquadAggroFactor AggroFactor;
+        public SquadType Type;
+        public SquadPersonality AggroFactor;
 
         CapturePoint TargetPoint; // the location that the squad's role will be applied to-- variable
+
+        Vehicle SquadVehicle;
 
         // Squad roles will remain somewhat static-- the AI overseer of each faction will prioritize squads of a certain role to 
         public enum SquadRole
         {
-            Idle = 0, // logically should not be used, but is there as a fallback :)
-            AttackDestroy = 1,
-            AttackCapture = 2,
-            Defend = 3,
-            Patrol = 4,
+            Idle = 0,
+
+            DefendCapturePoint = 1,
+            AssaultCapturePoint = 2,
+            ReinforceAllies = 3,
+            SeekAndDestroy = 4,
+            Retreat = 5,
+
+            //AirSupport = 31,
+            //AirDrop = 32,
+
+
         }
 
-
-        // Aggro Factor-- how willing a squad is to push blindly to its death, or be fearful and retreat
-        public enum SquadAggroFactor
+        public enum SquadType
         {
-            Normal = 0, // the squad will always listen to the commander AI-- normal behavior
-            Suicidal = 1, // the squad will never retreat, and may ignore commander orders and attack anyways
-            LastStand = 2, // when faced in danger, the squad will stand its ground (unless ordered to retreat)
-            Scared = 3, // the squad will be easier to break, and may flee the battlefield when it loses a lot of members
-            Fearless = 4, // the squad will refuse an order to retreat
+            InfantryRandom = 0,
+            Infantry = 1,
+            Sniper = 2,
+            Garrison = 3,
+
+            VehicleRandom = 10,
+            CarVehicle = 11,
+            WeaponizedVehicle = 12,
+
+            AirHeli = 20,
+            AirHeliReinforce = 21,
+            AirPlane = 22,
+
+            Naval = 30,
+        }
+
+        public enum PedAssignment
+        {
+            None = 0,
+            AttackNearby = 1,
+            RunToPosition = 2,
+            DefendArea = 3,
+            FollowSquadLeader = 4,
+
+            Retreat = 99, // run back to spawn
+            Flee = 100, // flee from the battlefield, not just retreating
+        }
+
+        // Personality -- how a squad reacts to certain situations, gives a dynamic feel to the battlefield
+        public enum SquadPersonality
+        {
+            Normal = 0, // the squad will not act in any particular way. the majority of squads
         }
 
 
-        public Squad(Team owner, SquadRole role)
+        public Squad(Team owner, SquadRole role, SquadType type = 0)
         {
             Owner = owner;
             Role = role;
             SpawnPos = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
 
-            SpawnSquadPeds(owner.GetSquadSize());
+            if (type == 0)
+            {
+                int randNum = rand.Next(0, 101); // Randomly choose a type if none is specified
+
+                if (randNum > 95)
+                {
+                    Type = SquadType.Garrison;
+                }
+                else
+                {
+                    Type = SquadType.Infantry;
+                }
+            }
+
+            SpawnSquadPeds(GetSquadSizeByType(Type));
 
             // Spawn squadmates
             for (int i = 0; i < Members.Count; i++)
             {
                 Ped ped = Members[i];
+                ped.AlwaysKeepTask = true;
             }
+
+            CurrentTarget = FindRandomEnemySpawnpoint(Owner); // set the current target to a random enemy spawnpoint
         }
 
-        // When the squad is spawned, spawn its peds :)
+        private int GetSquadSizeByType(SquadType type)
+        {
+            if (type == SquadType.Garrison)
+            {
+                return 7;
+            }
+            return Owner.GetSquadSize();
+        }
+
+        // When the squad is spawned, spawn its peds 
         private void SpawnSquadPeds(int num)
         {
             SquadLeader = SpawnPed(Owner, true);
@@ -88,84 +168,103 @@ namespace GangWarSandbox
             }
         }
 
-        // Makes the squad run away and flee
-        private void SquadRunAway()
-        {
-            for (int i = 0; i < Members.Count; i++)
-            {
-                Ped ped = Members[i];
-                if (ped == null || !ped.Exists() || !ped.IsAlive) continue;
-
-                // Run away from the current target
-                if (currentTarget.ContainsKey(ped))
-                {
-                    Vector3 fleePosition = ped.Position + (ped.Position - currentTarget[ped]).Normalized * 50f;
-                    ped.Task.RunTo(fleePosition);
-                }
-                else
-                {
-                    // If no target, just run away in a random direction
-                    Vector3 fleePosition = ped.Position + new Vector3(rand.Next(-50, 50), rand.Next(-50, 50), 0);
-                    ped.Task.RunTo(fleePosition);
-                }
-
-                Members.Remove(ped);
-            }
-        }
-
         public bool SquadAIHandler()
         {
-            if (isEmpty()) Destroy(); // destroy the squad if its empty
-            if (SquadLeader.IsDead || !SquadLeader.Exists()) PromoteLeader(); // ensures a leader always exists
+            if (isEmpty())
+            {
+                Destroy();
+                return false;
+            }
+
+            if (SquadLeader.IsDead || !SquadLeader.Exists())
+                PromoteLeader();
 
             Vector3 leaderPosition = SquadLeader.Position;
 
             for (int i = 0; i < Members.Count; i++)
             {
                 Ped ped = Members[i];
-                if (ped == null || !ped.IsAlive || ped.IsInCombat) continue;
+
+                if (ped == null || !ped.Exists() || !ped.IsAlive) continue;
+
 
                 Ped nearbyEnemy = FindNearbyEnemy(ped, Owner);
 
-                // Squad Leader Logic
-                if (ped == SquadLeader)
+
+                // First, let's make sure the ped attacks any enemies that are nearby!
+                if (nearbyEnemy != null && PedAssignments[ped] != PedAssignment.AttackNearby)
                 {
-                    if (nearbyEnemy != null) // enemy found nearby-- fight them
-                    {
-                        GTA.UI.Screen.ShowSubtitle($"Squad found an enemy.");
-                        ped.Task.FightAgainst(nearbyEnemy);
-                    }
-                    if (!currentTarget.ContainsKey(ped) || ped.Position.DistanceTo(currentTarget[ped]) < 8f)
-                    {
-                        currentTarget[ped] = FindRandomEnemySpawnpoint(Owner);
-                        ped.Task.GoTo(currentTarget[ped]);
-                    }
-                    else if (ped.Velocity.LengthSquared() < 0.1f) // standing still? probably not intended
-                    {
-                        ped.Task.GoTo(currentTarget[ped]); // only reassign if stuck
-                    }
+                    PedAI.AttackNearbyEnemies(ped);
+                    PedAssignments[ped] = PedAssignment.AttackNearby;
 
                     continue;
                 }
-
-                // Squad Member Logic
-                if (nearbyEnemy != null)
+                else if (nearbyEnemy == null && PedAssignments[ped] == PedAssignment.AttackNearby)
                 {
-                    ped.Task.FightAgainst(nearbyEnemy);
+                    PedAssignments[ped] = PedAssignment.None;
                 }
-                else
+
+                if (ped.IsInCombat || PedAssignments[ped] == PedAssignment.AttackNearby) continue;
+
+                // If assigned to defend an area, defend it!
+                if (Role == SquadRole.DefendCapturePoint && CurrentTarget != Vector3.Zero)
                 {
-                    float distance = ped.Position.DistanceTo(leaderPosition);
-                    if (distance >= 7f)
+                    if (ped.Position.DistanceTo(CurrentTarget) < 5f) // too close!
                     {
-                        ped.Task.FollowToOffsetFromEntity(SquadLeader, GenerateRandomOffset(), 2.5f);
+                        Vector3 offset = GenerateRandomOffset();
+                        Vector3 target = CurrentTarget + offset; // move to a random position around the target
+
+                        ped.Task.GoTo(target, -1);
+                    }
+                    else if (!ped.IsInCover && !ped.IsGoingIntoCover)
+                    {
+                        PedAI.SeekCover(ped);
                     }
                 }
+                else if (PedAssignments[ped] == PedAssignment.DefendArea)
+                {
+                    PedAssignments[ped] = PedAssignment.None;
+                }
+
+
+
+                if (ped == SquadLeader)
+                {
+                    if (PedAssignments[ped] != PedAssignment.RunToPosition && CurrentTarget != Vector3.Zero) // if the squad has a target, but the squad leader is not moving toward it, move!
+                    {
+                        PedAI.RunTo(ped, CurrentTarget);
+                        PedAssignments[ped] = PedAssignment.RunToPosition;
+                    }
+                    else if (PedAssignments[ped] == PedAssignment.RunToPosition && (ped.IsIdle || ped.Velocity.Length() < 0.2f) && CurrentTarget != Vector3.Zero)
+                    {
+                        SquadLeaderStuckTime += Game.LastFrameTime;
+
+                        if (SquadLeaderStuckTime >= StuckThreshold) // if the squad leader has been stuck for too long, try to move again
+                        {
+                            SquadLeaderStuckTime = 0f;
+                            PedAI.RunTo(ped, CurrentTarget);
+                        }
+                    }
+                    else if (PedAssignments[ped] == PedAssignment.RunToPosition && (Vector3.Distance(ped.Position, CurrentTarget) < 5f || CurrentTarget == Vector3.Zero))
+                    {
+                        PedAssignments[ped] = PedAssignment.None;
+                    }
+
+                }
+                else // Squad members
+                {
+                    // Follow the squad leader around
+                    if (PedAssignments[ped] != PedAssignment.FollowSquadLeader && Vector3.Distance(ped.Position, leaderPosition) > 5f)
+                    {
+                        ped.Task.FollowToOffsetFromEntity(SquadLeader, GenerateRandomOffset(), 2f);
+                        PedAssignments[ped] = PedAssignment.FollowSquadLeader;
+                    }
+                }
+
             }
 
             return true;
         }
-
 
         private Vector3 GenerateRandomOffset()
         {
@@ -192,11 +291,8 @@ namespace GangWarSandbox
             return new Vector3(0, 0, 0);
         }
 
-
         private Ped FindNearbyEnemy(Ped self, Team team)
         {
-            const float searchRadius = 80f;
-
             // Get all enemy squads from other teams
             var enemySquads = ModData.Teams
                 .Where(t => t != team)
@@ -205,7 +301,7 @@ namespace GangWarSandbox
             // Search all enemy squad members
             return enemySquads
                 .SelectMany(s => s.Members)
-                .Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(self.Position) <= searchRadius)
+                .Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(self.Position) <= squadAttackRange)
                 .OrderBy(p => p.Position.DistanceTo(self.Position))
                 .FirstOrDefault();
         }
@@ -217,6 +313,7 @@ namespace GangWarSandbox
             {
                 if (ped.Exists() && !ped.IsDead)
                 {
+                    if (ped.IsInVehicle() && ped.CurrentVehicle.Driver == ped) continue; // do not promote a driver as leader
                     SquadLeader = ped;
                     return;
                 }
@@ -243,7 +340,7 @@ namespace GangWarSandbox
             return deadPeds;
         }
 
-        public void Destroy()
+        public void Destroy(bool killPeds = true)
         {
             foreach (var ped in Members)
             {
@@ -321,7 +418,6 @@ namespace GangWarSandbox
             {
                 weapon = Helpers.GetRandom(team.Tier2Weapons);
                 ped.Health = team.BaseHealth + 100;
-                ped.CanSufferCriticalHits = false;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.5f;
                 pedValue = 100;
@@ -333,7 +429,6 @@ namespace GangWarSandbox
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
                 ped.Health = team.BaseHealth * 2;
                 ped.Accuracy = team.Accuracy * 2;
-                ped.CanSufferCriticalHits = false;
                 blip.Sprite = BlipSprite.Enemy2;
                 blip.Scale = 0.6f;
                 pedValue = 240;
@@ -380,13 +475,12 @@ namespace GangWarSandbox
             Function.Call(Hash.SET_CURRENT_PED_WEAPON, ped, Game.GenerateHash(weapon), true);
             ped.Task.SwapWeapon();
 
-            ped.AlwaysKeepTask = true;
-
             blip.IsShortRange = true;
             blip.Name = $"Team {team.Name}";
             blip.Color = team.BlipColor;
 
             Members.Add(ped);
+            PedAssignments[ped] = PedAssignment.None;
 
             // Stuff to sort out an issue that will probably be here
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 0, true);  // Always fight
@@ -394,11 +488,12 @@ namespace GangWarSandbox
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 5, true);  // Can fight armed when unarmed
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 50, true); // Disable fleeing
 
+            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 100f);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
             Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 1);
+            Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 2);             // 0 = near, 1 = medium, 2 = far
 
             // Fight against any nearby targets, at an even greater range than normal behavior
-            ped.Task.FightAgainstHatedTargets(100f);
 
             squadValue += pedValue;
             return ped;
