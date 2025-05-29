@@ -8,15 +8,13 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 
 # Features
 - [x] Customizable Factions
-- [ ] Player Optional Neutrality / Participation
-- [ ] Up to 6 Factions on a battlefield at once
+- [x] Player Optional Neutrality / Participation
+- [x] Up to 6 Factions on a battlefield at once
 - [ ] Light Faction Diplomacy (A and B are weak --> let's focus C)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
-- [ ] Advanced AI States: Grenades, Ambushes, etc.
 - [ ] Strategy AI-- Order squads to go to places around the map to achieve
-- [ ] Battle Type: Conquest
+- [ ] Battle Type: Conquest / KOTH
 - [ ] Battle Type: Defend the Point
-- [ ] Battle Type: King of the Hill
 - [ ] Battle Type: Skirmish
 - [ ] Capture Points
 - [ ] Vehicle Support
@@ -26,6 +24,7 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 Currently, I am focusing on the Squad AI, as well as advanced AI states such as throwing grenades. This is almost complete (in its barebones state until Capture Points and Strategy AI).
 Following that, I'm going to fully implement player neutrality, greater numbers of factions
 
-## Known Bugs to Squash
+## Known Bugs / Issues to Squash
 - [ ] NPCs don't spawn in spawnpoints near the player --> two options: simulate battle, or find a workaround
-- [ ] NPCs take cover when engaging the enemy, but aren't capable of shooting them
+- [x] NPCs take cover when engaging the enemy, but aren't capable of shooting them
+- [ ] Peds are far apart when fighting
