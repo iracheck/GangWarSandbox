@@ -55,6 +55,14 @@ namespace GangWarSandbox
             return squadSize;
         }
 
+        public void RecolorBlips()
+        {
+            foreach (var blip in Blips)
+            {
+                blip.Color = BlipColor;
+            }
+        }
+
         public void DestroySquads()
         {
             foreach (var squad in Squads)

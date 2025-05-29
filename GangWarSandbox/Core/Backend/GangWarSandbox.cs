@@ -25,7 +25,9 @@ namespace GangWarSandbox
         private readonly Random rand = new Random();
 
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
-        private static int NUM_TEAMS = 2; // loaded once from ini-- in current phase its a constant
+        private static int NUM_TEAMS = 6; // loaded once from ini-- in current phase its a constant
+
+        private int PlayerTeam = 0;
 
         // UI Elements
         private ObjectPool _menuPool;
@@ -63,16 +65,26 @@ namespace GangWarSandbox
             _teamFactionItems.Add(_team5FactionItem);
             _teamFactionItems.Add(_team6FactionItem);
 
-            Teams.Add(new Team("One"));
-            Teams.Add(new Team("Two"));
+            for (int i = 0; i < NUM_TEAMS; i++)
+            {
+                Teams.Add(new Team("Team " + (i + 1))); // Initialize teams with default names and groups
+
+                // build the enum‐member name
+                string enumName = $"Number{i + 1}";
+
+                // try to parse it into a BlipSprite
+                if (Enum.TryParse<BlipSprite>(enumName, out var sprite))
+                {
+                    Teams[i].BlipSprite = sprite;
+                }
+                else
+                {
+                    // fallback if something goes wrong
+                    Teams[i].BlipSprite = BlipSprite.Standard;
+                }
+            }
 
             LoadINI();
-
-            Teams[0].BlipSprite = BlipSprite.Number1;
-            Teams[0].BlipColor = BlipColor.Green;
-
-            Teams[1].BlipSprite = BlipSprite.Number2;
-            Teams[1].BlipColor = BlipColor.Red;
 
             SetupMenu();
         }
@@ -142,6 +154,10 @@ namespace GangWarSandbox
                             if (float.TryParse(value, out float mult))
                                 faction.TierUpgradeMultiplier = mult;
                             break;
+                        case "BlipColor":
+                            if (Enum.TryParse(value, out BlipColor blipColor))
+                                faction.Color = blipColor;
+                            break;
                     }
                 }
             }
@@ -200,6 +216,13 @@ namespace GangWarSandbox
             _mainMenu = new NativeMenu("Gang War Sandbox", "OPTIONS");
             _menuPool.Add(_mainMenu);
 
+            var playerTeamItem = new NativeListItem<string>( "Player Team", new[] { "Neutral"});
+
+            for (int i = 0; i < NUM_TEAMS; i++)
+            {
+                playerTeamItem.Add("Team " + (i + 1));
+            }
+
             for (int i = 0; i < NUM_TEAMS; i++)
             {
                 _teamFactionItems[i] = new NativeListItem<string>("Team " + (i + 1) + " Faction", Factions.Keys.ToArray());
@@ -208,12 +231,29 @@ namespace GangWarSandbox
 
             var addT1 = new NativeItem("Add Spawnpoint - Team 1");
             var addT2 = new NativeItem("Add Spawnpoint - Team 2");
+            var addT3 = new NativeItem("Add Spawnpoint - Team 3");
+            var addT4 = new NativeItem("Add Spawnpoint - Team 4");
+            var addT5 = new NativeItem("Add Spawnpoint - Team 5");
+            var addT6 = new NativeItem("Add Spawnpoint - Team 6");
             var clear = new NativeItem("Clear All Spawnpoints");
             var start = new NativeItem("Start Battle");
             var stop = new NativeItem("Stop Battle");
 
+            playerTeamItem.Activated += (item, args) =>
+            {
+                var sel = playerTeamItem.SelectedItem;
+                if (sel == "Neutral")
+                    PlayerTeam = -1;
+                else
+                    PlayerTeam = int.Parse(sel.Substring(5)) - 1;
+                Game.Player.Character.RelationshipGroup = PlayerTeam < 0 ? "PLAYER" : Teams[PlayerTeam].Group;
+            };
             addT1.Activated += (item, args) => AddSpawnpoint(1);
             addT2.Activated += (item, args) => AddSpawnpoint(2);
+            addT3.Activated += (item, args) => AddSpawnpoint(3);
+            addT4.Activated += (item, args) => AddSpawnpoint(4);
+            addT5.Activated += (item, args) => AddSpawnpoint(5);
+            addT6.Activated += (item, args) => AddSpawnpoint(6);
             clear.Activated += (item, args) => ClearAllSpawnpoints();
             start.Activated += (item, args) =>
             {
@@ -225,8 +265,13 @@ namespace GangWarSandbox
             };
             stop.Activated += (item, args) => StopBattle();
 
+            _mainMenu.Add(playerTeamItem);
             _mainMenu.Add(addT1);
             _mainMenu.Add(addT2);
+            _mainMenu.Add(addT3);
+            _mainMenu.Add(addT4);
+            _mainMenu.Add(addT5);
+            _mainMenu.Add(addT6);
             _mainMenu.Add(clear);
             _mainMenu.Add(start);
             _mainMenu.Add(stop);
@@ -245,6 +290,7 @@ namespace GangWarSandbox
                 team.BaseHealth = faction.BaseHealth;
                 team.Accuracy = faction.Accuracy;
                 team.TierUpgradeMultiplier = faction.TierUpgradeMultiplier;
+                team.BlipColor = faction.Color;
             }
         }
 
@@ -272,28 +318,32 @@ namespace GangWarSandbox
             IsBattleRunning = true;
             GTA.UI.Screen.ShowSubtitle("Battle Started!");
 
-            Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, 5, Teams[0].Group, Teams[1].Group);
-            Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, 5, Teams[1].Group, Teams[0].Group);
-
             Ped player = Game.Player.Character;
 
-            if (IsNeutral)
+
+            // Assign player to team
+            if (PlayerTeam < 0)
             {
-                player.RelationshipGroup = "PLAYER";
+                Game.Player.Character.RelationshipGroup = "PLAYER";
             }
             else
             {
-                player.RelationshipGroup = Teams[0].Group;
+                Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
             }
 
             foreach (var team in Teams)
             {
+                team.RecolorBlips(); // ensure the blips are the correct color
+
                 foreach (var other in Teams)
                 {
                     var relationship = team == other ? Relationship.Respect : Relationship.Hate;
                     team.Group.SetRelationshipBetweenGroups(other.Group, relationship);
                 }
+
             }
+
+            // Spawn squads for each team
             SpawnSquads();
         }
 
@@ -301,6 +351,8 @@ namespace GangWarSandbox
         {
             foreach (var team in Teams)
             {
+                int squadSize = team.GetSquadSize();
+
                 if (team.SpawnPoints.Count == 0)
                 {
                     GTA.UI.Screen.ShowSubtitle($"No spawn points for Team {team.Name}!");
@@ -314,10 +366,11 @@ namespace GangWarSandbox
                     currentTeamAlive += squad.Members.Count;
                 }
 
-                if (currentTeamAlive + team.GetSquadSize() <= team.Faction.MaxSoldiers)
+                while (currentTeamAlive + squadSize <= team.Faction.MaxSoldiers)
                 {
                     Squad squad = new Squad(team, 0);
                     team.Squads.Add(squad);
+                    currentTeamAlive += squad.Members.Count;
                 }
             }
         }

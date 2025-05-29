@@ -32,12 +32,16 @@ namespace GangWarSandbox
         public Team Owner;
 
         public int squadValue; // lower value squads may be assigned to less important tasks
-        public float squadAttackRange = 80f;
+        public float squadAttackRange = 60f;
 
         public float moraleLastCheckTime;
         public float squadMorale = 100f;
         public int squadMatesKilledRecently = 0;
-        
+
+        // Grenade
+        public float minGrenadeDist = 15f;
+        public float maxGrenadeDist = 45f; // maximum distance to throw a grenade at an enemy
+
 
 
         public Vector3 SpawnPos;
@@ -190,15 +194,25 @@ namespace GangWarSandbox
 
                 Ped nearbyEnemy = FindNearbyEnemy(ped, Owner);
 
-
-                // First, let's make sure the ped attacks any enemies that are nearby!
-                if (nearbyEnemy != null && PedAssignments[ped] != PedAssignment.AttackNearby)
+                if (nearbyEnemy != null)
                 {
-                    PedAI.AttackNearbyEnemies(ped);
-                    PedAssignments[ped] = PedAssignment.AttackNearby;
+                    // First, let's make sure the ped attacks any enemies that are nearby, he can see, and he's close enough to
+                    if (PedAssignments[ped] != PedAssignment.AttackNearby && PedAI.HasLineOfSight(ped, nearbyEnemy))
+                    {
+                        PedAI.AttackNearbyEnemies(ped);
+                        PedAssignments[ped] = PedAssignment.AttackNearby;
+                    }
+
+                    // if the ped does not have line of sight to an enemy, or is too far for accurate fire, try to get closer
+                    else if (!PedAI.HasLineOfSight(ped, nearbyEnemy))
+                    {
+                        PedAI.RunTo(ped, nearbyEnemy.Position);
+                        PedAssignments[ped] = PedAssignment.RunToPosition; // set the assignment to run to position
+                    }
 
                     continue;
                 }
+
                 else if (nearbyEnemy == null && PedAssignments[ped] == PedAssignment.AttackNearby)
                 {
                     PedAssignments[ped] = PedAssignment.None;

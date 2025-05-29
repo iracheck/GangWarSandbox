@@ -18,9 +18,12 @@ namespace GangWarSandbox
 {
     public class PedAI
     {
+        static List<WeaponHash> Pistols = new List<WeaponHash> { WeaponHash.APPistol, WeaponHash.CombatPistol, WeaponHash.DoubleActionRevolver, 
+            WeaponHash.FlareGun, WeaponHash.HeavyPistol, WeaponHash.RevolverMk2, WeaponHash.Revolver, WeaponHash.Pistol50, WeaponHash.PistolMk2, 
+            WeaponHash.Pistol, WeaponHash.SNSPistol, WeaponHash.SNSPistolMk2, WeaponHash.UpNAtomizer, WeaponHash.VintagePistol, WeaponHash.StunGun};
+        static List<WeaponHash> SMGs = new List<WeaponHash> { WeaponHash.AssaultSMG, WeaponHash.CombatPDW, WeaponHash.MicroSMG, WeaponHash.MiniSMG, WeaponHash.SMGMk2, WeaponHash.SMG };
 
         // re-added a couple functions from SHVDN-- these have shown to be more reliable than those (for some reason)
-
         public static void RunTo(Ped ped, Vector3 coord)
         {
             Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2.0f, -1, 0.0f, false, 0.0f);
@@ -44,7 +47,7 @@ namespace GangWarSandbox
 
         public static void AttackNearbyEnemies(Ped ped)
         {
-            Function.Call(Hash.TASK_COMBAT_HATED_TARGETS_AROUND_PED, ped, 200f, 0);
+            Function.Call(Hash.TASK_COMBAT_HATED_TARGETS_AROUND_PED, ped, 90f, 0);
         }
 
         public static void SeekCover(Ped ped, int timeInMS = 15000)
@@ -54,29 +57,27 @@ namespace GangWarSandbox
             Function.Call(Hash.TASK_SEEK_COVER_FROM_POS, ped.Handle, position.X, position.Y, position.Z, 15000, false);
         }
 
-        public static void ThrowGrenade(Ped ped, Ped targetPed)
-        {
-            WeaponHash savedWeapon = ped.Weapons.Current.Hash;
-            Vector3 targetPos = targetPed.Position + targetPed.ForwardVector * 2f; // Get a position in front of the target
-
-            ped.Weapons.Give(WeaponHash.Grenade, 1, true, true);
-            Function.Call(Hash.SET_CURRENT_PED_WEAPON, ped.Handle, (uint)WeaponHash.Grenade, true);
-            Script.Wait(300);
-
-            Function.Call(Hash.TASK_LOOK_AT_COORD, ped.Handle, targetPos.X, targetPos.Y, targetPos.Z, 1000, 0, 2, 0);
-            Script.Wait(300);
-
-            Function.Call(Hash.TASK_THROW_PROJECTILE, ped.Handle, targetPos.X, targetPos.Y, targetPos.Z, 0, 0, 0, 0, 0, 0, 0);
-            Script.Wait(300);
-
-            // give old weapon back
-            Function.Call(Hash.SET_CURRENT_PED_WEAPON, ped.Handle, (uint)savedWeapon, true);
-
-        }
-
         public static bool HasLineOfSight(Ped ped, Ped nearbyEnemy)
         {
             return Function.Call<bool>(Hash.HAS_ENTITY_CLEAR_LOS_TO_ENTITY, ped.Handle, nearbyEnemy.Handle, 17);
         }
+
+        public static float GetIdealWeaponsDistance(Ped ped)
+        {
+            float idealDistance = 80f;
+
+            if (ped.Weapons.IsWeaponValid(ped.Weapons.Current.Hash))
+            {
+                WeaponHash weaponHash = ped.Weapons.Current.Hash;
+
+                if (Pistols.Contains(weaponHash) || SMGs.Contains(weaponHash))
+                {
+                    idealDistance = 50f;
+                }
+            }
+
+            return idealDistance;
+        }
+
     }
 }
