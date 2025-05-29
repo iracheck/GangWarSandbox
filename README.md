@@ -10,7 +10,7 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 - [x] Customizable Factions
 - [x] Player Optional Neutrality / Participation
 - [ ] Player Spawns with Team
-- [x] Up to 6 Factions on a battlefield at once (for powerful devices only)
+- [x] Up to ~~6~~ 4 Factions on a battlefield at once (for powerful devices only)
 - [ ] Light Faction Diplomacy (A and B are weak --> let's focus C)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
 - [ ] Strategy AI-- Order squads to go to places around the map to achieve
