@@ -20,7 +20,7 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 - [ ] Capture Points
 - [ ] Vehicle Support
 - [ ] Air Vehicle Support
-- [ ] Decrease performance overhead of large squad/ped counts
+- [x] Decrease performance overhead of large squad/ped counts
 - [ ] Stealth mechanics (peds can only see in a 270* angle around them)
 
 ## Current Focus
