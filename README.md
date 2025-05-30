@@ -21,6 +21,7 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 - [ ] Vehicle Support
 - [ ] Air Vehicle Support
 - [ ] Decrease performance overhead of large squad/ped counts
+- [ ] Stealth mechanics (peds can only see in a 270* angle around them)
 
 ## Current Focus
 Currently, I am focusing on the Squad AI, as well as advanced AI states such as throwing grenades. This is almost complete (in its barebones state until Capture Points and Strategy AI).
