@@ -29,5 +29,5 @@ Following that, I'm going to fully implement player neutrality, greater numbers 
 ## Known Bugs / Issues to Squash
 - [ ] NPCs don't spawn in spawnpoints near the player --> two options: simulate battle, or find a workaround
 - [x] NPCs take cover when engaging the enemy, but aren't capable of shooting them
-- [ ] Peds are far apart when fighting
+- [x] Peds are far apart when fighting
 - [ ] Ped limits per faction is ~25 default, but only 13-16 peds spawn (why?)
