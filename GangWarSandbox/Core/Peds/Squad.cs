@@ -118,6 +118,7 @@ namespace GangWarSandbox
         {
             Owner = owner;
             Role = role;
+
             SpawnPos = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
 
             if (type == 0)
@@ -185,6 +186,8 @@ namespace GangWarSandbox
 
             Vector3 leaderPosition = SquadLeader.Position;
 
+            //int GameTime = Game.GameTime;
+
             for (int i = 0; i < Members.Count; i++)
             {
                 Ped ped = Members[i];
@@ -192,22 +195,26 @@ namespace GangWarSandbox
                 if (ped == null || !ped.Exists() || !ped.IsAlive) continue;
 
 
-                Ped nearbyEnemy = FindNearbyEnemy(ped, Owner);
+                Ped nearbyEnemy = null;
 
-                if (nearbyEnemy != null)
+                nearbyEnemy = FindNearbyEnemy(ped, Owner, squadAttackRange); // find a nearby enemy within the squad attack range
+
+                if (nearbyEnemy != null || ped.IsInCombat)
                 {
-                    // First, let's make sure the ped attacks any enemies that are nearby, he can see, and he's close enough to
-                    if (PedAssignments[ped] != PedAssignment.AttackNearby && PedAI.HasLineOfSight(ped, nearbyEnemy))
-                    {
-                        PedAI.AttackNearbyEnemies(ped);
-                        PedAssignments[ped] = PedAssignment.AttackNearby;
-                    }
 
-                    // if the ped does not have line of sight to an enemy, or is too far for accurate fire, try to get closer
-                    else if (!PedAI.HasLineOfSight(ped, nearbyEnemy))
+                    // First, let's make sure the ped attacks any enemies that are nearby that he can see
+                    if (PedAI.HasLineOfSight(ped, nearbyEnemy))
+                    {
+                        if (PedAssignments[ped] != PedAssignment.AttackNearby)
+                        {
+                            PedAI.AttackNearbyEnemies(ped, squadAttackRange);
+                            PedAssignments[ped] = PedAssignment.AttackNearby;
+                        }
+                    }
+                    else if (PedAssignments[ped] != PedAssignment.RunToPosition)
                     {
                         PedAI.RunTo(ped, nearbyEnemy.Position);
-                        PedAssignments[ped] = PedAssignment.RunToPosition; // set the assignment to run to position
+                        PedAssignments[ped] = PedAssignment.RunToPosition;
                     }
 
                     continue;
@@ -305,19 +312,17 @@ namespace GangWarSandbox
             return new Vector3(0, 0, 0);
         }
 
-        private Ped FindNearbyEnemy(Ped self, Team team)
+        private Ped FindNearbyEnemy(Ped self, Team team, float distance, bool infiniteSearch = false)
         {
             // Get all enemy squads from other teams
             var enemySquads = ModData.Teams
                 .Where(t => t != team)
                 .SelectMany(t => t.Squads);
 
-            // Search all enemy squad members
-            return enemySquads
-                .SelectMany(s => s.Members)
-                .Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(self.Position) <= squadAttackRange)
-                .OrderBy(p => p.Position.DistanceTo(self.Position))
-                .FirstOrDefault();
+            return enemySquads.SelectMany(s => s.Members)
+                    .Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(self.Position) <= squadAttackRange)
+                    .OrderBy(p => p.Position.DistanceTo(self.Position))
+                    .FirstOrDefault(); ;
         }
 
 
@@ -406,10 +411,12 @@ namespace GangWarSandbox
             }
 
             var model = new Model(team.Models[rand.Next(team.Models.Length)]);
+            if (tier == 4 && !string.IsNullOrEmpty(team.Faction.Tier4Model)) model = new Model(team.Faction.Tier4Model);
 
             if (!model.IsValid || !model.IsInCdImage) return null;
             model.Request(500);
             if (!model.IsLoaded) return null;
+
 
             var ped = World.CreatePed(model, SpawnPos);
             ped.RelationshipGroup = team.Group;
@@ -455,17 +462,15 @@ namespace GangWarSandbox
                 ped.Health = team.BaseHealth * 5;
                 ped.Accuracy = team.Accuracy * 3;
                 blip.Sprite = BlipSprite.Juggernaut;
-                blip.Scale = 0.8f;
-                pedValue = 570;
+                pedValue = 580;
 
                 team.Tier4Ped = ped;
 
                 ped.Armor = 100;
                 ped.CanSufferCriticalHits = false;
                 ped.IsFireProof = true;
-                ped.IsInvincible = false; // Still killable
+                ped.IsInvincible = false;
 
-                ped.Task.FightAgainstHatedTargets(200f);
                 Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 3); // suicidal
 
             }

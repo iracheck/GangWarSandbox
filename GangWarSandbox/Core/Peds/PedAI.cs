@@ -45,14 +45,14 @@ namespace GangWarSandbox
             Function.Call(Hash.TASK_COMBAT_PED, ped, enemy, 0, 16);
         }
 
-        public static void AttackNearbyEnemies(Ped ped)
+        public static void AttackNearbyEnemies(Ped ped, float attackRange)
         {
-            Function.Call(Hash.TASK_COMBAT_HATED_TARGETS_AROUND_PED, ped, 90f, 0);
+            Function.Call(Hash.TASK_COMBAT_HATED_TARGETS_AROUND_PED, ped, attackRange, 0);
         }
 
         public static void SeekCover(Ped ped, int timeInMS = 15000)
         {
-            Vector3 position = ped.Position + ped.ForwardVector * 5f; // Get a position in front of the ped
+            Vector3 position = ped.Position;
 
             Function.Call(Hash.TASK_SEEK_COVER_FROM_POS, ped.Handle, position.X, position.Y, position.Z, 15000, false);
         }
@@ -60,23 +60,6 @@ namespace GangWarSandbox
         public static bool HasLineOfSight(Ped ped, Ped nearbyEnemy)
         {
             return Function.Call<bool>(Hash.HAS_ENTITY_CLEAR_LOS_TO_ENTITY, ped.Handle, nearbyEnemy.Handle, 17);
-        }
-
-        public static float GetIdealWeaponsDistance(Ped ped)
-        {
-            float idealDistance = 80f;
-
-            if (ped.Weapons.IsWeaponValid(ped.Weapons.Current.Hash))
-            {
-                WeaponHash weaponHash = ped.Weapons.Current.Hash;
-
-                if (Pistols.Contains(weaponHash) || SMGs.Contains(weaponHash))
-                {
-                    idealDistance = 50f;
-                }
-            }
-
-            return idealDistance;
         }
 
     }

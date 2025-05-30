@@ -26,6 +26,8 @@ namespace GangWarSandbox
         public List<Ped> DeadPeds { get; } = new List<Ped>();
         public Ped Tier4Ped = null;
 
+        public int teamIndex;
+
 
         public List<Blip> Blips { get; } = new List<Blip>();
 
