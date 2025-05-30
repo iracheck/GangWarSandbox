@@ -12,6 +12,7 @@ using GangWarSandbox;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Runtime.Serialization;
+using GTA;
 using static GangWarSandbox.Squad;
 
 namespace GangWarSandbox
@@ -57,10 +58,20 @@ namespace GangWarSandbox
             Function.Call(Hash.TASK_SEEK_COVER_FROM_POS, ped.Handle, position.X, position.Y, position.Z, 15000, false);
         }
 
-        public static bool HasLineOfSight(Ped ped, Ped nearbyEnemy)
+        public static bool HasLineOfSight(Ped source, Ped target)
         {
-            return Function.Call<bool>(Hash.HAS_ENTITY_CLEAR_LOS_TO_ENTITY, ped.Handle, nearbyEnemy.Handle, 17);
-        }
+            Vector3 sourcePos = source.Position + new Vector3(0, 0, 1.0f); // Eye level
+            Vector3 targetPos = target.Position + new Vector3(0, 0, 1.0f);
 
+            RaycastResult result = World.Raycast(
+                sourcePos,
+                targetPos,
+                IntersectFlags.Everything,
+                source
+            );
+
+            // True if ray hit something AND that something was the target ped
+            return result.DidHit && result.HitEntity != null && result.HitEntity == target;
+        }
     }
 }

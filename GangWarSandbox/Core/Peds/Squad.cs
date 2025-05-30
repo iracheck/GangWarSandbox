@@ -29,24 +29,18 @@ namespace GangWarSandbox
         public Ped SquadLeader;
         public List<Ped> Members = new List<Ped>();
         public Vector3 CurrentTarget = Vector3.Zero;
+
         public Team Owner;
 
         public int squadValue; // lower value squads may be assigned to less important tasks
         public float squadAttackRange = 60f;
 
-        public float moraleLastCheckTime;
-        public float squadMorale = 100f;
-        public int squadMatesKilledRecently = 0;
-
-        // Grenade
-        public float minGrenadeDist = 15f;
-        public float maxGrenadeDist = 45f; // maximum distance to throw a grenade at an enemy
-
-
-
+        
         public Vector3 SpawnPos;
 
+
         public Dictionary<Ped, PedAssignment> PedAssignments = new Dictionary<Ped, PedAssignment>();
+        Dictionary<Ped, (Ped enemy, int timestamp)> PedTargetCache;
 
         // Squad Stuck Timer-- if the squad leader is stuck for too long, it will try to move again
         private float SquadLeaderStuckTime = 0f;
@@ -135,6 +129,7 @@ namespace GangWarSandbox
                 }
             }
 
+            PedTargetCache = new Dictionary<Ped, (Ped enemy, int timestamp)>();
             SpawnSquadPeds(GetSquadSizeByType(Type));
 
             // Spawn squadmates
@@ -181,7 +176,7 @@ namespace GangWarSandbox
                 return false;
             }
 
-            if (SquadLeader.IsDead || !SquadLeader.Exists())
+            if (SquadLeader == null || SquadLeader.IsDead || !SquadLeader.Exists())
                 PromoteLeader();
 
             Vector3 leaderPosition = SquadLeader.Position;
@@ -194,32 +189,31 @@ namespace GangWarSandbox
 
                 if (ped == null || !ped.Exists() || !ped.IsAlive) continue;
 
-
                 Ped nearbyEnemy = null;
 
                 nearbyEnemy = FindNearbyEnemy(ped, Owner, squadAttackRange); // find a nearby enemy within the squad attack range
 
-                if (nearbyEnemy != null || ped.IsInCombat)
+                if (nearbyEnemy != null)
                 {
-
                     // First, let's make sure the ped attacks any enemies that are nearby that he can see
                     if (PedAI.HasLineOfSight(ped, nearbyEnemy))
                     {
                         if (PedAssignments[ped] != PedAssignment.AttackNearby)
                         {
-                            PedAI.AttackNearbyEnemies(ped, squadAttackRange);
+                            PedAI.AttackEnemy(ped, nearbyEnemy);
                             PedAssignments[ped] = PedAssignment.AttackNearby;
                         }
                     }
                     else if (PedAssignments[ped] != PedAssignment.RunToPosition)
                     {
+                        ped.Task.ClearAllImmediately(); // breaks their combat state
+
                         PedAI.RunTo(ped, nearbyEnemy.Position);
                         PedAssignments[ped] = PedAssignment.RunToPosition;
                     }
 
                     continue;
                 }
-
                 else if (nearbyEnemy == null && PedAssignments[ped] == PedAssignment.AttackNearby)
                 {
                     PedAssignments[ped] = PedAssignment.None;
@@ -314,15 +308,34 @@ namespace GangWarSandbox
 
         private Ped FindNearbyEnemy(Ped self, Team team, float distance, bool infiniteSearch = false)
         {
-            // Get all enemy squads from other teams
-            var enemySquads = ModData.Teams
-                .Where(t => t != team)
-                .SelectMany(t => t.Squads);
+            Ped foundEnemy;
 
-            return enemySquads.SelectMany(s => s.Members)
-                    .Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(self.Position) <= squadAttackRange)
-                    .OrderBy(p => p.Position.DistanceTo(self.Position))
-                    .FirstOrDefault(); ;
+            if (PedTargetCache[self].enemy == null || PedTargetCache[self].timestamp > Game.GameTime + 1000)
+            {
+                // Get all enemy squads from other teams
+                var enemySquads = ModData.Teams
+                    .Where(t => t != team)
+                    .SelectMany(t => t.Squads);
+
+                if (infiniteSearch) squadAttackRange *= 4;
+
+                foundEnemy = enemySquads.SelectMany(s => s.Members)
+                        .Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(self.Position) <= squadAttackRange)
+                        .OrderBy(p => p.Position.DistanceTo(self.Position))
+                        .FirstOrDefault();
+
+                if (foundEnemy == null || !foundEnemy.Exists() || foundEnemy.IsDead)
+                {
+                    foundEnemy = null;
+                }
+                else
+                {
+                    PedTargetCache[self] = (foundEnemy, Game.GameTime); // cache the target for a short time
+                }
+            }
+            else return PedTargetCache[self].enemy; // return the ped's cached target if too soon
+
+            return foundEnemy;
         }
 
 
@@ -433,7 +446,7 @@ namespace GangWarSandbox
                 blip.Scale = 0.4f;
                 pedValue = 40;
 
-                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 1); // defensive
+                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2);
             }
             else if (tier == 2)
             {
@@ -513,6 +526,9 @@ namespace GangWarSandbox
             Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 2);             // 0 = near, 1 = medium, 2 = far
 
             // Fight against any nearby targets, at an even greater range than normal behavior
+
+            PedTargetCache[ped] = (null, 0);
+            PedAssignments[ped] = PedAssignment.None;
 
             squadValue += pedValue;
             return ped;

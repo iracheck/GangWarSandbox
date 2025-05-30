@@ -35,8 +35,8 @@ namespace GangWarSandbox
         private List<NativeListItem<string>> _teamFactionItems = new List<NativeListItem<string>>();
 
 
+
         private bool IsBattleRunning = false;
-        private bool IsNeutral = true;
 
         public List<Team> Teams = new List<Team>();
         private Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
@@ -169,7 +169,10 @@ namespace GangWarSandbox
 
                 foreach (var squad in allSquads)
                 {
-                    bool squadState = squad.SquadAIHandler(); // update squad ai
+                    if (Game.GameTime % 200 == 0) // ~every 200ms
+                    {
+                        squad.SquadAIHandler();
+                    }
 
                     List<Ped> deadPeds = squad.CleanupDead();
                     DeadPeds.AddRange(deadPeds);
@@ -320,6 +323,12 @@ namespace GangWarSandbox
             {
                 Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
                 Teams[PlayerTeam].Tier4Ped = player; // Assign player to be their "strong npc"
+
+                // move the player to the first spawn point of their team
+                if (Teams[PlayerTeam].SpawnPoints.Count > 0)
+                {
+                    player.Position = Teams[PlayerTeam].SpawnPoints[0];
+                }
             }
 
             foreach (var team in Teams)
