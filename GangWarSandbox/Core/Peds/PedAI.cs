@@ -40,6 +40,18 @@ namespace GangWarSandbox
             Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 1.5f, -1, 0.0f, false, 0.0f);
         }
 
+        public static void PushLocation(Ped ped, Vector3 location)
+        {
+            Function.Call(Hash.TASK_GO_TO_COORD_AND_AIM_AT_HATED_ENTITIES_NEAR_COORD,ped, location.X, location.Y, location.Z, location.X, location.Y, location.Z,2.0f,                                               // walk speed (1.0 = walk, 2.0 = jog, 3.0 = run)
+            true,                                               // shootAtEnemies
+            5.0f,                                               // distance to stop at
+            0f,                                                 // noRoadsDistance (set to 0 unless needed)
+            true,                                               // useNavMesh
+            0,                                                  // navFlags (0 for default)
+            16,                                                  // taskFlags (0 unless overriding behavior)
+            Game.GenerateHash("FIRING_PATTERN_FULL_AUTO")       // firing pattern
+);
+        }
 
         public static void AttackEnemy(Ped ped, Ped enemy)
         {
@@ -58,20 +70,25 @@ namespace GangWarSandbox
             Function.Call(Hash.TASK_SEEK_COVER_FROM_POS, ped.Handle, position.X, position.Y, position.Z, 15000, false);
         }
 
+
+
         public static bool HasLineOfSight(Ped source, Ped target)
         {
-            Vector3 sourcePos = source.Position + new Vector3(0, 0, 1.0f); // Eye level
-            Vector3 targetPos = target.Position + new Vector3(0, 0, 1.0f);
+            // Use bone positions instead of just position + offset
+            Vector3 sourcePos = source.Bones[Bone.SkelHead].Position;
+            Vector3 targetPos = target.Bones[Bone.SkelHead].Position;
 
             RaycastResult result = World.Raycast(
                 sourcePos,
                 targetPos,
                 IntersectFlags.Everything,
-                source
+                source // ignore the shooter
             );
 
-            // True if ray hit something AND that something was the target ped
+            // Ensure that the thing we hit is actually the intended target
             return result.DidHit && result.HitEntity != null && result.HitEntity == target;
         }
+
+
     }
 }
