@@ -27,19 +27,19 @@ namespace GangWarSandbox
 
         // Squad Logic begins here
 
+        // Where the squad spawns. Only used once to ensure they spawn together
+        public Vector3 SpawnPos;
+
         public Ped SquadLeader;
         public List<Ped> Members = new List<Ped>();
-        public Vector3 CurrentTarget = Vector3.Zero;
 
         public Team Owner;
 
         public int squadValue; // lower value squads may be assigned to less important tasks
         public float squadAttackRange = 60f;
 
-        
-        public Vector3 SpawnPos;
 
-
+        public List<Vector3> Waypoints = new List<Vector3>();
         public Dictionary<Ped, PedAssignment> PedAssignments = new Dictionary<Ped, PedAssignment>();
         Dictionary<Ped, (Ped enemy, int timestamp)> PedTargetCache;
 
@@ -149,7 +149,8 @@ namespace GangWarSandbox
                 ped.AlwaysKeepTask = true;
             }
 
-            CurrentTarget = FindRandomEnemySpawnpoint(Owner); // set the current target to a random enemy spawnpoint
+            Vector3 target = FindRandomEnemySpawnpoint(Owner); // set the current target to a random enemy spawnpoint
+            Waypoints = PedAI.GetIntermediateWaypoints(SquadLeader.Position, target); // get the waypoints to the target position
         }
 
         private int GetSquadSizeByType(SquadType type)
@@ -197,32 +198,8 @@ namespace GangWarSandbox
 
                 Ped nearbyEnemy = FindNearbyEnemy(ped, Owner, squadAttackRange); // find a nearby enemy within the squad attack range
 
-
-
-
                 if (nearbyEnemy != null)
                 {
-                    // Force push location
-                    if ((Personality == SquadPersonality.Aggressive || leaderAssignment == PedAssignment.PushLocation) && PedAssignments[ped] != PedAssignment.PushLocation)
-                    {
-                        ped.Task.ClearAllImmediately();
-                        PedAI.PushLocation(ped, CurrentTarget); // push to the enemy's position
-                        GTA.UI.Screen.ShowSubtitle($"Pushing to: {nearbyEnemy.Position} | Dist: {ped.Position.DistanceTo(nearbyEnemy.Position):0.00}");
-
-                        PedAssignments[ped] = PedAssignment.PushLocation; // set the assignment to push location
-
-                        continue;
-                    }
-                    else if (PedAssignments[ped] == PedAssignment.PushLocation)
-                    {
-                        if (CurrentTarget.DistanceTo(ped.Position) < 9f)
-                        {
-                            PedAssignments[ped] = PedAssignment.None; // reset the assignment if the ped is close enough to the target
-                            continue;
-                        }
-                        else continue;
-                    }
-
                     // First, let's make sure the ped attacks any enemies that are nearby that he can see
                     if (PedAI.HasLineOfSight(ped, nearbyEnemy))
                     {
@@ -250,12 +227,12 @@ namespace GangWarSandbox
                 if (ped.IsInCombat || PedAssignments[ped] == PedAssignment.AttackNearby) continue;
 
                 // If assigned to defend an area, defend it!
-                if (Role == SquadRole.DefendCapturePoint && CurrentTarget != Vector3.Zero)
+                if (Role == SquadRole.DefendCapturePoint && Waypoints[0] != Vector3.Zero)
                 {
-                    if (ped.Position.DistanceTo(CurrentTarget) < 5f) // too close!
+                    if (ped.Position.DistanceTo(Waypoints[0]) < 5f) // too close!
                     {
                         Vector3 offset = GenerateRandomOffset();
-                        Vector3 target = CurrentTarget + offset; // move to a random position around the target
+                        Vector3 target = Waypoints[0] + offset; // move to a random position around the target
 
                         ped.Task.GoTo(target, -1);
                     }
@@ -273,24 +250,41 @@ namespace GangWarSandbox
 
                 if (ped == SquadLeader)
                 {
-                    if (PedAssignments[ped] != PedAssignment.RunToPosition && CurrentTarget != Vector3.Zero) // if the squad has a target, but the squad leader is not moving toward it, move!
+                    if (PedAssignments[ped] != PedAssignment.RunToPosition && Waypoints[0] != Vector3.Zero) // if the squad has a target, but the squad leader is not moving toward it, move!
                     {
-                        PedAI.RunTo(ped, CurrentTarget);
-                        PedAssignments[ped] = PedAssignment.RunToPosition;
+                        if (ped.Position.DistanceTo(Waypoints[0]) > 100f)
+                        {
+                            PedAI.GoToFarAway(ped, Waypoints[0]);
+                            PedAssignments[ped] = PedAssignment.RunToPosition;
+                        }
+                        else
+                        {
+                            PedAI.RunTo(ped, Waypoints[0]);
+                            PedAssignments[ped] = PedAssignment.RunToPosition;
+                        }
+
                     }
-                    else if (PedAssignments[ped] == PedAssignment.RunToPosition && (ped.IsIdle || ped.Velocity.Length() < 0.2f) && CurrentTarget != Vector3.Zero)
+                    else if (PedAssignments[ped] == PedAssignment.RunToPosition && ped.Velocity.Length() < 0.2f && Waypoints[0] != Vector3.Zero)
                     {
                         SquadLeaderStuckTime += Game.LastFrameTime;
 
                         if (SquadLeaderStuckTime >= StuckThreshold) // if the squad leader has been stuck for too long, try to move again
                         {
                             SquadLeaderStuckTime = 0f;
-                            PedAI.RunTo(ped, CurrentTarget);
+                            PedAI.GoToFarAway(ped, Waypoints[0]);
                         }
                     }
-                    else if (PedAssignments[ped] == PedAssignment.RunToPosition && (Vector3.Distance(ped.Position, CurrentTarget) < 5f || CurrentTarget == Vector3.Zero))
+                    else if (PedAssignments[ped] == PedAssignment.RunToPosition && (Vector3.Distance(ped.Position, Waypoints[0]) < 5f || Waypoints[0] == Vector3.Zero))
                     {
+                        Waypoints.RemoveAt(0);
                         PedAssignments[ped] = PedAssignment.None;
+
+                        if (Waypoints.Count > 0 && Waypoints[0] != Vector3.Zero)
+                        {
+                            SquadLeaderStuckTime = 0f;
+
+                            PedAI.GoToFarAway(ped, Waypoints[0]); // go to the next waypoint
+                        }
                     }
 
                 }
@@ -319,19 +313,23 @@ namespace GangWarSandbox
         private Vector3 FindRandomEnemySpawnpoint(Team team)
         {
             List<Team> teams = ModData.Teams;
+            List<Team> temp = new List<Team>(teams);
 
-            for (int i = 0; i < teams.Count; i++)
+            temp.Remove(Owner); // remove the current team from the list!
+
+            foreach (var tm in temp)
             {
-                if (teams[i] == team)
+                if (tm.SpawnPoints.Count == 0)
                 {
-                    continue;
-                }
-                else
-                {
-                    return teams[i].SpawnPoints[rand.Next(teams[i].SpawnPoints.Count)];
+                    temp.Remove(tm); // remove teams with no spawnpoints
                 }
             }
-            return new Vector3(0, 0, 0);
+
+            if (temp.Count == 0) return Vector3.Zero; // no enemy teams with spawnpoints
+
+            int randomIndex = rand.Next(temp.Count);
+
+            return temp[randomIndex].SpawnPoints[rand.Next(0, temp[randomIndex].SpawnPoints.Count)]; // get a random spawnpoint from the enemy team
         }
 
         private Ped FindNearbyEnemy(Ped self, Team team, float distance, bool infiniteSearch = false)
