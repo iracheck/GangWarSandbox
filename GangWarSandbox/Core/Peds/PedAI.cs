@@ -92,21 +92,22 @@ namespace GangWarSandbox
             return result.DidHit && result.HitEntity != null && result.HitEntity == target;
         }
 
-        public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, float maxStepSize = 100f)
+        public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, float maxStepSize = 50f)
         {
             List<Vector3> points = new List<Vector3>();
 
             Vector3 direction = end - start;
-            direction.Normalize(); // convert it to a normal vector, so we know which direction to count in
 
             float distance = direction.Length();
+            direction.Normalize(); // convert it to a normal vector, so we know which direction to count in
+
 
             int numSteps = (int)(distance / maxStepSize);
 
             if (distance > maxStepSize && numSteps > 0) {
 
 
-                for (int i = 0; i < numSteps; i++)
+                for (int i = 1; i < numSteps; i++)
                 {
                     Vector3 step = start + direction * (i * maxStepSize);
                     points.Add(step);

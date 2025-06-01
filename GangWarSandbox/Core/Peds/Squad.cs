@@ -150,7 +150,9 @@ namespace GangWarSandbox
             }
 
             Vector3 target = FindRandomEnemySpawnpoint(Owner); // set the current target to a random enemy spawnpoint
-            Waypoints = PedAI.GetIntermediateWaypoints(SquadLeader.Position, target); // get the waypoints to the target position
+            Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // get the waypoints to the target position
+
+            GTA.UI.Screen.ShowSubtitle($"First WP: {Waypoints[0]}");
         }
 
         private int GetSquadSizeByType(SquadType type)
@@ -272,6 +274,8 @@ namespace GangWarSandbox
                         {
                             SquadLeaderStuckTime = 0f;
                             PedAI.GoToFarAway(ped, Waypoints[0]);
+                            PedAssignments[ped] = PedAssignment.RunToPosition;
+
                         }
                     }
                     else if (PedAssignments[ped] == PedAssignment.RunToPosition && (Vector3.Distance(ped.Position, Waypoints[0]) < 5f || Waypoints[0] == Vector3.Zero))
@@ -312,18 +316,7 @@ namespace GangWarSandbox
 
         private Vector3 FindRandomEnemySpawnpoint(Team team)
         {
-            List<Team> teams = ModData.Teams;
-            List<Team> temp = new List<Team>(teams);
-
-            temp.Remove(Owner); // remove the current team from the list!
-
-            foreach (var tm in temp)
-            {
-                if (tm.SpawnPoints.Count == 0)
-                {
-                    temp.Remove(tm); // remove teams with no spawnpoints
-                }
-            }
+            List<Team> temp = ModData.Teams.Where(t => t != Owner && t.SpawnPoints.Count > 0).ToList();
 
             if (temp.Count == 0) return Vector3.Zero; // no enemy teams with spawnpoints
 
