@@ -29,6 +29,7 @@ namespace GangWarSandbox
 
         // Where the squad spawns. Only used once to ensure they spawn together
         public Vector3 SpawnPos;
+        public bool JustSpawned = true;
 
         public Ped SquadLeader;
         public List<Ped> Members = new List<Ped>();
@@ -44,8 +45,7 @@ namespace GangWarSandbox
         Dictionary<Ped, (Ped enemy, int timestamp)> PedTargetCache;
 
         // Squad Stuck Timer-- if the squad leader is stuck for too long, it will try to move again
-        private float SquadLeaderStuckTime = 0f;
-        private const float StuckThreshold = 2.0f;
+        private int SquadLeaderStuckTicks = 0;
 
         public SquadRole Role;
         public SquadType Type;
@@ -151,8 +151,6 @@ namespace GangWarSandbox
 
             Vector3 target = FindRandomEnemySpawnpoint(Owner); // set the current target to a random enemy spawnpoint
             Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // get the waypoints to the target position
-
-            GTA.UI.Screen.ShowSubtitle($"First WP: {Waypoints[0]}");
         }
 
         private int GetSquadSizeByType(SquadType type)
@@ -184,6 +182,8 @@ namespace GangWarSandbox
                 Destroy();
                 return false;
             }
+
+            if (JustSpawned) JustSpawned = false;
 
             if (SquadLeader == null || SquadLeader.IsDead || !SquadLeader.Exists())
                 PromoteLeader();
@@ -228,67 +228,57 @@ namespace GangWarSandbox
 
                 if (ped.IsInCombat || PedAssignments[ped] == PedAssignment.AttackNearby) continue;
 
-                // If assigned to defend an area, defend it!
-                if (Role == SquadRole.DefendCapturePoint && Waypoints[0] != Vector3.Zero)
-                {
-                    if (ped.Position.DistanceTo(Waypoints[0]) < 5f) // too close!
-                    {
-                        Vector3 offset = GenerateRandomOffset();
-                        Vector3 target = Waypoints[0] + offset; // move to a random position around the target
+                //// If assigned to defend an area, defend it!
+                //if (Role == SquadRole.DefendCapturePoint && Waypoints[0] != Vector3.Zero)
+                //{
+                //    if (ped.Position.DistanceTo(Waypoints[0]) < 5f) // too close!
+                //    {
+                //        Vector3 offset = GenerateRandomOffset();
+                //        Vector3 target = Waypoints[0] + offset; // move to a random position around the target
 
-                        ped.Task.GoTo(target, -1);
-                    }
-                    else if (!ped.IsInCover && !ped.IsGoingIntoCover)
-                    {
-                        PedAI.SeekCover(ped);
-                    }
-                }
-                else if (PedAssignments[ped] == PedAssignment.DefendArea)
-                {
-                    PedAssignments[ped] = PedAssignment.None;
-                }
-
-
+                //        ped.Task.GoTo(target, -1);
+                //    }
+                //    else if (!ped.IsInCover && !ped.IsGoingIntoCover)
+                //    {
+                //        PedAI.SeekCover(ped);
+                //    }
+                //}
+                //else if (PedAssignments[ped] == PedAssignment.DefendArea)
+                //{
+                //    PedAssignments[ped] = PedAssignment.None;
+                //}
 
                 if (ped == SquadLeader)
                 {
                     if (PedAssignments[ped] != PedAssignment.RunToPosition && Waypoints[0] != Vector3.Zero) // if the squad has a target, but the squad leader is not moving toward it, move!
                     {
-                        if (ped.Position.DistanceTo(Waypoints[0]) > 100f)
-                        {
-                            PedAI.GoToFarAway(ped, Waypoints[0]);
-                            PedAssignments[ped] = PedAssignment.RunToPosition;
-                        }
-                        else
-                        {
-                            PedAI.RunTo(ped, Waypoints[0]);
-                            PedAssignments[ped] = PedAssignment.RunToPosition;
-                        }
-
+                        PedAI.RunTo(ped, Waypoints[0]);
+                        PedAssignments[ped] = PedAssignment.RunToPosition;
                     }
                     else if (PedAssignments[ped] == PedAssignment.RunToPosition && ped.Velocity.Length() < 0.2f && Waypoints[0] != Vector3.Zero)
                     {
-                        SquadLeaderStuckTime += Game.LastFrameTime;
+                        SquadLeaderStuckTicks++;
 
-                        if (SquadLeaderStuckTime >= StuckThreshold) // if the squad leader has been stuck for too long, try to move again
+                        if (SquadLeaderStuckTicks >= 40) // if the squad leader has been stuck for too long, reset ped assignments
                         {
-                            SquadLeaderStuckTime = 0f;
-                            PedAI.GoToFarAway(ped, Waypoints[0]);
-                            PedAssignments[ped] = PedAssignment.RunToPosition;
-
+                            SquadLeaderStuckTicks = 0;
+                            PedAssignments[ped] = PedAssignment.None; 
                         }
                     }
-                    else if (PedAssignments[ped] == PedAssignment.RunToPosition && (Vector3.Distance(ped.Position, Waypoints[0]) < 5f || Waypoints[0] == Vector3.Zero))
+                    else if (Vector3.Distance(ped.Position, Waypoints[0]) < 10f || Waypoints[0] == Vector3.Zero)
                     {
                         Waypoints.RemoveAt(0);
                         PedAssignments[ped] = PedAssignment.None;
 
-                        if (Waypoints.Count > 0 && Waypoints[0] != Vector3.Zero)
-                        {
-                            SquadLeaderStuckTime = 0f;
+                        string waypointText = "Waypoints:\n";
 
-                            PedAI.GoToFarAway(ped, Waypoints[0]); // go to the next waypoint
+                        for (int p = 0; p < Waypoints.Count; p++)
+                        {
+                            Vector3 wp = Waypoints[p];
+                            waypointText += $"[{p}] X: {wp.X:F1}, Y: {wp.Y:F1}, Z: {wp.Z:F1}\n";
                         }
+
+                        GTA.UI.Screen.ShowSubtitle(waypointText, 5000); // Show for 5 seconds
                     }
 
                 }
@@ -309,8 +299,15 @@ namespace GangWarSandbox
 
         private Vector3 GenerateRandomOffset()
         {
-            float offsetX = rand.Next(-5, 6);
-            float offsetY = rand.Next(-5, 6);
+            float offsetX = 0;
+            float offsetY = 0;
+
+            while (Math.Abs(offsetX) < 1 && Math.Abs(offsetY) < 1) // ensure the offset is not too small
+            {
+                offsetX = rand.Next(-5, 6);
+                offsetY = rand.Next(-5, 6);
+            }
+
             return new Vector3(offsetX, offsetY, 0);
         }
 
@@ -531,8 +528,10 @@ namespace GangWarSandbox
             blip.Name = $"{team.Name}";
             blip.Color = team.BlipColor;
 
-            ped.AlwaysKeepTask = true; 
-            
+            ped.AlwaysKeepTask = true;
+
+            ped.IsPersistent = true;
+
             Members.Add(ped);
             PedAssignments[ped] = PedAssignment.None;
 

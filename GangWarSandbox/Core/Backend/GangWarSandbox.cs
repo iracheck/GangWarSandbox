@@ -27,7 +27,7 @@ namespace GangWarSandbox
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
         private static int NUM_TEAMS = 4; // loaded once from ini-- in current phase its a constant
 
-        private int PlayerTeam = 0;
+        private int PlayerTeam = -1;
 
         // UI Elements
         private ObjectPool _menuPool;
@@ -169,7 +169,7 @@ namespace GangWarSandbox
 
                 foreach (var squad in allSquads)
                 {
-                    if (Game.GameTime % 200 == 0) // ~every 200ms
+                    if (Game.GameTime % 200 == 0 || squad.JustSpawned)
                     {
                         squad.SquadAIHandler();
                     }
@@ -235,7 +235,6 @@ namespace GangWarSandbox
                     PlayerTeam = -1;
                 else
                     PlayerTeam = int.Parse(sel.Substring(5)) - 1;
-                Game.Player.Character.RelationshipGroup = PlayerTeam < 0 ? "PLAYER" : Teams[PlayerTeam].Group;
             };
             addT1.Activated += (item, args) => AddSpawnpoint(1);
             addT2.Activated += (item, args) => AddSpawnpoint(2);
@@ -315,14 +314,14 @@ namespace GangWarSandbox
 
 
             // Assign player to team
-            if (PlayerTeam < 0)
+            if (PlayerTeam == -1)
             {
                 Game.Player.Character.RelationshipGroup = "PLAYER";
             }
             else
             {
                 Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
-                Teams[PlayerTeam].Tier4Ped = player; // Assign player to be their "strong npc"
+                Teams[PlayerTeam].Tier4Ped = player; // Assign player to be their team's "strong npc"
 
                 // move the player to the first spawn point of their team
                 if (Teams[PlayerTeam].SpawnPoints.Count > 0)
