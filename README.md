@@ -12,6 +12,7 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 - [x] Player Spawns with Team
 - [x] Up to ~~6~~ 4 Factions on a battlefield at once (for powerful devices only) --> will try to increase later, if performance permits
 - [x] AI Line of Sight
+- [x] Waypoint Movement System (Allow peds to move >150m distances)
 - [ ] Light Faction Diplomacy (A and B are weak, C is strong --> focus on C)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
 - [ ] Strategy AI-- Order squads to go to places around the map to achieve
