@@ -12,12 +12,14 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 - [x] Player Spawns with Team
 - [x] Up to ~~6~~ 4 Factions on a battlefield at once (for powerful devices only) --> will try to increase later, if performance permits
 - [x] AI Line of Sight
+- [x] Waypoint Movement System (Allow peds to move >150m distances)
 - [ ] Light Faction Diplomacy (A and B are weak, C is strong --> focus on C)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
 - [ ] Strategy AI-- Order squads to go to places around the map to achieve
 - [ ] Battle Type: Conquest / KOTH
 - [ ] Battle Type: Defend the Point
 - [ ] Battle Type: Skirmish
+- [ ] Battle Type: Gun Game
 - [ ] Capture Points
 - [ ] Vehicle Support
 - [ ] Air Vehicle Support
@@ -25,8 +27,7 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 - [ ] Stealth mechanics (peds can only see in a 270* angle around them)
 
 ## Current Focus
-Currently, I am focusing on the Squad AI, as well as advanced AI states such as throwing grenades. This is almost complete (in its barebones state until Capture Points and Strategy AI).
-Following that, I'm going to fully implement player neutrality, greater numbers of factions
+Squad AI improvements, performance
 
 ## Known Bugs / Issues to Squash
 - [ ] NPCs don't spawn in spawnpoints near the player --> two options: simulate battle, or find a workaround
