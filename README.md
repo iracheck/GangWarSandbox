@@ -34,3 +34,4 @@ Squad AI improvements, performance
 - [x] NPCs take cover when engaging the enemy, but aren't capable of shooting them
 - [x] Peds are far apart when fighting
 - [ ] Ped limits per faction is ~25 default, but only 13-16 peds spawn (why?)
+- [ ] NPCs far from the player don't have their AI update
