@@ -20,7 +20,7 @@ Parts of this mod are below my standard of code. In the beginning, it was just s
 - [ ] Battle Type: Defend the Point
 - [ ] Battle Type: Skirmish
 - [ ] Battle Type: Gun Game
-- [ ] Capture Points
+- [x] Capture Points
 - [ ] Vehicle Support
 - [ ] Air Vehicle Support
 - [x] Decrease performance overhead of large squad/ped counts
