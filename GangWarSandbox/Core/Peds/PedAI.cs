@@ -19,10 +19,10 @@ namespace GangWarSandbox
 {
     public class PedAI
     {
-        static List<WeaponHash> Pistols = new List<WeaponHash> { WeaponHash.APPistol, WeaponHash.CombatPistol, WeaponHash.DoubleActionRevolver,
-            WeaponHash.FlareGun, WeaponHash.HeavyPistol, WeaponHash.RevolverMk2, WeaponHash.Revolver, WeaponHash.Pistol50, WeaponHash.PistolMk2,
-            WeaponHash.Pistol, WeaponHash.SNSPistol, WeaponHash.SNSPistolMk2, WeaponHash.UpNAtomizer, WeaponHash.VintagePistol, WeaponHash.StunGun};
-        static List<WeaponHash> SMGs = new List<WeaponHash> { WeaponHash.AssaultSMG, WeaponHash.CombatPDW, WeaponHash.MicroSMG, WeaponHash.MiniSMG, WeaponHash.SMGMk2, WeaponHash.SMG };
+        // Helper classes
+        static GangWarSandbox ModData = GangWarSandbox.Instance;
+        static Random rand = new Random();
+
 
         // re-added a couple functions from SHVDN-- these have shown to be more reliable than those (for some reason)
         public static void RunTo(Ped ped, Vector3 coord)
@@ -40,6 +40,8 @@ namespace GangWarSandbox
             Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 1.5f, -1, 0.0f, false, 0.0f);
         }
 
+
+        // This is more reliable for navmesh
         public static void GoToFarAway(Ped ped, Vector3 coord)
         {
             Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2.0f, -1, 5.0f, 0, 0.0f);
@@ -116,6 +118,17 @@ namespace GangWarSandbox
 
             points.Add(end);
             return points;
+        }
+
+        public static Vector3 FindRandomEnemySpawnpoint(Team team)
+        {
+            List<Team> temp = ModData.Teams.Where(t => t != team && t.SpawnPoints.Count > 0).ToList();
+
+            if (temp.Count == 0) return Vector3.Zero; // no enemy teams with spawnpoints
+
+            int randomIndex = rand.Next(temp.Count);
+
+            return temp[randomIndex].SpawnPoints[rand.Next(0, temp[randomIndex].SpawnPoints.Count)]; // get a random spawnpoint from the enemy team
         }
 
     }

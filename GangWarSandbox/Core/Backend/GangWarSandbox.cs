@@ -15,6 +15,7 @@ using LemonUI;
 using LemonUI.Menus;
 using GangWarSandbox;
 using System.Runtime.InteropServices;
+using GangWarSandbox.Core.Backend;
 
 namespace GangWarSandbox
 {
@@ -23,25 +24,47 @@ namespace GangWarSandbox
         public static GangWarSandbox Instance { get; private set; }
 
         private readonly Random rand = new Random();
+        public const int DEBUG = 1;
 
+        // Constants
+        private const String LOG_FILE_PATH = "scripts/GangWarSandbox.log"; // Path to the log file
+        private const int AI_UPDATE_FREQUENCY = 200; // How often squad AI will be updated, in milliseconds
+        private const int POINT_UPDATE_FREQUENCY = 1000; // How often capture points will be updated, in milliseconds
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
-        private static int NUM_TEAMS = 4; // loaded once from ini-- in current phase its a constant
+        private const int NUM_TEAMS = 4; // How many teams? In the future, it will be loaded from a settings file, but for now it's constant to keep stability
 
-        private int PlayerTeam = -1;
+        // Teams
+        public int PlayerTeam = -1;
+        public List<Team> Teams = new List<Team>();
+        public Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
+
+        // Tracked Peds
+        public List<Ped> DeadPeds = new List<Ped>();
+
+        // Capture Points
+        public List<CapturePoint> CapturePoints = new List<CapturePoint>();
 
         // UI Elements
-        private ObjectPool _menuPool;
+        private ObjectPool _menuPool = new ObjectPool();
+
         private NativeMenu _mainMenu;
+        private NativeMenu _teamSetupMenu;
+        private NativeMenu _spawnpointMenu;
+        private NativeMenu _battleControlMenu;
         private List<NativeListItem<string>> _teamFactionItems = new List<NativeListItem<string>>();
 
-
-
+        // Game State
         private bool IsBattleRunning = false;
-
-        public List<Team> Teams = new List<Team>();
-        private Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
-
-        public List<Ped> DeadPeds = new List<Ped>();
+        private Gamemode CurrentGamemode = Gamemode.None; // Currently unused, but can be used to define different gamemodes in the future
+       
+        enum Gamemode
+        {
+            None,
+            GunGame,
+            Deathmatch,
+            Conquest,
+            KOTH,
+        } 
 
         public GangWarSandbox()
         {
@@ -164,20 +187,23 @@ namespace GangWarSandbox
             {
                 SpawnSquads(); // spawn squads that may be missing
 
-                // Make a snapshot copy of all squads to avoid collection modification issues
+                // Collection error prevention
                 var allSquads = Teams.SelectMany(t => t.Squads).ToList();
 
                 foreach (var squad in allSquads)
                 {
-                    if (Game.GameTime % 200 == 0 || squad.JustSpawned)
+                    Logger.LogDebug("Updating Ped AI");
+                    // Ped AI
+                    if (Game.GameTime % AI_UPDATE_FREQUENCY == 0 || squad.JustSpawned)
                     {
                         squad.SquadAIHandler();
                     }
 
+                    // Corpse Removal
+                    Logger.LogDebug("Removing dead people...");
                     List<Ped> deadPeds = squad.CleanupDead();
                     DeadPeds.AddRange(deadPeds);
 
-                    // Remove corpses if there are too many
                     while (DeadPeds.Count >= MAX_CORPSES)
                     {
                         if (DeadPeds[0] != null && DeadPeds[0].Exists())
@@ -187,6 +213,13 @@ namespace GangWarSandbox
                         DeadPeds.RemoveAt(0);
                     }
                 }
+
+                Logger.LogDebug("Updating capturepoints");
+                foreach (var point in CapturePoints)
+                {
+                    if (Game.GameTime % POINT_UPDATE_FREQUENCY == 0)
+                    point.CapturePointHandler(); // Process capture points
+                }
             }
         }
 
@@ -194,71 +227,100 @@ namespace GangWarSandbox
         {
             if (e.KeyCode == Keys.F10)
             {
-                _mainMenu.Visible = !_mainMenu.Visible;
+                if (!_menuPool.AreAnyVisible)
+                    _mainMenu.Visible = true;
+                else
+                    _menuPool.HideAll();
             }
         }
 
+
+        // ChatGPT supplied me with much of the documentation/LemonUI api knowledge during the creation of this.
+        // It will be rewritten eventually, but in the meantime avoid making anything dependent on this code.
+        // (there should never be anything dependent on it, but just as a precaution)
         private void SetupMenu()
         {
-            _mainMenu = new NativeMenu("Gang War Sandbox", "OPTIONS");
+            // MAIN MENU
+            _mainMenu = new NativeMenu("Gang War Sandbox", "MAIN MENU");
             _menuPool.Add(_mainMenu);
 
-            var playerTeamItem = new NativeListItem<string>("Player Team", new[] { "Neutral" });
+            // Submenu: TEAM SETUP
+            _teamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
+            _menuPool.Add(_teamSetupMenu);
+            _mainMenu.AddSubMenu(_teamSetupMenu);
 
+            List<String> playerTeamItem_Teams = new List<String> { "Neutral" };
             for (int i = 0; i < NUM_TEAMS; i++)
-            {
-                playerTeamItem.Add("Team " + (i + 1));
-            }
+                playerTeamItem_Teams.Add("Team " + (i + 1));
 
-            // FIXED: Clear list and populate after creating the actual list items
+            var playerTeamItem = new NativeListItem<string>("Player Team", playerTeamItem_Teams.ToArray());
+
+            playerTeamItem.ItemChanged += (item, args) =>
+            {
+                var sel = playerTeamItem.SelectedItem;
+                PlayerTeam = (sel == "Neutral") ? -1 : int.Parse(sel.Substring(5)) - 1;
+            };
+
             _teamFactionItems.Clear();
-
             for (int i = 0; i < NUM_TEAMS; i++)
             {
-                var teamFactionItem = new NativeListItem<string>("Team " + (i + 1) + " Faction", Factions.Keys.ToArray());
+                var teamFactionItem = new NativeListItem<string>($"Team {i + 1} Faction", Factions.Keys.ToArray());
                 _teamFactionItems.Add(teamFactionItem);
-                _mainMenu.Add(teamFactionItem);
+                _teamSetupMenu.Add(teamFactionItem);
             }
+            _teamSetupMenu.Add(playerTeamItem);
+
+            // Submenu: SPAWNPOINT SETUP
+            _spawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
+            _menuPool.Add(_spawnpointMenu);
+            _mainMenu.AddSubMenu(_spawnpointMenu);
 
             var addT1 = new NativeItem("Add Spawnpoint - Team 1");
             var addT2 = new NativeItem("Add Spawnpoint - Team 2");
             var addT3 = new NativeItem("Add Spawnpoint - Team 3");
             var addT4 = new NativeItem("Add Spawnpoint - Team 4");
+            var clearNearest = new NativeItem("Clear Nearest Spawnpoint");
             var clear = new NativeItem("Clear All Spawnpoints");
-            var start = new NativeItem("Start Battle");
-            var stop = new NativeItem("Stop Battle");
+            var addCapPt = new NativeItem("Add Capture Point");
 
-            playerTeamItem.Activated += (item, args) =>
-            {
-                var sel = playerTeamItem.SelectedItem;
-                if (sel == "Neutral")
-                    PlayerTeam = -1;
-                else
-                    PlayerTeam = int.Parse(sel.Substring(5)) - 1;
-            };
+
+
             addT1.Activated += (item, args) => AddSpawnpoint(1);
             addT2.Activated += (item, args) => AddSpawnpoint(2);
             addT3.Activated += (item, args) => AddSpawnpoint(3);
             addT4.Activated += (item, args) => AddSpawnpoint(4);
-            clear.Activated += (item, args) => ClearAllSpawnpoints();
+
+            addCapPt.Activated += (item, args) => AddCapturePoint();
+
+            clear.Activated += (item, args) => ClearAllPoints();
+
+
+
+            _spawnpointMenu.Add(addT1);
+            _spawnpointMenu.Add(addT2);
+            _spawnpointMenu.Add(addT3);
+            _spawnpointMenu.Add(addT4);
+            _spawnpointMenu.Add(addCapPt);
+            _spawnpointMenu.Add(clear);
+
+            // Submenu: BATTLE CONTROL
+            _battleControlMenu = new NativeMenu("Battle Control", "Start or Stop Battle");
+            _menuPool.Add(_battleControlMenu);
+            _mainMenu.AddSubMenu(_battleControlMenu);
+
+            var start = new NativeItem("Start Battle");
+            var stop = new NativeItem("Stop Battle");
+
             start.Activated += (item, args) =>
             {
                 for (int i = 0; i < NUM_TEAMS; i++)
-                {
                     ApplyFactionToTeam(Teams[i], _teamFactionItems[i].SelectedItem);
-                }
                 StartBattle();
             };
             stop.Activated += (item, args) => StopBattle();
 
-            _mainMenu.Add(playerTeamItem);
-            _mainMenu.Add(addT1);
-            _mainMenu.Add(addT2);
-            _mainMenu.Add(addT3);
-            _mainMenu.Add(addT4);
-            _mainMenu.Add(clear);
-            _mainMenu.Add(start);
-            _mainMenu.Add(stop);
+            _battleControlMenu.Add(start);
+            _battleControlMenu.Add(stop);
         }
 
         private void ApplyFactionToTeam(Team team, string factionName)
@@ -279,7 +341,7 @@ namespace GangWarSandbox
             }
         }
 
-        private void ClearAllSpawnpoints()
+        private void ClearAllPoints()
         {
             foreach (var team in Teams)
             {
@@ -290,14 +352,33 @@ namespace GangWarSandbox
                 team.Blips.Clear();
                 team.SpawnPoints.Clear();
             }
+
+            foreach (var point in CapturePoints)
+            {
+                if (point.PointBlip.Exists()) point.PointBlip.Delete();
+            }
+            CapturePoints.Clear();
         }
 
         private void AddSpawnpoint(int teamIndex)
         {
             if (!IsBattleRunning)
             {
-                Vector3 charPos = Game.Player.Character.Position;
-                Teams[teamIndex - 1].AddSpawnpoint(charPos);
+                if (Game.IsWaypointActive)
+                {
+                    Vector3 waypointPos = World.WaypointPosition;
+                    Teams[teamIndex - 1].AddSpawnpoint(waypointPos);
+
+                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at waypoint.");
+                    World.RemoveWaypoint();
+                }
+                else
+                {
+                    Vector3 charPos = Game.Player.Character.Position;
+                    Teams[teamIndex - 1].AddSpawnpoint(charPos);
+                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at player location.");
+
+                }
             }
             else
             {
@@ -305,14 +386,42 @@ namespace GangWarSandbox
             }
         }
 
+        private void AddCapturePoint()
+        {
+            if (!IsBattleRunning)
+            {
+                if (Game.IsWaypointActive)
+                {
+                    Vector3 waypointPos = World.WaypointPosition;
+                    CapturePoints.Add(new CapturePoint(waypointPos));
+
+                    GTA.UI.Screen.ShowSubtitle($"Capture point created at waypoint.");
+                    World.RemoveWaypoint();
+                }
+                else
+                {
+                    Vector3 charPos = Game.Player.Character.Position;
+                    CapturePoints.Add(new CapturePoint(charPos));
+                    GTA.UI.Screen.ShowSubtitle($"Capture point created at player location.");
+
+                }
+            }
+            else
+            {
+                GTA.UI.Screen.ShowSubtitle("Stop the battle to create a new spawnpoint.");
+            }
+        }
+
+
         private void StartBattle()
         {
+            Logger.LogDebug("Starting battle");
             IsBattleRunning = true;
             GTA.UI.Screen.ShowSubtitle("Battle Started!");
 
             Ped player = Game.Player.Character;
 
-
+            Logger.LogDebug("Assigning player team");
             // Assign player to team
             if (PlayerTeam == -1)
             {
@@ -323,6 +432,7 @@ namespace GangWarSandbox
                 Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
                 Teams[PlayerTeam].Tier4Ped = player; // Assign player to be their team's "strong npc"
 
+                Logger.LogDebug("Player has team, teleporting them...");
                 // move the player to the first spawn point of their team
                 if (Teams[PlayerTeam].SpawnPoints.Count > 0)
                 {
@@ -330,9 +440,10 @@ namespace GangWarSandbox
                 }
             }
 
+            Logger.LogDebug("Assigning team relationships");
             foreach (var team in Teams)
             {
-                team.RecolorBlips(); // ensure the blips are the correct color
+                // team.RecolorBlips(); // ensure the blips are the correct color
 
                 foreach (var other in Teams)
                 {
@@ -342,6 +453,7 @@ namespace GangWarSandbox
 
             }
 
+            Logger.LogDebug("Spawning squads for the first time...");
             // Spawn squads for each team
             SpawnSquads();
         }
@@ -350,6 +462,7 @@ namespace GangWarSandbox
         {
             foreach (var team in Teams)
             {
+                Logger.LogDebug("Trying to spawn for team \"" + team.Name + "\"");
                 // SAFETY CHECKS: Prevent crashes
                 if (team.SpawnPoints.Count == 0 || team.Models.Length == 0)
                 {
@@ -358,16 +471,20 @@ namespace GangWarSandbox
 
                 int numAlive = 0;
 
+                Logger.LogDebug("Getting the current amount of peds alive for team " + team.Name);
                 for (int i = 0; i < team.Squads.Count; i++)
                 {
                     numAlive += team.Squads[i].Members.Count;
                 }
+                Logger.LogDebug(team.Name + " has " + numAlive + " peds currently alive.");
 
+                Logger.LogDebug("Getting squad sizes");
                 int squadSize = team.GetSquadSize();
 
-                // Avoid infinite loop or bad math
+                // Avoid infinite loop
                 if (squadSize <= 0) continue;
 
+                Logger.LogDebug("Fill team with peds...");
                 while (numAlive + squadSize <= team.Faction.MaxSoldiers)
                 {
                     Squad squad = new Squad(team, 0);

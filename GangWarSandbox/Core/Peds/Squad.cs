@@ -149,30 +149,13 @@ namespace GangWarSandbox
                 ped.AlwaysKeepTask = true;
             }
 
-            Vector3 target = FindRandomEnemySpawnpoint(Owner); // set the current target to a random enemy spawnpoint
+            Vector3 target = PedAI.FindRandomEnemySpawnpoint(Owner); // set the current target to a random enemy spawnpoint
             Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // get the waypoints to the target position
         }
 
         private int GetSquadSizeByType(SquadType type)
         {
             return Owner.GetSquadSize();
-        }
-
-        // When the squad is spawned, spawn its peds 
-        private void SpawnSquadPeds(int num)
-        {
-            SquadLeader = SpawnPed(Owner, true);
-            Members.Add(SquadLeader);
-
-            for (int i = 0; i < num - 1; i++) {
-                Ped ped = SpawnPed(Owner, false);
-
-                if (ped != null)
-                {
-                    Members.Add(ped);
-                }
-
-            }
         }
 
         public bool SquadAIHandler()
@@ -287,7 +270,7 @@ namespace GangWarSandbox
                     // Follow the squad leader around
                     if (PedAssignments[ped] != PedAssignment.FollowSquadLeader && Vector3.Distance(ped.Position, leaderPosition) > 5f)
                     {
-                        ped.Task.FollowToOffsetFromEntity(SquadLeader, GenerateRandomOffset(), 2f);
+                        ped.Task.FollowToOffsetFromEntity(SquadLeader, Helpers.GenerateRandomOffset(), 2f);
                         PedAssignments[ped] = PedAssignment.FollowSquadLeader;
                     }
                 }
@@ -295,31 +278,6 @@ namespace GangWarSandbox
             }
 
             return true;
-        }
-
-        private Vector3 GenerateRandomOffset()
-        {
-            float offsetX = 0;
-            float offsetY = 0;
-
-            while (Math.Abs(offsetX) < 1 && Math.Abs(offsetY) < 1) // ensure the offset is not too small
-            {
-                offsetX = rand.Next(-5, 6);
-                offsetY = rand.Next(-5, 6);
-            }
-
-            return new Vector3(offsetX, offsetY, 0);
-        }
-
-        private Vector3 FindRandomEnemySpawnpoint(Team team)
-        {
-            List<Team> temp = ModData.Teams.Where(t => t != Owner && t.SpawnPoints.Count > 0).ToList();
-
-            if (temp.Count == 0) return Vector3.Zero; // no enemy teams with spawnpoints
-
-            int randomIndex = rand.Next(temp.Count);
-
-            return temp[randomIndex].SpawnPoints[rand.Next(0, temp[randomIndex].SpawnPoints.Count)]; // get a random spawnpoint from the enemy team
         }
 
         private Ped FindNearbyEnemy(Ped self, Team team, float distance, bool infiniteSearch = false)
@@ -404,13 +362,27 @@ namespace GangWarSandbox
 
             Members.Clear(); // clear list after cleanup
 
-            if (Owner.Squads.Contains(this))  Owner.Squads.Remove(this);
+            if (Owner.Squads.Contains(this)) Owner.Squads.Remove(this);
         }
 
-        public bool isEmpty()
+        // When the squad is spawned, spawn its peds 
+        private void SpawnSquadPeds(int num)
         {
-            if (Members.Count <= 0) return true;
-            else return false;
+            if (num == 0) num = 5; // if the squad is invalidly sized, give it a default value of five
+
+            SquadLeader = SpawnPed(Owner, true);
+            Members.Add(SquadLeader);
+
+            for (int i = 0; i < num - 1; i++)
+            {
+                Ped ped = SpawnPed(Owner, false);
+
+                if (ped != null)
+                {
+                    Members.Add(ped);
+                }
+
+            }
         }
 
         // SpawnPed -- Spawns a ped based on the team, with a given loadout.
@@ -423,13 +395,13 @@ namespace GangWarSandbox
 
             bool shouldSpawnTier4 = team.Tier4Ped == null || !team.Tier4Ped.Exists() || team.Tier4Ped.IsDead;
 
-            int tier = 1;
+            int tier;
             int rnum = rand.Next(0, 100);
 
             rnum = (int)(rnum * team.TierUpgradeMultiplier);
 
-            if (rnum <= 10 || isSquadLeader) tier = 3;
-            if (rnum <= 40) tier = 2;
+            if (isSquadLeader) tier = 3;
+            else if (rnum <= 40) tier = 2;
             else tier = 1;
 
 
@@ -469,7 +441,7 @@ namespace GangWarSandbox
                 weapon = Helpers.GetRandom(team.Tier2Weapons);
                 ped.Health = team.BaseHealth + 100;
                 blip.Sprite = BlipSprite.Enemy;
-                blip.Scale = 0.5f;
+                blip.Scale = 0.4f;
                 pedValue = 100;
 
                 Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2); // offensive
@@ -479,7 +451,7 @@ namespace GangWarSandbox
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
                 ped.Health = team.BaseHealth * 2;
                 ped.Accuracy = team.Accuracy * 2;
-                blip.Sprite = BlipSprite.Enemy2;
+                blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.6f;
                 pedValue = 240;
 
@@ -497,7 +469,6 @@ namespace GangWarSandbox
                 team.Tier4Ped = ped;
 
                 ped.Armor = 100;
-                ped.CanSufferCriticalHits = false;
                 ped.IsFireProof = true;
                 ped.IsInvincible = false;
 
@@ -545,10 +516,13 @@ namespace GangWarSandbox
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 42, true); // Can flank
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 28, true); // Advance if frustrated (can't see the enemy?)
 
+            ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)
+
+
             Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 80f);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
             Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 2);
-            Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 2);             // 0 = near, 1 = medium, 2 = far
+            Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 2); // 0 = near, 1 = medium, 2 = far
 
 
             // Fight against any nearby targets, at an even greater range than normal behavior
@@ -559,5 +533,19 @@ namespace GangWarSandbox
             squadValue += pedValue;
             return ped;
         }
+
+        public bool isEmpty()
+        {
+            if (Members.Count <= 0) return true;
+            else return false;
+        }
+
+
+
+
+
+
     }
+
+
 }

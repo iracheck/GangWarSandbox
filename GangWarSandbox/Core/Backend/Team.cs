@@ -49,12 +49,44 @@ namespace GangWarSandbox
 
         public int GetSquadSize()
         {
+            if (Faction == null || Faction.MaxSoldiers <= 0)
+            {
+                GTA.UI.Screen.ShowSubtitle("Faction is not set or has no soldiers available.");
+                return 5; // default
+            }
+
             int squadSize = Faction.MaxSoldiers / 5;
+            GTA.UI.Screen.ShowSubtitle("Team has" + MAX_SOLDIERS + " soldiers available, thus can fit " + MAX_SOLDIERS / squadSize + " squads.");
 
             if (squadSize > 6) squadSize = 6;
             if (squadSize < 2) squadSize = 2;
 
             return squadSize;
+        }
+
+        public int GetMaxNumSquads()
+        {
+            int squadSize = GetSquadSize();
+            if (squadSize <= 0) return 0;
+
+            int maxSquads = MAX_SOLDIERS / squadSize;
+
+            if (maxSquads < 1) maxSquads = 1; // ensure at least one squad
+
+            return maxSquads;
+        }
+
+        public List<Ped> GetAllPeds()
+        {
+            List<Ped> allPeds = new List<Ped>();
+
+            foreach (var squad in Squads)
+            {
+                if (squad.isEmpty()) continue;
+                else allPeds.AddRange(squad.Members);
+            }
+
+            return allPeds;
         }
 
         public void RecolorBlips()
