@@ -79,7 +79,7 @@ namespace GangWarSandbox
 
             for (int i = 0; i < NUM_TEAMS; i++)
             {
-                Teams.Add(new Team("Team " + (i + 1))); // Initialize teams with default names and groups
+                Teams.Add(new Team((i + 1).ToString())); // Initialize teams with default names and groups
                 LastSquadSpawnTime[Teams[i]] = 0; // Initialize last spawn time for each team
 
                 // build the enum‐member name
@@ -197,7 +197,7 @@ namespace GangWarSandbox
                 {
                     Logger.LogDebug("Updating Ped AI");
                     // Ped AI
-                    if (Game.GameTime % AI_UPDATE_FREQUENCY == 0 || squad.JustSpawned)
+                    if (GameTime % AI_UPDATE_FREQUENCY == 0 || squad.JustSpawned)
                     {
                         squad.SquadAIHandler();
                     }
@@ -220,7 +220,7 @@ namespace GangWarSandbox
                 Logger.LogDebug("Updating capturepoints");
                 foreach (var point in CapturePoints)
                 {
-                    if (Game.GameTime % POINT_UPDATE_FREQUENCY == 0)
+                    if (GameTime % POINT_UPDATE_FREQUENCY == 0)
                     point.CapturePointHandler(); // Process capture points
                 }
             }
@@ -346,6 +346,12 @@ namespace GangWarSandbox
 
         private void ClearAllPoints()
         {
+            if (IsBattleRunning)
+            {
+                GTA.UI.Screen.ShowSubtitle("Stop the battle to remove spawnpoints.");
+                return;
+            }
+
             foreach (var team in Teams)
             {
                 foreach (var blip in team.Blips)
@@ -486,11 +492,11 @@ namespace GangWarSandbox
 
                 if (squadSize <= 0) continue;
 
-                if (Game.GameTime - LastSquadSpawnTime[team] <= TIME_BETWEEN_SQUAD_SPAWNS && numAlive + squadSize <= team.Faction.MaxSoldiers)
+                if (Game.GameTime - LastSquadSpawnTime[team] >= TIME_BETWEEN_SQUAD_SPAWNS && numAlive + squadSize <= team.Faction.MaxSoldiers)
                 {
                     LastSquadSpawnTime[team] = Game.GameTime;
-                    Squad squad = new Squad(team, 0);
 
+                    Squad squad = new Squad(team, 0);
                     team.Squads.Add(squad);
                     numAlive += squad.Members.Count;
                 }

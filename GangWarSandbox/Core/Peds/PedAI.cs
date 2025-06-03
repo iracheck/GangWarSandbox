@@ -23,28 +23,30 @@ namespace GangWarSandbox
         static GangWarSandbox ModData = GangWarSandbox.Instance;
         static Random rand = new Random();
 
-
-        // re-added a couple functions from SHVDN-- these have shown to be more reliable than those (for some reason)
         public static void RunTo(Ped ped, Vector3 coord)
         {
-            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2.0f, -1, 0.0f, false, 0.0f);
+            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2f, -1, 5.0f, 0, 0.0f);
         }
-
-        public static void WalkTo(Ped ped, Vector3 coord)
-        {
-            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 1.0f, -1, 0.0f, false, 0.0f);
-        }
-
-        public static void JogTo(Ped ped, Vector3 coord)
-        {
-            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 1.5f, -1, 0.0f, false, 0.0f);
-        }
-
-
-        // This is more reliable for navmesh
         public static void GoToFarAway(Ped ped, Vector3 coord)
         {
-            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2.0f, -1, 5.0f, 0, 0.0f);
+            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 1.5f, -1, 5.0f, 0, 0.0f);
+        }
+
+        public static void DefendArea(Ped ped, Vector3 point)
+        {
+            // Set defensive area for fallback logic
+            Function.Call(Hash.SET_PED_SPHERE_DEFENSIVE_AREA, ped.Handle, point.X, point.Y, point.Z, 20f, false, false);
+
+            // Give guard order
+            Function.Call(Hash.TASK_GUARD_SPHERE_DEFENSIVE_AREA,
+                ped.Handle,
+                point.X, point.Y, point.Z,
+                0f,        // heading
+                10f,       // patrol radius
+                -1,        // infinite guard time
+                point.X, point.Y, point.Z,
+                20f        // outer guard radius
+            );
         }
 
         public static void PushLocation(Ped ped, Vector3 location)
@@ -94,9 +96,10 @@ namespace GangWarSandbox
             return result.DidHit && result.HitEntity != null && result.HitEntity == target;
         }
 
-        public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, float maxStepSize = 50f)
+        public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, float maxStepSize = 50f, bool followRoads = true)
         {
             List<Vector3> points = new List<Vector3>();
+
 
             Vector3 direction = end - start;
 
@@ -106,13 +109,20 @@ namespace GangWarSandbox
 
             int numSteps = (int)(distance / maxStepSize);
 
+            //points.Add(start);
+
             if (distance > maxStepSize && numSteps > 0) {
-
-
                 for (int i = 1; i < numSteps; i++)
                 {
                     Vector3 step = start + direction * (i * maxStepSize);
-                    points.Add(step);
+                    step = World.GetSafeCoordForPed(step, followRoads);
+
+                    if (step != Vector3.Zero)
+                    {
+                        step += GenerateRandomOffset(); // Let's add a slight randomization to the route, just so it doesn't look like they're going in a straight line
+
+                        points.Add(step);
+                    }
                 }
             }
 
@@ -120,6 +130,14 @@ namespace GangWarSandbox
 
             return points;
         }
+
+
+
+
+
+        // The following are all helper methods to help peds reach locations, or find destinations. They do not directly control peds.
+
+
 
         public static Vector3 FindRandomEnemySpawnpoint(Team team)
         {
@@ -174,6 +192,20 @@ namespace GangWarSandbox
             }
 
             return PedsNearby;
+        }
+
+        public static Vector3 GenerateRandomOffset()
+        {
+            float offsetX = 0;
+            float offsetY = 0;
+
+            while (Math.Abs(offsetX) < 1 && Math.Abs(offsetY) < 1) // ensure the offset is not too small
+            {
+                offsetX = rand.Next(-5, 6);
+                offsetY = rand.Next(-5, 6);
+            }
+
+            return new Vector3(offsetX, offsetY, 0);
         }
 
     }

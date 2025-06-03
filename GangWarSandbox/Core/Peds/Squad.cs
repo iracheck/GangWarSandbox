@@ -15,7 +15,6 @@ using System.Drawing;
 using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
 using System.ComponentModel;
-using GangWarSandbox.Core.StrategyAI;
 
 namespace GangWarSandbox
 {
@@ -52,6 +51,8 @@ namespace GangWarSandbox
         public SquadType Type;
         public SquadPersonality Personality;
 
+        // Abstract Orders
+        // these are orders that come from the "Strategy AI" of each team
         CapturePoint TargetPoint; // the location that the squad's role will be applied to-- variable
 
         Vehicle SquadVehicle;
@@ -115,6 +116,10 @@ namespace GangWarSandbox
             Aggressive = 1, // the squad may not wait for combat to end to push its target
         }
 
+        public void SetTarget(Vector3 target)
+        {
+            Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // set the waypoints to the target position
+        }
 
         public Squad(Team owner, SquadRole role = 0, SquadType type = 0, SquadPersonality personality = 0)
         {
@@ -244,25 +249,20 @@ namespace GangWarSandbox
 
                 if (ped.IsInCombat || PedAssignments[ped] == PedAssignment.AttackNearby) continue;
 
-                //// If assigned to defend an area, defend it!
-                //if (Role == SquadRole.DefendCapturePoint && Waypoints[0] != Vector3.Zero)
-                //{
-                //    if (ped.Position.DistanceTo(Waypoints[0]) < 5f) // too close!
-                //    {
-                //        Vector3 offset = GenerateRandomOffset();
-                //        Vector3 target = Waypoints[0] + offset; // move to a random position around the target
+                // Defend Area
+                if (Role == SquadRole.DefendCapturePoint && PedAssignments[ped] != PedAssignment.DefendArea && TargetPoint != null)
+                {
+                    if (PedAssignments[ped] == PedAssignment.RunToPosition || ped.Position.DistanceTo(TargetPoint.Location) >= 20f)
+                    {
+                        PedAssignments[ped] = PedAssignment.RunToPosition; // set the ped to defend the area
 
-                //        ped.Task.GoTo(target, -1);
-                //    }
-                //    else if (!ped.IsInCover && !ped.IsGoingIntoCover)
-                //    {
-                //        PedAI.SeekCover(ped);
-                //    }
-                //}
-                //else if (PedAssignments[ped] == PedAssignment.DefendArea)
-                //{
-                //    PedAssignments[ped] = PedAssignment.None;
-                //}
+                        SetTarget(TargetPoint.Location);
+                    }
+                    else
+                    {
+                        PedAI.DefendArea(ped, TargetPoint.Location);
+                    }
+                }
 
                 if (ped == SquadLeader)
                 {
@@ -293,7 +293,7 @@ namespace GangWarSandbox
                     // Follow the squad leader around
                     if (PedAssignments[ped] != PedAssignment.FollowSquadLeader && Vector3.Distance(ped.Position, leaderPosition) > 5f)
                     {
-                        ped.Task.FollowToOffsetFromEntity(SquadLeader, Helpers.GenerateRandomOffset(), 2f);
+                        ped.Task.FollowToOffsetFromEntity(SquadLeader, PedAI.GenerateRandomOffset(), 2f);
                         PedAssignments[ped] = PedAssignment.FollowSquadLeader;
                     }
                 }
@@ -517,7 +517,9 @@ namespace GangWarSandbox
             blip.Color = team.BlipColor;
 
             ped.AlwaysKeepTask = true;
+            //ped.BlockPermanentEvents = true; // will prevent a lot of base-level AI stuff --> avoid using this permanently
             ped.IsPersistent = true;
+            ped.LodDistance = 1000; // Increase the distance at which peds will do tasks
 
             Members.Add(ped);
             PedAssignments[ped] = PedAssignment.None;
@@ -526,16 +528,18 @@ namespace GangWarSandbox
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 0, true);  // Always fight
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 1, true);  // Can use cover
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 5, true);  // Can fight armed when unarmed
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 22, true); // Can drag friends to safety
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 50, true); // Can charge
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 58, true); // Don't flee from combat
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 53, true); // Advance if no cover avaliable
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 42, true); // Can flank
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 28, true); // Advance if frustrated (can't see the enemy?)
 
-            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 80f);
+            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 70f);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
-            Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 2);
-            Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 2); // 0 = near, 1 = medium, 2 = far
+            Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 1);
+            Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 1); // 0 = near, 1 = medium, 2 = far
+          
 
 
             // Fight against any nearby targets, at an even greater range than normal behavior
@@ -545,11 +549,6 @@ namespace GangWarSandbox
 
             squadValue += pedValue;
             return ped;
-        }
-
-        public void SetTarget(Vector3 target)
-        {
-            Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // set the waypoints to the target position
         }
 
         public bool IsEmpty()
