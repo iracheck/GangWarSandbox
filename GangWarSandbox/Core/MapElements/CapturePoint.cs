@@ -73,8 +73,6 @@ namespace GangWarSandbox
 
             ResetCaptureProgress(); // Ensure capture progress is reset when created
 
-            PointID = ModData.CapturePoints.IndexOf(this); // Assign a unique ID based on index in the list
-
             PointBlip = World.CreateBlip(Location);
 
             PointBlip.Position = Location; // Set the blip position to the capture point location
@@ -82,8 +80,7 @@ namespace GangWarSandbox
             if (PointID < CapturePointIcons.Length && PointID >= 0) PointBlip.Sprite = CapturePointIcons[PointID];
             else PointBlip.Sprite = FallbackIcon; // Use fallback icon if PointID is out of range
 
-            PointBlip.Name = "Capture Point " + PointID; // Set the blip name
-            PointBlip.Color = BlipColor.GreyDark;
+
         }
 
         public void CapturePointHandler()

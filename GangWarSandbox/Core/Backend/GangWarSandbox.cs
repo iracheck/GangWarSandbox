@@ -390,10 +390,12 @@ namespace GangWarSandbox
         {
             if (!IsBattleRunning)
             {
+                CapturePoint point;
+
                 if (Game.IsWaypointActive)
                 {
                     Vector3 waypointPos = World.WaypointPosition;
-                    CapturePoints.Add(new CapturePoint(waypointPos));
+                    point = new CapturePoint(waypointPos);
 
                     GTA.UI.Screen.ShowSubtitle($"Capture point created at waypoint.");
                     World.RemoveWaypoint();
@@ -401,10 +403,15 @@ namespace GangWarSandbox
                 else
                 {
                     Vector3 charPos = Game.Player.Character.Position;
-                    CapturePoints.Add(new CapturePoint(charPos));
+                    point = new CapturePoint(charPos);
+                    
                     GTA.UI.Screen.ShowSubtitle($"Capture point created at player location.");
-
                 }
+
+                CapturePoints.Add(point);
+                point.PointID = CapturePoints.Count; // Set the ID based on the current count
+                point.PointBlip.Name = "Capture Point " + point.PointID; // Set the blip name
+
             }
             else
             {
