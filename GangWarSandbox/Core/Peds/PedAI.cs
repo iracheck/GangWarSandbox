@@ -157,7 +157,7 @@ namespace GangWarSandbox
 
                 if (ModData.PlayerTeam != -1 && ModData.Teams[ModData.PlayerTeam] == team)
                 {
-                    PedsNearby[team]++;
+                    allTeamPeds.Add(Game.Player.Character); // Add player character to the list if they are on this team
                 }
 
                 foreach (var ped in allTeamPeds)

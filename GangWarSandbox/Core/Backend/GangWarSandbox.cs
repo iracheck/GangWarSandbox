@@ -486,7 +486,7 @@ namespace GangWarSandbox
 
                 if (squadSize <= 0) continue;
 
-                while (LastSquadSpawnTime[team] >= Game.GameTime - TIME_BETWEEN_SQUAD_SPAWNS && numAlive + squadSize <= team.Faction.MaxSoldiers)
+                if (Game.GameTime - LastSquadSpawnTime[team] <= TIME_BETWEEN_SQUAD_SPAWNS && numAlive + squadSize <= team.Faction.MaxSoldiers)
                 {
                     LastSquadSpawnTime[team] = Game.GameTime;
                     Squad squad = new Squad(team, 0);
@@ -494,6 +494,8 @@ namespace GangWarSandbox
                     team.Squads.Add(squad);
                     numAlive += squad.Members.Count;
                 }
+
+
             }
         }
 
