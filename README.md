@@ -35,6 +35,7 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [ ] Vehicle Support
 - [ ] Air Vehicle Support
 - [x] Decrease performance overhead of large squad/ped counts
+- [ ] Rework file structure, with two INIs-- one for faction setup, one for mod options
 
 ### "Beyond 1.0" Features
 Features that may not fit into Version 1, but I want to include.
