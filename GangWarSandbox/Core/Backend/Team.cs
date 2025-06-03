@@ -56,7 +56,6 @@ namespace GangWarSandbox
             }
 
             int squadSize = Faction.MaxSoldiers / 5;
-            GTA.UI.Screen.ShowSubtitle("Team has" + MAX_SOLDIERS + " soldiers available, thus can fit " + MAX_SOLDIERS / squadSize + " squads.");
 
             if (squadSize > 6) squadSize = 6;
             if (squadSize < 2) squadSize = 2;
@@ -82,7 +81,7 @@ namespace GangWarSandbox
 
             foreach (var squad in Squads)
             {
-                if (squad.isEmpty()) continue;
+                if (squad.IsEmpty()) continue;
                 else allPeds.AddRange(squad.Members);
             }
 
@@ -101,7 +100,7 @@ namespace GangWarSandbox
         {
             foreach (var squad in Squads)
             {
-                if (squad.isEmpty()) continue;
+                if (squad.IsEmpty()) continue;
 
                 foreach (var ped in squad.Members)
                 {
@@ -130,7 +129,7 @@ namespace GangWarSandbox
         public void Cleanup()
         {
             foreach (var squad in Squads)
-                if (squad.isEmpty()) squad.Destroy();
+                if (squad.IsEmpty()) squad.Destroy();
 
             foreach (var ped in DeadPeds)
                 if (ped.Exists()) ped.Delete();

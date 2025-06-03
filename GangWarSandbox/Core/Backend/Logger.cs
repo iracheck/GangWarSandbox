@@ -9,6 +9,7 @@ namespace GangWarSandbox.Core.Backend
 {
     static class Logger
     {
+        private static GangWarSandbox ModData = GangWarSandbox.Instance; // Reference to the main mod instance
         private const String LOG_FILE_PATH = "scripts/GangWarSandbox.log"; // Path to the log file
 
         public static void Log(String data, String logType = "DEBUG")
@@ -28,7 +29,8 @@ namespace GangWarSandbox.Core.Backend
 
         public static void LogDebug(String data)
         {
-            Log(data, "DEBUG");
+            if (ModData.DEBUG == 1)
+                Log(data, "DEBUG");
         }
 
         public static void LogEvent(String data)

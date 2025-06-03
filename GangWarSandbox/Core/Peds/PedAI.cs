@@ -117,6 +117,7 @@ namespace GangWarSandbox
             }
 
             points.Add(end);
+
             return points;
         }
 
@@ -129,6 +130,18 @@ namespace GangWarSandbox
             int randomIndex = rand.Next(temp.Count);
 
             return temp[randomIndex].SpawnPoints[rand.Next(0, temp[randomIndex].SpawnPoints.Count)]; // get a random spawnpoint from the enemy team
+        }
+
+        public static Vector3 FindRandomCapturePoint(Team team)
+        {
+            List<CapturePoint> temp = ModData.CapturePoints;
+
+
+            if (temp.Count == 0) return Vector3.Zero; // no capture points avaliable
+
+            int randomIndex = rand.Next(temp.Count);
+
+            return temp[randomIndex].Location; // get a random spawnpoint from the enemy team
         }
 
     }

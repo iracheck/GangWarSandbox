@@ -142,29 +142,61 @@ namespace GangWarSandbox
             PedTargetCache = new Dictionary<Ped, (Ped enemy, int timestamp)>();
             SpawnSquadPeds(GetSquadSizeByType(Type));
 
-            // Spawn squadmates
-            for (int i = 0; i < Members.Count; i++)
+            Waypoints.Add(Vector3.Zero);
+
+            Vector3 target = GetRandomTarget(); // get a random target for the squad to attack
+            SetTarget(target); // set the target for the squad to attack
+        }
+
+        // In cases where Strategy AI does not exist or cannot provide the squad with a target, we can auto generate one
+        public Vector3 GetRandomTarget()
+        {
+            List<CapturePoint> capturePoints = ModData.CapturePoints;
+            Vector3 target = Vector3.Zero;
+
+            if (Personality == SquadPersonality.Aggressive)
             {
-                Ped ped = Members[i];
-                ped.AlwaysKeepTask = true;
+                target = PedAI.FindRandomEnemySpawnpoint(Owner);
+
+                if (target == Vector3.Zero && capturePoints.Count > 0)
+                {
+                    target = PedAI.FindRandomCapturePoint(Owner);
+                }
+            }
+            else
+            {
+                if (capturePoints.Count > 0)
+                {
+                    target = PedAI.FindRandomCapturePoint(Owner);
+                }
+                else
+                {
+                    target = PedAI.FindRandomEnemySpawnpoint(Owner);
+                }
             }
 
-            Vector3 target = PedAI.FindRandomEnemySpawnpoint(Owner); // set the current target to a random enemy spawnpoint
-            Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // get the waypoints to the target position
+            // Final failsafe: ensure a non-zero target is returned
+            if (target == Vector3.Zero)
+            {
+                // fallback to spawn pos if no valid targets are found
+                target = SpawnPos + new Vector3(rand.Next(-10, 10), rand.Next(-10, 10), 0);
+                GTA.UI.Screen.ShowSubtitle($"[WARNING] Squad from {Owner.Name} failed to find a valid target.");
+            }
+
+            return target;
         }
 
-        private int GetSquadSizeByType(SquadType type)
-        {
-            return Owner.GetSquadSize();
-        }
+
 
         public bool SquadAIHandler()
         {
-            if (isEmpty())
+            if (IsEmpty())
             {
                 Destroy();
                 return false;
             }
+
+            if (Waypoints.Count == 0) Waypoints.Add(Vector3.Zero);
 
             if (JustSpawned) JustSpawned = false;
 
@@ -252,16 +284,6 @@ namespace GangWarSandbox
                     {
                         Waypoints.RemoveAt(0);
                         PedAssignments[ped] = PedAssignment.None;
-
-                        string waypointText = "Waypoints:\n";
-
-                        for (int p = 0; p < Waypoints.Count; p++)
-                        {
-                            Vector3 wp = Waypoints[p];
-                            waypointText += $"[{p}] X: {wp.X:F1}, Y: {wp.Y:F1}, Z: {wp.Z:F1}\n";
-                        }
-
-                        GTA.UI.Screen.ShowSubtitle(waypointText, 5000); // Show for 5 seconds
                     }
 
                 }
@@ -371,17 +393,10 @@ namespace GangWarSandbox
             if (num == 0) num = 5; // if the squad is invalidly sized, give it a default value of five
 
             SquadLeader = SpawnPed(Owner, true);
-            Members.Add(SquadLeader);
 
             for (int i = 0; i < num - 1; i++)
             {
                 Ped ped = SpawnPed(Owner, false);
-
-                if (ped != null)
-                {
-                    Members.Add(ped);
-                }
-
             }
         }
 
@@ -500,7 +515,6 @@ namespace GangWarSandbox
             blip.Color = team.BlipColor;
 
             ped.AlwaysKeepTask = true;
-
             ped.IsPersistent = true;
 
             Members.Add(ped);
@@ -534,10 +548,20 @@ namespace GangWarSandbox
             return ped;
         }
 
-        public bool isEmpty()
+        public void SetTarget(Vector3 target)
+        {
+            Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // set the waypoints to the target position
+        }
+
+        public bool IsEmpty()
         {
             if (Members.Count <= 0) return true;
             else return false;
+        }
+
+        private int GetSquadSizeByType(SquadType type)
+        {
+            return Owner.GetSquadSize();
         }
 
 

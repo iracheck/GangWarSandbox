@@ -24,7 +24,7 @@ namespace GangWarSandbox
         public static GangWarSandbox Instance { get; private set; }
 
         private readonly Random rand = new Random();
-        public const int DEBUG = 1;
+        public int DEBUG = 0;
 
         // Constants
         private const String LOG_FILE_PATH = "scripts/GangWarSandbox.log"; // Path to the log file
@@ -408,7 +408,7 @@ namespace GangWarSandbox
             }
             else
             {
-                GTA.UI.Screen.ShowSubtitle("Stop the battle to create a new spawnpoint.");
+                GTA.UI.Screen.ShowSubtitle("Stop the battle to create a new capture point.");
             }
         }
 
