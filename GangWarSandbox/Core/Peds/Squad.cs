@@ -15,6 +15,7 @@ using System.Drawing;
 using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
 using System.ComponentModel;
+using GangWarSandbox.Core.StrategyAI;
 
 namespace GangWarSandbox
 {
@@ -486,6 +487,7 @@ namespace GangWarSandbox
                 ped.Armor = 100;
                 ped.IsFireProof = true;
                 ped.IsInvincible = false;
+                ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)
 
                 Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 3); // suicidal
 
@@ -530,9 +532,6 @@ namespace GangWarSandbox
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 42, true); // Can flank
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 28, true); // Advance if frustrated (can't see the enemy?)
 
-            ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)
-
-
             Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 80f);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
             Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 2);
@@ -564,10 +563,21 @@ namespace GangWarSandbox
             return Owner.GetSquadSize();
         }
 
+        // Squad points are used in autocalculated battles
+        public int GetSquadPoints()
+        {
+            int squadSize = GetSquadSizeByType(Type);
+            int members = Members.Count;
+            float multiplier = members / squadSize;
 
+            int points = 0;
 
+            if (members <= 0) return 0;
 
-
+            points = (int) (squadValue * multiplier) + 50;
+            
+            return points;
+        }
 
     }
 

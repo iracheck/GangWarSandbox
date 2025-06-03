@@ -32,7 +32,7 @@ namespace GangWarSandbox
         private const int POINT_UPDATE_FREQUENCY = 1000; // How often capture points will be updated, in milliseconds
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
         private const int NUM_TEAMS = 4; // How many teams? In the future, it will be loaded from a settings file, but for now it's constant to keep stability
-        private const int TIME_BETWEEN_SQUAD_SPAWNS = 5000; // Time in milliseconds between squad spawns for each team
+        private const int TIME_BETWEEN_SQUAD_SPAWNS = 3000; // Time in milliseconds between squad spawns for each team
 
         // Teams
         public int PlayerTeam = -1;
@@ -484,7 +484,6 @@ namespace GangWarSandbox
 
                 int squadSize = team.GetSquadSize();
 
-                // Avoid infinite loop
                 if (squadSize <= 0) continue;
 
                 while (LastSquadSpawnTime[team] >= Game.GameTime - TIME_BETWEEN_SQUAD_SPAWNS && numAlive + squadSize <= team.Faction.MaxSoldiers)
