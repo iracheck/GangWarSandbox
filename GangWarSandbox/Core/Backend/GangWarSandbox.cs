@@ -32,11 +32,13 @@ namespace GangWarSandbox
         private const int POINT_UPDATE_FREQUENCY = 1000; // How often capture points will be updated, in milliseconds
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
         private const int NUM_TEAMS = 4; // How many teams? In the future, it will be loaded from a settings file, but for now it's constant to keep stability
+        private const int TIME_BETWEEN_SQUAD_SPAWNS = 5000; // Time in milliseconds between squad spawns for each team
 
         // Teams
         public int PlayerTeam = -1;
         public List<Team> Teams = new List<Team>();
         public Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
+        public Dictionary<Team, float> LastSquadSpawnTime = new Dictionary<Team, float>(); // Track last spawn time for each team to prevent spamming or crowding
 
         // Tracked Peds
         public List<Ped> DeadPeds = new List<Ped>();
@@ -78,6 +80,7 @@ namespace GangWarSandbox
             for (int i = 0; i < NUM_TEAMS; i++)
             {
                 Teams.Add(new Team("Team " + (i + 1))); // Initialize teams with default names and groups
+                LastSquadSpawnTime[Teams[i]] = 0; // Initialize last spawn time for each team
 
                 // build the enum‐member name
                 string enumName = $"Number{i + 1}";
@@ -409,9 +412,6 @@ namespace GangWarSandbox
                 }
 
                 CapturePoints.Add(point);
-                point.PointID = CapturePoints.Count; // Set the ID based on the current count
-                point.PointBlip.Name = "Capture Point " + point.PointID; // Set the blip name
-
             }
             else
             {
@@ -469,7 +469,6 @@ namespace GangWarSandbox
         {
             foreach (var team in Teams)
             {
-                Logger.LogDebug("Trying to spawn for team \"" + team.Name + "\"");
                 // SAFETY CHECKS: Prevent crashes
                 if (team.SpawnPoints.Count == 0 || team.Models.Length == 0)
                 {
@@ -478,22 +477,19 @@ namespace GangWarSandbox
 
                 int numAlive = 0;
 
-                Logger.LogDebug("Getting the current amount of peds alive for team " + team.Name);
                 for (int i = 0; i < team.Squads.Count; i++)
                 {
                     numAlive += team.Squads[i].Members.Count;
                 }
-                Logger.LogDebug(team.Name + " has " + numAlive + " peds currently alive.");
 
-                Logger.LogDebug("Getting squad sizes");
                 int squadSize = team.GetSquadSize();
 
                 // Avoid infinite loop
                 if (squadSize <= 0) continue;
 
-                Logger.LogDebug("Fill team with peds...");
-                while (numAlive + squadSize <= team.Faction.MaxSoldiers)
+                while (LastSquadSpawnTime[team] >= Game.GameTime - TIME_BETWEEN_SQUAD_SPAWNS && numAlive + squadSize <= team.Faction.MaxSoldiers)
                 {
+                    LastSquadSpawnTime[team] = Game.GameTime;
                     Squad squad = new Squad(team, 0);
 
                     team.Squads.Add(squad);

@@ -144,5 +144,37 @@ namespace GangWarSandbox
             return temp[randomIndex].Location; // get a random spawnpoint from the enemy team
         }
 
+        public static Dictionary<Team, int> GetNearbyPeds(Vector3 Location, float Radius)
+        {
+            Dictionary<Team, int> PedsNearby = new Dictionary<Team, int>();
+
+            foreach (var team in ModData.Teams)
+            {
+                if (team.SpawnPoints.Count == 0) continue;
+                PedsNearby[team] = 0; // Initialize count for each team
+
+                List<Ped> allTeamPeds = team.GetAllPeds(); // Get all peds for this team
+
+                if (ModData.PlayerTeam != -1 && ModData.Teams[ModData.PlayerTeam] == team)
+                {
+                    PedsNearby[team]++;
+                }
+
+                foreach (var ped in allTeamPeds)
+                {
+                    if (ped.IsDead || !ped.IsAlive) continue; // Skip dead or non-alive peds
+
+                    float distanceSq = ped.Position.DistanceToSquared(Location);
+
+                    if (distanceSq <= Radius * Radius)
+                    {
+                        PedsNearby[team]++; // Increment count for this team if within radius
+                    }
+                }
+            }
+
+            return PedsNearby;
+        }
+
     }
 }
