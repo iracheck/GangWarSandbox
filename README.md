@@ -21,6 +21,7 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [x] Player Spawns with Team
 - [x] Up to ~~6~~ 4 Factions on a battlefield at once (for powerful devices only) --> will try to increase later, if performance permits
 - [x] Squad System
+- [ ] Ped Target Caching
 - [x] Peds use line of sight targetting
 - [x] Waypoint Movement System (Allow peds to move >150m distances)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
