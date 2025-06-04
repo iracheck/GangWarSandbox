@@ -28,9 +28,7 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [ ] Advanced Custom AI Behaviors
 - [ ] Strategy AI-- Order squads to go to places around the map to achieve
 - [ ] __Battle Type: Conquest / KOTH__
-- [ ] Battle Type: Defend the Point
 - [ ] Battle Type: Skirmish
-- [ ] Battle Type: Gun Game
 - [x] Capture Points
 - [ ] Vehicle Support
 - [ ] Helicopter Support
@@ -43,6 +41,9 @@ Features that may not fit into Version 1, but I want to include.
 - [ ] Performance Mode (alternatively, limit # of peds in mod INI)
 - [ ] Squads Retreat
 - [ ] Radio System (call for reinforcements, air strikes, etc)
+- [ ] Battle Type: Defend the Point
+- [ ] Battle Type: Gun Game
+
 
 
 ## Known Bugs / Issues to Squash
