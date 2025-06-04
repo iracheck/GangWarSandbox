@@ -21,7 +21,7 @@ namespace GangWarSandbox
         public String Name; // "A", "B", "C", etc.
         public Blip PointBlip;
         public Team Owner;
-        public Vector3 Location;
+        public Vector3 Position;
 
         public float Radius = 5f; // Radius of the capture point area
 
@@ -59,16 +59,16 @@ namespace GangWarSandbox
 
         public Dictionary<Team, int> PedsNearby = new Dictionary<Team, int>(); // Track how many squad members are nearby
 
-        public CapturePoint(Vector3 location, Team startingOwner = null)
+        public CapturePoint(Vector3 position, Team startingOwner = null)
         {
-            Location = location;
+            Position = position;
             Owner = startingOwner; // Teams will only own points initially in certain gamemodes
 
             ResetCaptureProgress(); // Ensure capture progress is reset when created
 
-            PointBlip = World.CreateBlip(Location);
+            PointBlip = World.CreateBlip(position);
 
-            PointBlip.Position = Location; // Set the blip position to the capture point location
+            PointBlip.Position = position; // Set the blip position to the capture point location
             PointBlip.Scale = 0.8f;
 
             PointID = ModData.CapturePoints.Count + 1;
@@ -86,7 +86,7 @@ namespace GangWarSandbox
         public void CapturePointHandler()
         {
             CaptureProgress = Math.Min(100f, Math.Max(0f, CaptureProgress));
-            PedsNearby = PedAI.GetNearbyPeds(Location, Radius); // update PedsNearby
+            PedsNearby = PedAI.GetNearbyPeds(Position, Radius); // update PedsNearby
             Team nearbyTeam;
 
             int numTeamsNearby = PedsNearby.Count(team => team.Value > 0); // Count how many teams have peds nearby

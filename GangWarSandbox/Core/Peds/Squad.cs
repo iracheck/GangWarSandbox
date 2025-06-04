@@ -130,9 +130,22 @@ namespace GangWarSandbox
 
             SpawnPos = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
 
-            if (type == 0)
+            if (role == 0)
             {
                 int randNum = rand.Next(0, 101); // Randomly choose a type if none is specified
+
+                if (randNum <= 20)
+                {
+                    Role = SquadRole.DefendCapturePoint;
+                }
+                else if (randNum <= 50)
+                {
+                    Role = SquadRole.AssaultCapturePoint;
+                }
+                else
+                {
+                    Role = SquadRole.SeekAndDestroy;
+                }
             }
 
             if (personality == 0)
@@ -150,12 +163,12 @@ namespace GangWarSandbox
 
             Waypoints.Add(Vector3.Zero);
 
-            Vector3 target = GetRandomTarget(); // get a random target for the squad to attack
+            Vector3 target = GetTarget(); // get a random target for the squad to attack
             SetTarget(target); // set the target for the squad to attack
         }
 
         // In cases where Strategy AI does not exist or cannot provide the squad with a target, we can auto generate one
-        public Vector3 GetRandomTarget()
+        public Vector3 GetTarget()
         {
             List<CapturePoint> capturePoints = ModData.CapturePoints;
             Vector3 target = Vector3.Zero;
@@ -167,6 +180,17 @@ namespace GangWarSandbox
                 if (target == Vector3.Zero && capturePoints.Count > 0)
                 {
                     target = PedAI.FindRandomCapturePoint(Owner);
+                }
+            }
+            else if (Role == SquadRole.DefendCapturePoint)
+            {
+                for (int i = 0; i < capturePoints.Count; i++)
+                {
+                    if (capturePoints[i].Owner == Owner)
+                    {
+                        TargetPoint = capturePoints[i]; // set the target point to the capture point owned by the squad's team
+                        target = TargetPoint.Position;
+                    }
                 }
             }
             else
@@ -218,8 +242,19 @@ namespace GangWarSandbox
 
                 if (ped == null || !ped.Exists() || !ped.IsAlive) continue;
 
+                if (!PedTargetCache.ContainsKey(ped)) PedTargetCache.Add(ped, (null, 0));
 
-                Ped nearbyEnemy = FindNearbyEnemy(ped, Owner, squadAttackRange); // find a nearby enemy within the squad attack range
+                Ped cachedEnemy = PedTargetCache[ped].enemy;
+                int lastCheckedTime = PedTargetCache[ped].timestamp;
+
+                Ped nearbyEnemy = cachedEnemy; // find a nearby enemy within the squad attack range
+
+                // Handle ped target caching
+                if (Game.GameTime - lastCheckedTime > 150 || cachedEnemy == null || cachedEnemy.IsDead || cachedEnemy.Position.DistanceTo(ped.Position) >= 90f)
+                {
+                    nearbyEnemy = FindNearbyEnemy(ped, Owner, squadAttackRange); // search for a nearby enemy, but allow for a longer search time
+                    PedTargetCache[ped] = (nearbyEnemy, Game.GameTime); // update the cache with the new target and timestamp
+                }
 
                 if (nearbyEnemy != null)
                 {
@@ -247,22 +282,36 @@ namespace GangWarSandbox
                     PedAssignments[ped] = PedAssignment.None;
                 }
 
-                if (ped.IsInCombat || PedAssignments[ped] == PedAssignment.AttackNearby) continue;
+                // Assault Capture Point
+                if (Role == SquadRole.AssaultCapturePoint && PedAssignments[ped] != PedAssignment.PushLocation && TargetPoint != null)
+                {
+                    if (PedAssignments[ped] != PedAssignment.PushLocation && ped.Position.DistanceTo(TargetPoint.Position) >= 60f)
+                    {
+                        PedAI.PushLocation(ped, TargetPoint.Position, TargetPoint.Position);
+                        PedAssignments[ped] = PedAssignment.PushLocation; // set the ped to assault the capture point
+                    }
+                }
 
                 // Defend Area
                 if (Role == SquadRole.DefendCapturePoint && PedAssignments[ped] != PedAssignment.DefendArea && TargetPoint != null)
                 {
-                    if (PedAssignments[ped] == PedAssignment.RunToPosition || ped.Position.DistanceTo(TargetPoint.Location) >= 20f)
+                    if (PedAssignments[ped] != PedAssignment.RunToPosition && ped.Position.DistanceTo(TargetPoint.Position) >= 20f)
                     {
                         PedAssignments[ped] = PedAssignment.RunToPosition; // set the ped to defend the area
 
-                        SetTarget(TargetPoint.Location);
+                        SetTarget(TargetPoint.Position);
                     }
                     else
                     {
-                        PedAI.DefendArea(ped, TargetPoint.Location);
+                        PedAI.DefendArea(ped, TargetPoint.Position);
+                        PedAssignments[ped] = PedAssignment.DefendArea; // set the ped to defend the area
+
                     }
                 }
+
+                if (ped.IsInCombat || PedAssignments[ped] == PedAssignment.AttackNearby) continue;
+
+
 
                 if (ped == SquadLeader)
                 {
@@ -293,7 +342,7 @@ namespace GangWarSandbox
                     // Follow the squad leader around
                     if (PedAssignments[ped] != PedAssignment.FollowSquadLeader && Vector3.Distance(ped.Position, leaderPosition) > 5f)
                     {
-                        ped.Task.FollowToOffsetFromEntity(SquadLeader, PedAI.GenerateRandomOffset(), 2f);
+                        ped.Task.FollowToOffsetFromEntity(SquadLeader, PedAI.GenerateRandomOffset(), 1.5f);
                         PedAssignments[ped] = PedAssignment.FollowSquadLeader;
                     }
                 }
@@ -446,6 +495,7 @@ namespace GangWarSandbox
             {
                 weapon = Helpers.GetRandom(team.Tier1Weapons);
                 ped.Health = team.BaseHealth;
+                ped.Accuracy = 25 + team.Accuracy;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
                 pedValue = 40;
@@ -456,6 +506,7 @@ namespace GangWarSandbox
             {
                 weapon = Helpers.GetRandom(team.Tier2Weapons);
                 ped.Health = team.BaseHealth + 100;
+                ped.Accuracy = 35 + team.Accuracy;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
                 pedValue = 100;
@@ -465,11 +516,14 @@ namespace GangWarSandbox
             else if (tier == 3)
             {
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
-                ped.Health = team.BaseHealth * 2;
-                ped.Accuracy = team.Accuracy * 2;
+                ped.Health = team.BaseHealth * 2 + 100;
+                ped.Accuracy = 55 + team.Accuracy;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.6f;
                 pedValue = 240;
+
+                ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)
+
 
                 Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 60, true); // Throws smoke grenades
                 Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2); // offensive
@@ -477,14 +531,16 @@ namespace GangWarSandbox
             else if (tier == 4)
             {
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
-                ped.Health = team.BaseHealth * 5;
-                ped.Accuracy = team.Accuracy * 3;
+                ped.Health = team.BaseHealth * 4 + 200;
+                ped.Accuracy = 80 + team.Accuracy;
+
                 blip.Sprite = BlipSprite.Juggernaut;
                 pedValue = 580;
 
                 team.Tier4Ped = ped;
 
                 ped.Armor = 100;
+                ped.CanWrithe = false;
                 ped.IsFireProof = true;
                 ped.IsInvincible = false;
                 ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)

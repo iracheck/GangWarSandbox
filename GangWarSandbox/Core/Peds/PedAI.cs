@@ -49,17 +49,21 @@ namespace GangWarSandbox
             );
         }
 
-        public static void PushLocation(Ped ped, Vector3 location)
+        public static void PushLocation(Ped ped, Vector3 targetPos, Vector3 enemyPos)
         {
-            Function.Call(Hash.TASK_GO_TO_COORD_AND_AIM_AT_HATED_ENTITIES_NEAR_COORD, ped, location.X, location.Y, location.Z, location.X, location.Y, location.Z, 2.0f,                                               // walk speed (1.0 = walk, 2.0 = jog, 3.0 = run)
-            true,                                               // shootAtEnemies
-            5.0f,                                               // distance to stop at
-            0f,                                                 // noRoadsDistance (set to 0 unless needed)
-            true,                                               // useNavMesh
-            0,                                                  // navFlags (0 for default)
-            16,                                                  // taskFlags (0 unless overriding behavior)
-            Game.GenerateHash("FIRING_PATTERN_FULL_AUTO")       // firing pattern
-);
+            Function.Call(Hash.TASK_GO_TO_COORD_WHILE_AIMING_AT_COORD,
+                ped.Handle,
+                targetPos.X, targetPos.Y, targetPos.Z,
+                enemyPos.X, enemyPos.Y, enemyPos.Z,
+                2.0f,       // move speed
+                true,       // shoot if sees enemy
+                0.5f,       // unknown, usually 0-1
+                0.5f,       // unknown, usually 0-1
+                true,       // walk
+                0,          // firing pattern, 0 = default
+                false,      // unknown
+                0           // flags?
+            );
         }
 
         public static void AttackEnemy(Ped ped, Ped enemy)
@@ -159,7 +163,7 @@ namespace GangWarSandbox
 
             int randomIndex = rand.Next(temp.Count);
 
-            return temp[randomIndex].Location; // get a random spawnpoint from the enemy team
+            return temp[randomIndex].Position; // get a random spawnpoint from the enemy team
         }
 
         public static Dictionary<Team, int> GetNearbyPeds(Vector3 Location, float Radius)

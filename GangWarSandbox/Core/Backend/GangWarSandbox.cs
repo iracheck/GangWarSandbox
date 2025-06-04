@@ -159,7 +159,7 @@ namespace GangWarSandbox
                             if (int.TryParse(value, out int health))
                                 faction.BaseHealth = health;
                             break;
-                        case "BaseAccuracy":
+                        case "AccuracyBonus":
                             if (int.TryParse(value, out int accuracy))
                                 faction.Accuracy = accuracy;
                             break;
