@@ -16,6 +16,7 @@ using LemonUI.Menus;
 using GangWarSandbox;
 using System.Runtime.InteropServices;
 using GangWarSandbox.Core.Backend;
+using System.Runtime.Remoting.Messaging;
 
 namespace GangWarSandbox
 {
@@ -39,6 +40,16 @@ namespace GangWarSandbox
         public List<Team> Teams = new List<Team>();
         public Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
         public Dictionary<Team, float> LastSquadSpawnTime = new Dictionary<Team, float>(); // Track last spawn time for each team to prevent spamming or crowding
+        public List<BlipSprite> BlipSprites = new List<BlipSprite>
+        {
+            BlipSprite.Number1,
+            BlipSprite.Number2,
+            BlipSprite.Number3,
+            BlipSprite.Number4,
+            BlipSprite.Number5,
+            BlipSprite.Number6
+        }; // Track last spawn time for each team to prevent spamming or crowding
+
 
         // Tracked Peds
         public List<Ped> DeadPeds = new List<Ped>();
@@ -58,7 +69,12 @@ namespace GangWarSandbox
         // Game State
         private bool IsBattleRunning = false;
         private Gamemode CurrentGamemode = Gamemode.None; // Currently unused, but can be used to define different gamemodes in the future
-       
+
+        // Player Info
+        Ped Player = Game.Player.Character;
+        bool PlayerDied = false;
+        int TimeOfDeath;
+
         enum Gamemode
         {
             None,
@@ -82,19 +98,7 @@ namespace GangWarSandbox
                 Teams.Add(new Team((i + 1).ToString())); // Initialize teams with default names and groups
                 LastSquadSpawnTime[Teams[i]] = 0; // Initialize last spawn time for each team
 
-                // build the enum‐member name
-                string enumName = $"Number{i + 1}";
-
-                // try to parse it into a BlipSprite
-                if (Enum.TryParse<BlipSprite>(enumName, out var sprite))
-                {
-                    Teams[i].BlipSprite = sprite;
-                }
-                else
-                {
-                    // fallback if something goes wrong
-                    Teams[i].BlipSprite = BlipSprite.Standard;
-                }
+                Teams[i].BlipSprite = BlipSprites[i]; // Assign a unique blip sprite for each team
             }
 
             LoadINI();
@@ -188,6 +192,30 @@ namespace GangWarSandbox
 
             if (IsBattleRunning)
             {
+                if (Player.IsDead)
+                {
+                    PlayerDied = true;
+                    TimeOfDeath = GameTime;
+
+                    GTA.UI.Screen.FadeOut(10000); // Fade out for 10 seconds (should be enough time)
+                }
+
+                if (PlayerDied && TimeOfDeath + 5000 <= GameTime)
+                {
+                    // Player has died and respawned after 5 seconds
+                    Vector3 respawnLocation = Teams[PlayerTeam].SpawnPoints.Count > 0 ? Teams[PlayerTeam].SpawnPoints[0] : Vector3.Zero;
+
+                    if (respawnLocation == Vector3.Zero) return;
+
+                    Script.Wait(50);
+                    Player.Position = respawnLocation; // Move player to the spawn point
+                    ResetPlayerRelations();
+                    Script.Wait(500);
+                    GTA.UI.Screen.FadeIn(500); // Fade in for 500ms
+
+                    PlayerDied = false; // Reset death state
+                }
+
                 SpawnSquads(); // spawn squads that may be missing
 
                 // Collection error prevention
@@ -238,9 +266,7 @@ namespace GangWarSandbox
         }
 
 
-        // ChatGPT supplied me with much of the documentation/LemonUI api knowledge during the creation of this.
-        // It will be rewritten eventually, but in the meantime avoid making anything dependent on this code.
-        // (there should never be anything dependent on it, but just as a precaution)
+        // This is due a rewrite simply due to my lacking knowledge of lemonui
         private void SetupMenu()
         {
             // MAIN MENU
@@ -253,6 +279,7 @@ namespace GangWarSandbox
             _mainMenu.AddSubMenu(_teamSetupMenu);
 
             List<String> playerTeamItem_Teams = new List<String> { "Neutral" };
+
             for (int i = 0; i < NUM_TEAMS; i++)
                 playerTeamItem_Teams.Add("Team " + (i + 1));
 
@@ -428,13 +455,20 @@ namespace GangWarSandbox
 
         private void StartBattle()
         {
-            Logger.LogDebug("Starting battle");
             IsBattleRunning = true;
             GTA.UI.Screen.ShowSubtitle("Battle Started!");
 
             Ped player = Game.Player.Character;
 
-            Logger.LogDebug("Assigning player team");
+            ResetPlayerRelations();
+
+            Logger.LogDebug("Spawning squads for the first time...");
+            // Spawn squads for each team
+            SpawnSquads();
+        }
+
+        private void ResetPlayerRelations()
+        {
             // Assign player to team
             if (PlayerTeam == -1)
             {
@@ -443,32 +477,14 @@ namespace GangWarSandbox
             else
             {
                 Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
-                Teams[PlayerTeam].Tier4Ped = player; // Assign player to be their team's "strong npc"
+                Teams[PlayerTeam].Tier4Ped = Player; // Assign player to be their team's "strong npc"
 
-                Logger.LogDebug("Player has team, teleporting them...");
                 // move the player to the first spawn point of their team
                 if (Teams[PlayerTeam].SpawnPoints.Count > 0)
                 {
-                    player.Position = Teams[PlayerTeam].SpawnPoints[0];
+                    Player.Position = Teams[PlayerTeam].SpawnPoints[0];
                 }
             }
-
-            Logger.LogDebug("Assigning team relationships");
-            foreach (var team in Teams)
-            {
-                // team.RecolorBlips(); // ensure the blips are the correct color
-
-                foreach (var other in Teams)
-                {
-                    var relationship = team == other ? Relationship.Respect : Relationship.Hate;
-                    team.Group.SetRelationshipBetweenGroups(other.Group, relationship);
-                }
-
-            }
-
-            Logger.LogDebug("Spawning squads for the first time...");
-            // Spawn squads for each team
-            SpawnSquads();
         }
 
         private void SpawnSquads()
