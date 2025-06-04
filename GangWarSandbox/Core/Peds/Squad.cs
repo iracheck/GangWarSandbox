@@ -420,6 +420,13 @@ namespace GangWarSandbox
         {
             List<Ped> deadPeds = new List<Ped>();
 
+            if (Members.Count == 0)
+            {
+                Owner.Squads.Remove(this);
+                ModData.CurrentGamemode.OnSquadDestroyed(this, Owner);
+            }
+
+
             // iterate from the end, for safety
             for (int i = Members.Count - 1; i >= 0; i--)
             {
@@ -430,6 +437,7 @@ namespace GangWarSandbox
                         Members[i].AttachedBlip.Delete();
 
                     Members.RemoveAt(i);
+                    ModData.CurrentGamemode.OnPedKilled(Members[i], Owner);
                 }
             }
 

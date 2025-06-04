@@ -14,9 +14,11 @@ using System.Windows.Forms;
 using LemonUI;
 using LemonUI.Menus;
 using GangWarSandbox;
+using GangWarSandbox.Gamemodes;
 using System.Runtime.InteropServices;
 using GangWarSandbox.Core.Backend;
 using System.Runtime.Remoting.Messaging;
+using GangWarSandbox.Core.Backend.Gamemodes;
 
 namespace GangWarSandbox
 {
@@ -32,7 +34,7 @@ namespace GangWarSandbox
         private const int AI_UPDATE_FREQUENCY = 200; // How often squad AI will be updated, in milliseconds
         private const int POINT_UPDATE_FREQUENCY = 1000; // How often capture points will be updated, in milliseconds
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
-        private const int NUM_TEAMS = 4; // How many teams? In the future, it will be loaded from a settings file, but for now it's constant to keep stability
+        public const int NUM_TEAMS = 4; // How many teams? In the future, it will be loaded from a settings file, but for now it's constant to keep stability
         private const int TIME_BETWEEN_SQUAD_SPAWNS = 3000; // Time in milliseconds between squad spawns for each team
 
         // Teams
@@ -68,21 +70,20 @@ namespace GangWarSandbox
 
         // Game State
         private bool IsBattleRunning = false;
-        private Gamemode CurrentGamemode = Gamemode.None; // Currently unused, but can be used to define different gamemodes in the future
+        public Gamemode CurrentGamemode = new InfiniteBattleGamemode();
+        private List<Gamemode> AvaliableGamemodes = new List<Gamemode>
+        {
+            new InfiniteBattleGamemode(),
+            new SkirmishGamemode(),
+            // Add more gamemodes here as needed
+            // Future expansion: allow users to make their own gamemodes in a dll?
+        }; 
 
         // Player Info
         Ped Player = Game.Player.Character;
         bool PlayerDied = false;
         int TimeOfDeath;
 
-        enum Gamemode
-        {
-            None,
-            GunGame,
-            Deathmatch,
-            Conquest,
-            KOTH,
-        } 
 
         public GangWarSandbox()
         {
@@ -188,6 +189,8 @@ namespace GangWarSandbox
         {
             _menuPool.Process();
 
+            CurrentGamemode.OnTick();
+
             int GameTime = Game.GameTime;
 
             if (IsBattleRunning)
@@ -214,16 +217,19 @@ namespace GangWarSandbox
                     GTA.UI.Screen.FadeIn(500); // Fade in for 500ms
 
                     PlayerDied = false; // Reset death state
+                    CurrentGamemode.OnPlayerDeath();
                 }
 
-                SpawnSquads(); // spawn squads that may be missing
+                if (CurrentGamemode.ShouldSpawnSquad())
+                {
+                    SpawnSquads(); // spawn squads that may be missing
+                }
 
                 // Collection error prevention
                 var allSquads = Teams.SelectMany(t => t.Squads).ToList();
 
                 foreach (var squad in allSquads)
                 {
-                    Logger.LogDebug("Updating Ped AI");
                     // Ped AI
                     if (GameTime % AI_UPDATE_FREQUENCY == 0 || squad.JustSpawned)
                     {
@@ -231,7 +237,6 @@ namespace GangWarSandbox
                     }
 
                     // Corpse Removal
-                    Logger.LogDebug("Removing dead people...");
                     List<Ped> deadPeds = squad.CleanupDead();
                     DeadPeds.AddRange(deadPeds);
 
@@ -245,12 +250,14 @@ namespace GangWarSandbox
                     }
                 }
 
-                Logger.LogDebug("Updating capturepoints");
                 foreach (var point in CapturePoints)
                 {
                     if (GameTime % POINT_UPDATE_FREQUENCY == 0)
                     point.CapturePointHandler(); // Process capture points
                 }
+
+                CurrentGamemode.OnTickGameRunning();
+
             }
         }
 
@@ -371,120 +378,34 @@ namespace GangWarSandbox
             }
         }
 
-        private void ClearAllPoints()
-        {
-            if (IsBattleRunning)
-            {
-                GTA.UI.Screen.ShowSubtitle("Stop the battle to remove spawnpoints.");
-                return;
-            }
-
-            foreach (var team in Teams)
-            {
-                foreach (var blip in team.Blips)
-                {
-                    if (blip.Exists()) blip.Delete();
-                }
-                team.Blips.Clear();
-                team.SpawnPoints.Clear();
-            }
-
-            foreach (var point in CapturePoints)
-            {
-                if (point.PointBlip.Exists()) point.PointBlip.Delete();
-            }
-            CapturePoints.Clear();
-        }
-
-        private void AddSpawnpoint(int teamIndex)
-        {
-            if (!IsBattleRunning)
-            {
-                if (Game.IsWaypointActive)
-                {
-                    Vector3 waypointPos = World.WaypointPosition;
-                    Teams[teamIndex - 1].AddSpawnpoint(waypointPos);
-
-                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at waypoint.");
-                    World.RemoveWaypoint();
-                }
-                else
-                {
-                    Vector3 charPos = Game.Player.Character.Position;
-                    Teams[teamIndex - 1].AddSpawnpoint(charPos);
-                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at player location.");
-
-                }
-            }
-            else
-            {
-                GTA.UI.Screen.ShowSubtitle("Stop the battle to create a new spawnpoint.");
-            }
-        }
-
-        private void AddCapturePoint()
-        {
-            if (!IsBattleRunning)
-            {
-                CapturePoint point;
-
-                if (Game.IsWaypointActive)
-                {
-                    Vector3 waypointPos = World.WaypointPosition;
-                    point = new CapturePoint(waypointPos);
-
-                    GTA.UI.Screen.ShowSubtitle($"Capture point created at waypoint.");
-                    World.RemoveWaypoint();
-                }
-                else
-                {
-                    Vector3 charPos = Game.Player.Character.Position;
-                    point = new CapturePoint(charPos);
-                    
-                    GTA.UI.Screen.ShowSubtitle($"Capture point created at player location.");
-                }
-
-                CapturePoints.Add(point);
-            }
-            else
-            {
-                GTA.UI.Screen.ShowSubtitle("Stop the battle to create a new capture point.");
-            }
-        }
-
-
         private void StartBattle()
         {
             IsBattleRunning = true;
-            GTA.UI.Screen.ShowSubtitle("Battle Started!");
 
             Ped player = Game.Player.Character;
 
             ResetPlayerRelations();
 
-            Logger.LogDebug("Spawning squads for the first time...");
             // Spawn squads for each team
             SpawnSquads();
+
+            CurrentGamemode.OnStart();
+            CurrentGamemode.InitializeUI();
+
+            Game.Player.WantedLevel = 0; // Reset wanted level
+            Game.Player.DispatchsCops = true; // disable cop dispatches
         }
 
-        private void ResetPlayerRelations()
+        private void StopBattle()
         {
-            // Assign player to team
-            if (PlayerTeam == -1)
-            {
-                Game.Player.Character.RelationshipGroup = "PLAYER";
-            }
-            else
-            {
-                Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
-                Teams[PlayerTeam].Tier4Ped = Player; // Assign player to be their team's "strong npc"
+            IsBattleRunning = false;
+            CurrentGamemode.OnEnd();
 
-                // move the player to the first spawn point of their team
-                if (Teams[PlayerTeam].SpawnPoints.Count > 0)
-                {
-                    Player.Position = Teams[PlayerTeam].SpawnPoints[0];
-                }
-            }
+            GTA.UI.Screen.ShowSubtitle("Battle Ended!");
+            CleanupAll();
+
+
+            Game.Player.DispatchsCops = true; // Re-enable cop dispatches
         }
 
         private void SpawnSquads()
@@ -521,11 +442,86 @@ namespace GangWarSandbox
             }
         }
 
-        private void StopBattle()
+        private void AddCapturePoint()
         {
-            IsBattleRunning = false;
-            GTA.UI.Screen.ShowSubtitle("Battle Ended!");
-            CleanupAll();
+            if (!IsBattleRunning)
+            {
+                CapturePoint point;
+
+                if (Game.IsWaypointActive)
+                {
+                    Vector3 waypointPos = World.WaypointPosition;
+                    point = new CapturePoint(waypointPos);
+
+                    GTA.UI.Screen.ShowSubtitle($"Capture point created at waypoint.");
+                    World.RemoveWaypoint();
+                }
+                else
+                {
+                    Vector3 charPos = Game.Player.Character.Position;
+                    point = new CapturePoint(charPos);
+
+                    GTA.UI.Screen.ShowSubtitle($"Capture point created at player location.");
+                }
+
+                CapturePoints.Add(point);
+            }
+            else
+            {
+                GTA.UI.Screen.ShowSubtitle("Stop the battle to create a new capture point.");
+            }
+        }
+
+
+        private void AddSpawnpoint(int teamIndex)
+        {
+            if (!IsBattleRunning)
+            {
+                if (Game.IsWaypointActive)
+                {
+                    Vector3 waypointPos = World.WaypointPosition;
+                    Teams[teamIndex - 1].AddSpawnpoint(waypointPos);
+
+                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at waypoint.");
+                    World.RemoveWaypoint();
+                }
+                else
+                {
+                    Vector3 charPos = Game.Player.Character.Position;
+                    Teams[teamIndex - 1].AddSpawnpoint(charPos);
+                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at player location.");
+
+                }
+            }
+            else
+            {
+                GTA.UI.Screen.ShowSubtitle("Stop the battle to create a new spawnpoint.");
+            }
+        }
+
+        private void ClearAllPoints()
+        {
+            if (IsBattleRunning)
+            {
+                GTA.UI.Screen.ShowSubtitle("Stop the battle to remove spawnpoints.");
+                return;
+            }
+
+            foreach (var team in Teams)
+            {
+                foreach (var blip in team.Blips)
+                {
+                    if (blip.Exists()) blip.Delete();
+                }
+                team.Blips.Clear();
+                team.SpawnPoints.Clear();
+            }
+
+            foreach (var point in CapturePoints)
+            {
+                if (point.PointBlip.Exists()) point.PointBlip.Delete();
+            }
+            CapturePoints.Clear();
         }
 
         private void CleanupAll()
@@ -565,6 +561,26 @@ namespace GangWarSandbox
             }
 
             DeadPeds.Clear();
+        }
+
+        private void ResetPlayerRelations()
+        {
+            // Assign player to team
+            if (PlayerTeam == -1)
+            {
+                Game.Player.Character.RelationshipGroup = "PLAYER";
+            }
+            else
+            {
+                Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
+                Teams[PlayerTeam].Tier4Ped = Player; // Assign player to be their team's "strong npc"
+
+                // move the player to the first spawn point of their team
+                if (Teams[PlayerTeam].SpawnPoints.Count > 0)
+                {
+                    Player.Position = Teams[PlayerTeam].SpawnPoints[0];
+                }
+            }
         }
     }
 }

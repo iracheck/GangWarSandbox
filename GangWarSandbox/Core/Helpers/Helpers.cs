@@ -29,5 +29,10 @@ namespace GangWarSandbox
             if (num < min) return min;
             else return num;
         }
+
+        public static double RoundToNearestTen(double num)
+        {
+            return Math.Round(num / 10) * 10;
+        }
     }
 }
