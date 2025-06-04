@@ -33,7 +33,7 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [ ] Battle Type: Gun Game
 - [x] Capture Points
 - [ ] Vehicle Support
-- [ ] Air Vehicle Support
+- [ ] Helicopter Support
 - [x] Decrease performance overhead of large squad/ped counts
 - [ ] Rework file structure, with two INIs-- one for faction setup, one for mod options
 
@@ -42,7 +42,7 @@ Features that may not fit into Version 1, but I want to include.
 - [ ] Load Custom Battles from XML + Menyoo XMLs
 - [ ] Performance Mode (alternatively, limit # of peds in mod INI)
 - [ ] Squads Retreat
-- [ ] - [ ] Radio System (call for reinforcements, air strikes, etc)
+- [ ] Radio System (call for reinforcements, air strikes, etc)
 
 
 ## Known Bugs / Issues to Squash
@@ -58,4 +58,4 @@ Features that may not fit into Version 1, but I want to include.
 
 
 #### Regarding the Codebase
-Parts of this mod are below my standard of code. In the beginning, it was just something quick to mess around with, a fun thing to learn. So in the time from then to making this a real thing, the code wasn't written very well. As I update the mod, I will rewrite parts of it. Anybody who would make a submod of this (I'm not sure if anyone would be interested in that) should expect some changes, but everything will remain mostly the same.
+Much of this mod will be rewritten over time. I started it just for fun, until it became something more substantial, so much of the early code is written poorly. 
