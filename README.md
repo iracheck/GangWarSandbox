@@ -21,13 +21,12 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [x] Player Spawns with Team
 - [x] Up to ~~6~~ 4 Factions on a battlefield at once (for powerful devices only) --> will try to increase later, if performance permits
 - [x] Squad System
-- [ ] Ped Target Caching
+- [x] Ped Target Caching
 - [x] Peds use line of sight targetting
 - [x] Waypoint Movement System (Allow peds to move >150m distances)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
 - [ ] Advanced Custom AI Behaviors
 - [ ] Strategy AI-- Order squads to go to places around the map to achieve
-- [ ] Radio System (call for reinforcements, air strikes, etc)
 - [ ] __Battle Type: Conquest / KOTH__
 - [ ] Battle Type: Defend the Point
 - [ ] Battle Type: Skirmish
@@ -43,6 +42,7 @@ Features that may not fit into Version 1, but I want to include.
 - [ ] Load Custom Battles from XML + Menyoo XMLs
 - [ ] Performance Mode (alternatively, limit # of peds in mod INI)
 - [ ] Squads Retreat
+- [ ] - [ ] Radio System (call for reinforcements, air strikes, etc)
 
 
 ## Known Bugs / Issues to Squash
