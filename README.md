@@ -26,8 +26,9 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [x] Waypoint Movement System (Allow peds to move >150m distances)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
 - [ ] Advanced Custom AI Behaviors
-- [ ] Strategy AI-- Order squads to go to places around the map to achieve
+- [ ] Strategy AI-- Order squads to go to places around the map to achieve victory conditions
 - [ ] __Battle Type: Conquest / KOTH__
+- [x] Battle Type: Endless
 - [ ] Battle Type: Skirmish
 - [x] Capture Points
 - [ ] Vehicle Support
@@ -52,6 +53,7 @@ Features that may not fit into Version 1, but I want to include.
 - [x] Peds are far apart when fighting
 - [x] Ped limits per faction is ~25 default, but only 13-16 peds spawn (why?)
 - [x] NPCs far from the player don't have their AI update
+- [ ] Placing victory points/spawn points in an unloaded area causes them to be placed underneath the map
 
 
 
