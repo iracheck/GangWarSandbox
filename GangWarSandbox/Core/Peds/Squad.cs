@@ -15,6 +15,7 @@ using System.Drawing;
 using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
 using System.ComponentModel;
+using GangWarSandbox.Core.StrategyAI;
 
 namespace GangWarSandbox
 {
@@ -116,11 +117,6 @@ namespace GangWarSandbox
             Aggressive = 1, // the squad may not wait for combat to end to push its target
         }
 
-        public void SetTarget(Vector3 target)
-        {
-            Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // set the waypoints to the target position
-        }
-
         public Squad(Team owner, SquadRole role = 0, SquadType type = 0, SquadPersonality personality = 0)
         {
             Owner = owner;
@@ -132,19 +128,27 @@ namespace GangWarSandbox
 
             if (role == 0)
             {
-                int randNum = rand.Next(0, 101); // Randomly choose a type if none is specified
+                int max = 20; // weights for seek and destroy included in the max
+                int assault = 0;
+                int defend = 0;
 
-                if (randNum <= 20)
-                {
-                    Role = SquadRole.DefendCapturePoint;
-                }
-                else if (randNum <= 50)
+                assault += StrategyAI_Helpers.CalculateNeedToAssaultPoint(Owner);
+                defend += StrategyAI_Helpers.CalculateNeedToDefendPoint(Owner);
+                max += assault + defend;
+
+                int randNum = rand.Next(0, max);
+
+                if (randNum <= assault) // Assault
                 {
                     Role = SquadRole.AssaultCapturePoint;
                 }
+                else if (randNum <= defend + assault) // Defend
+                {
+                    Role = SquadRole.DefendCapturePoint;
+                }
                 else
                 {
-                    Role = SquadRole.SeekAndDestroy;
+                    Role = SquadRole.SeekAndDestroy; // default role if no other roles are available
                 }
             }
 
@@ -163,9 +167,14 @@ namespace GangWarSandbox
 
             Waypoints.Add(Vector3.Zero);
 
-            Vector3 target = GetTarget(); // get a random target for the squad to attack
-            SetTarget(target); // set the target for the squad to attack
+            GetTarget(); // get a random target for the squad to attack
         }
+
+        public void SetTarget(Vector3 target)
+        {
+            Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target); // set the waypoints to the target position
+        }
+
 
         // In cases where Strategy AI does not exist or cannot provide the squad with a target, we can auto generate one
         public Vector3 GetTarget()
@@ -173,54 +182,69 @@ namespace GangWarSandbox
             List<CapturePoint> capturePoints = ModData.CapturePoints;
             Vector3 target = Vector3.Zero;
 
-            if (capturePoints.Count > 0)
+            if (Role == SquadRole.AssaultCapturePoint)
             {
-                target = PedAI.FindRandomCapturePoint(Owner);
-            }
-            else
-            {
-                target = PedAI.FindRandomEnemySpawnpoint(Owner);
-            }
+                List<CapturePoint> unownedPoints = new List<CapturePoint>();
 
-            return target;
-
-            if (Personality == SquadPersonality.Aggressive)
-            {
-                target = PedAI.FindRandomEnemySpawnpoint(Owner);
-
-                if (target == Vector3.Zero && capturePoints.Count > 0)
+                for (int i = 0; i < capturePoints.Count; i++)
                 {
-                    target = PedAI.FindRandomCapturePoint(Owner);
+                    if (capturePoints[i].Owner == null || capturePoints[i].Owner != Owner)
+                    {
+                        unownedPoints.Add(capturePoints[i]); // add the capture point to the list of unowned points
+                    }
+                }
+
+                if (unownedPoints.Count > 0)
+                {
+                    TargetPoint = unownedPoints[rand.Next(unownedPoints.Count)]; // randomly select a capture point that is not owned by the squad's team
+                    target = TargetPoint.Position; // set the target to the capture point's position
+                }
+                else
+                {
+                    TargetPoint = null;
+                    target = Vector3.Zero;
                 }
             }
             else if (Role == SquadRole.DefendCapturePoint)
             {
                 for (int i = 0; i < capturePoints.Count; i++)
                 {
-                    if (capturePoints[i].Owner == Owner)
+                    if (capturePoints[i] != null && capturePoints[i].Owner == Owner)
                     {
                         TargetPoint = capturePoints[i]; // set the target point to the capture point owned by the squad's team
                         target = TargetPoint.Position;
                     }
                 }
             }
-            else
+            else if (Role == SquadRole.SeekAndDestroy)
             {
+                {
+                    target = PedAI.FindRandomEnemySpawnpoint(Owner);
 
+                    if (target == Vector3.Zero && capturePoints.Count > 0)
+                    {
+                        target = PedAI.FindRandomCapturePoint(Owner);
+                    }
+                }
             }
 
             // Final failsafe: ensure a non-zero target is returned
             if (target == Vector3.Zero)
             {
-                // fallback to spawn pos if no valid targets are found
-                target = SpawnPos + new Vector3(rand.Next(-10, 10), rand.Next(-10, 10), 0);
-                GTA.UI.Screen.ShowSubtitle($"[WARNING] Squad from {Owner.Name} failed to find a valid target.");
+                target = PedAI.FindRandomEnemySpawnpoint(Owner);
+
+                // Still can't find one? Fallback solution
+                if (target == Vector3.Zero)
+                {
+                    GTA.UI.Screen.ShowSubtitle("A squad failed to find a valid target. Please report this issue to the developers.", 1000);
+                    target = SquadLeader.Position + PedAI.GenerateRandomOffset(); // generate a random offset from the spawn position if no target is found
+                }
             }
 
+
+            SetTarget(target);
             return target;
         }
-
-
 
         public bool SquadAIHandler()
         {
@@ -265,7 +289,7 @@ namespace GangWarSandbox
             {
                 if (PedAssignments[ped] != PedAssignment.PushLocation && ped.Position.DistanceTo(TargetPoint.Position) >= 60f)
                 {
-                    PedAI.PushLocation(ped, TargetPoint.Position, TargetPoint.Position);
+                    PedAI.RunToFarAway(ped, TargetPoint.Position);
                     PedAssignments[ped] = PedAssignment.PushLocation; // set the ped to assault the capture point
                 }
             }
@@ -319,7 +343,7 @@ namespace GangWarSandbox
                 {
                     ped.Task.ClearAllImmediately(); // breaks their combat state
 
-                    PedAI.RunTo(ped, nearbyEnemy.Position);
+                    PedAI.RunToFarAway(ped, nearbyEnemy.Position);
                     PedAssignments[ped] = PedAssignment.RunToPosition;
                 }
 
@@ -339,7 +363,7 @@ namespace GangWarSandbox
             {
                 if (PedAssignments[ped] != PedAssignment.RunToPosition && Waypoints[0] != Vector3.Zero) // if the squad has a target, but the squad leader is not moving toward it, move!
                 {
-                    PedAI.RunTo(ped, Waypoints[0]);
+                    PedAI.RunToFarAway(ped, Waypoints[0]);
                     PedAssignments[ped] = PedAssignment.RunToPosition;
                 }
                 else if (PedAssignments[ped] == PedAssignment.RunToPosition && ped.Velocity.Length() < 0.2f && Waypoints[0] != Vector3.Zero)
@@ -424,6 +448,7 @@ namespace GangWarSandbox
             {
                 Owner.Squads.Remove(this);
                 ModData.CurrentGamemode.OnSquadDestroyed(this, Owner);
+                return null;
             }
 
 
@@ -436,8 +461,8 @@ namespace GangWarSandbox
                     if (Members[i].AttachedBlip != null && Members[i].AttachedBlip.Exists())
                         Members[i].AttachedBlip.Delete();
 
-                    Members.RemoveAt(i);
                     ModData.CurrentGamemode.OnPedKilled(Members[i], Owner);
+                    Members.RemoveAt(i);
                 }
             }
 
@@ -485,7 +510,8 @@ namespace GangWarSandbox
             if (team.SpawnPoints.Count == 0 || team.Models.Length == 0 || team.Tier1Weapons.Length == 0 || team.Tier2Weapons.Length == 0 || team.Tier3Weapons.Length == 0)
                 return null;
 
-            bool shouldSpawnTier4 = team.Tier4Ped == null || !team.Tier4Ped.Exists() || team.Tier4Ped.IsDead;
+            bool shouldSpawnTier4 = (team.Tier4Ped == null || !team.Tier4Ped.Exists() || team.Tier4Ped.IsDead) && 
+                (ModData.PlayerTeam != -1 && ModData.PlayerTeam < ModData.Teams.Count && ModData.Teams[ModData.PlayerTeam] != team);
 
             int tier;
             int rnum = rand.Next(0, 100);
@@ -522,7 +548,7 @@ namespace GangWarSandbox
             {
                 weapon = Helpers.GetRandom(team.Tier1Weapons);
                 ped.Health = team.BaseHealth;
-                baseAccuracy = 15;
+                baseAccuracy = 7;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
                 pedValue = 40;
@@ -533,7 +559,7 @@ namespace GangWarSandbox
             {
                 weapon = Helpers.GetRandom(team.Tier2Weapons);
                 ped.Health = team.BaseHealth + 100;
-                baseAccuracy = 30;
+                baseAccuracy = 15;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
                 pedValue = 100;
@@ -543,13 +569,13 @@ namespace GangWarSandbox
             else if (tier == 3)
             {
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
-                ped.Health = team.BaseHealth * 2 + 100;
-                baseAccuracy = 55;
+                ped.Health = team.BaseHealth + 250;
+                baseAccuracy = 30;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.6f;
                 pedValue = 280;
 
-                ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)
+                ped.CanSufferCriticalHits = false;
 
 
                 Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 60, true); // Throws smoke grenades
@@ -558,8 +584,8 @@ namespace GangWarSandbox
             else if (tier == 4)
             {
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
-                ped.Health = team.BaseHealth * 4 + 200;
-                baseAccuracy = 70;
+                ped.Health = (team.BaseHealth * 2) + 400;
+                baseAccuracy = 75;
 
                 blip.Sprite = BlipSprite.Juggernaut;
                 pedValue = 675;
@@ -599,13 +625,14 @@ namespace GangWarSandbox
             ped.Task.SwapWeapon();
 
             blip.IsShortRange = true;
-            blip.Name = $"{team.Name}";
+            blip.Name = $"Team {team.Name} Fighter";
             blip.Color = team.BlipColor;
 
             ped.AlwaysKeepTask = true;
-            //ped.BlockPermanentEvents = true; // will prevent a lot of base-level AI stuff --> avoid using this permanently
+            ped.HearingRange = 5;
             ped.IsPersistent = true;
-            ped.LodDistance = 1000; // Increase the distance at which peds will do tasks
+            ped.LodDistance = 750; // Increase the distance at which peds will do tasks
+            ped.DropsEquippedWeaponOnDeath = false;
 
             Members.Add(ped);
             PedAssignments[ped] = PedAssignment.None;
@@ -614,12 +641,14 @@ namespace GangWarSandbox
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 0, true);  // Always fight
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 1, true);  // Can use cover
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 5, true);  // Can fight armed when unarmed
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 21, false); // Can drag friends to safety
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 22, true); // Can drag friends to safety
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 50, true); // Can charge
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 58, true); // Don't flee from combat
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 53, true); // Advance if no cover avaliable
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 42, true); // Can flank
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 28, true); // Advance if frustrated (can't see the enemy?)
+            Function.Call(Hash.SET_PED_CONFIG_FLAG, ped, 77, true); // Disable threat broadcast
 
             Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 70f);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium

@@ -14,6 +14,7 @@ using System.Drawing;
 using System.Runtime.Serialization;
 using GTA;
 using static GangWarSandbox.Squad;
+using GangWarSandbox.Core.Backend;
 
 namespace GangWarSandbox
 {
@@ -23,13 +24,14 @@ namespace GangWarSandbox
         static GangWarSandbox ModData = GangWarSandbox.Instance;
         static Random rand = new Random();
 
-        public static void RunTo(Ped ped, Vector3 coord)
-        {
-            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2f, -1, 5.0f, 0, 0.0f);
-        }
         public static void GoToFarAway(Ped ped, Vector3 coord)
         {
             Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 1.5f, -1, 5.0f, 0, 0.0f);
+        }
+
+        public static void RunToFarAway(Ped ped, Vector3 coord)
+        {
+            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2f, -1, 5.0f, 0, 0.0f);
         }
 
         public static void DefendArea(Ped ped, Vector3 point)
@@ -66,6 +68,16 @@ namespace GangWarSandbox
             );
         }
 
+        public static bool IsNavmeshLoaded(Vector3 pos, float offset = 1f)
+        {
+            bool navmeshLoaded = Function.Call<bool>(Hash.IS_NAVMESH_LOADED_IN_AREA,
+                pos.X - offset, pos.Y - offset, pos.Z - 1f,
+                pos.X + offset, pos.Y + offset, pos.Z + 1f
+            );
+
+            return navmeshLoaded;
+        }
+
         public static void AttackEnemy(Ped ped, Ped enemy)
         {
             Function.Call(Hash.TASK_COMBAT_PED, ped, enemy, 0, 16);
@@ -100,6 +112,40 @@ namespace GangWarSandbox
             return result.DidHit && result.HitEntity != null && result.HitEntity == target;
         }
 
+        // This method makes a progressievly larger circle around the coordinate until it finds a safe position.
+        public static Vector3 FindSafePositionNearCoord(Vector3 coord)
+        {
+            List<float> distances = new List<float> { 2f, 5f, 10f, 15f, 20f, 25f };
+
+            foreach (var dist in distances)
+            {
+                List<Vector3> offsets = new List<Vector3>
+                {
+                    new Vector3(dist, 0f, 0f),
+                    new Vector3(-dist, 0f, 0f),
+                    new Vector3(0f, dist, 0f),
+                    new Vector3(0f, -dist, 0f),
+                };
+
+                foreach (var offset in offsets)
+                {
+                    Vector3 testPos = coord + offset;
+                    Logger.LogDebug("Squad tried register this waypoint: " + testPos);
+
+                    testPos.Z = World.GetGroundHeight(testPos + (new Vector3(0,0,2)));
+
+                    if (testPos != Vector3.Zero && testPos.Z != 0)
+                    {
+                        Logger.LogDebug("A valid coordinate was found " + testPos);
+                        return testPos;
+                    }
+                }
+
+            }
+
+            return Vector3.Zero;
+        }
+
         public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, float maxStepSize = 50f, bool followRoads = true)
         {
             List<Vector3> points = new List<Vector3>();
@@ -110,23 +156,33 @@ namespace GangWarSandbox
             float distance = direction.Length();
             direction.Normalize(); // convert it to a normal vector, so we know which direction to count in
 
-
+            GTA.UI.Screen.ShowSubtitle(distance.ToString());
             int numSteps = (int)(distance / maxStepSize);
 
             //points.Add(start);
+            for (int i = 1; i < numSteps; i++)
+            {
+                Vector3 step = start + direction * (i * maxStepSize);
+                step = World.GetSafeCoordForPed(step, true);
 
-            if (distance > maxStepSize && numSteps > 0) {
-                for (int i = 1; i < numSteps; i++)
+                if (step == Vector3.Zero)
                 {
-                    Vector3 step = start + direction * (i * maxStepSize);
-                    step = World.GetSafeCoordForPed(step, followRoads);
+                    step = FindSafePositionNearCoord(start + direction * (i * maxStepSize));
+                }
 
-                    if (step != Vector3.Zero)
-                    {
-                        step += GenerateRandomOffset(); // Let's add a slight randomization to the route, just so it doesn't look like they're going in a straight line
+                Vector3 testStep = World.GetSafeCoordForPed(step, true);
 
-                        points.Add(step);
-                    }
+                if (testStep != Vector3.Zero) step = testStep;
+
+                if (step != Vector3.Zero)
+                {
+                    points.Add(step);
+                }
+                else
+                {
+                    GTA.UI.Screen.ShowSubtitle("Pathfinding error. WIP, sorry!");
+                    Logger.LogDebug("A coordinate failed: " + step);
+
                 }
             }
 
@@ -154,7 +210,7 @@ namespace GangWarSandbox
             return temp[randomIndex].SpawnPoints[rand.Next(0, temp[randomIndex].SpawnPoints.Count)]; // get a random spawnpoint from the enemy team
         }
 
-        public static Vector3 FindRandomCapturePoint(Team team)
+        public static Vector3 FindRandomCapturePoint(Team team, bool hostileOnly = false)
         {
             List<CapturePoint> temp = ModData.CapturePoints;
 
@@ -162,6 +218,13 @@ namespace GangWarSandbox
             if (temp.Count == 0) return Vector3.Zero; // no capture points avaliable
 
             int randomIndex = rand.Next(temp.Count);
+
+            if (hostileOnly)
+            {
+                while (temp[randomIndex].Owner == team)
+                    randomIndex = rand.Next(temp.Count);
+            }
+
 
             return temp[randomIndex].Position; // get a random spawnpoint from the enemy team
         }

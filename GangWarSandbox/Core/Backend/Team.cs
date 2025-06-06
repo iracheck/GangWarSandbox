@@ -13,6 +13,10 @@ namespace GangWarSandbox
 {
     public class Team
     {
+        static GangWarSandbox ModData = GangWarSandbox.Instance;
+
+        //
+
         public string Name { get; }
         public RelationshipGroup Group { get; set; }
         public Faction Faction { get; set; } = null;
@@ -74,6 +78,26 @@ namespace GangWarSandbox
 
             return maxSquads;
         }
+
+        //public int GetNumEnemiesNearSpawnpoint()
+        //{
+        //    int numEnemies = 0;
+
+        //    foreach (var team in ModData.Teams)
+        //    {
+        //        if (team == null) continue;
+        //        if (team == this) continue; // skip own team
+
+        //        foreach (var squad in team.Squads)
+        //        {
+        //            if (squad.IsEmpty()) continue;
+
+        //            numEnemies += squad.Members.Count(ped => ped.Exists() && !ped.IsDead && ped.IsAlive && ped.Position.DistanceTo(SpawnPoints[0]) < 30f);
+        //        }
+        //    }
+
+        //    return numEnemies;
+        //}
 
         public List<Ped> GetAllPeds()
         {

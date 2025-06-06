@@ -50,6 +50,8 @@ namespace GangWarSandbox.Core.Backend.Gamemodes
             
         }
 
+        public override void OnSquadUpdate(Squad squad) { }
+
         public override void OnSquadDestroyed(Squad squad, Team teamOfSquad)
         {
             // Handle logic when a Squad is destroyed in Skirmish mode

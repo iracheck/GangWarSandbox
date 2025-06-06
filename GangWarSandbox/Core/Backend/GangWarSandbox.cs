@@ -7,6 +7,7 @@ using GTA;
 using GTA.Native;
 using GTA.Math;
 using System;
+using System.Drawing;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,7 +28,7 @@ namespace GangWarSandbox
         public static GangWarSandbox Instance { get; private set; }
 
         private readonly Random rand = new Random();
-        public int DEBUG = 0;
+        public int DEBUG = 1;
 
         // Constants
         private const String LOG_FILE_PATH = "scripts/GangWarSandbox.log"; // Path to the log file
@@ -83,6 +84,8 @@ namespace GangWarSandbox
         Ped Player = Game.Player.Character;
         bool PlayerDied = false;
         int TimeOfDeath;
+
+        static int StartingMoney;
 
 
         public GangWarSandbox()
@@ -185,40 +188,57 @@ namespace GangWarSandbox
             }
         }
 
+        private void DrawMarkers()
+        {
+            foreach (var point in CapturePoints)
+            {
+                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(point.Radius, point.Radius, 1f), Color.White);
+            }
+        }
+
         private void OnTick(object sender, EventArgs e)
         {
             _menuPool.Process();
 
             CurrentGamemode.OnTick();
 
+            DrawMarkers();
+
             int GameTime = Game.GameTime;
 
             if (IsBattleRunning)
             {
-                if (Player.IsDead)
+                if (PlayerTeam != -1)
                 {
-                    PlayerDied = true;
-                    TimeOfDeath = GameTime;
+                    if (Player.IsDead)
+                    {
+                        PlayerDied = true;
+                        TimeOfDeath = GameTime;
+                    }
 
-                    GTA.UI.Screen.FadeOut(10000); // Fade out for 10 seconds (should be enough time)
+                    if (PlayerDied && TimeOfDeath + 5000 <= GameTime)
+                    {
+                        // Player has died and respawned after 5 seconds
+                        Vector3 respawnLocation = Teams[PlayerTeam].SpawnPoints.Count > 0 ? Teams[PlayerTeam].SpawnPoints[0] : Vector3.Zero;
+
+                        if (respawnLocation == Vector3.Zero) return;
+                        Teams[PlayerTeam].Tier4Ped = Player; // Reset the Tier 4 Ped for the team
+
+                        GTA.UI.Screen.FadeOut(2000);
+                        Script.Wait(500);
+
+                        Player.Position = respawnLocation; // Move player to the spawn point
+                        ResetPlayerRelations();
+
+                        Script.Wait(1500);
+                        GTA.UI.Screen.FadeIn(500); // Fade in for 500ms
+
+                        PlayerDied = false; // Reset death state
+                        CurrentGamemode.OnPlayerDeath();
+                    }
                 }
 
-                if (PlayerDied && TimeOfDeath + 5000 <= GameTime)
-                {
-                    // Player has died and respawned after 5 seconds
-                    Vector3 respawnLocation = Teams[PlayerTeam].SpawnPoints.Count > 0 ? Teams[PlayerTeam].SpawnPoints[0] : Vector3.Zero;
-
-                    if (respawnLocation == Vector3.Zero) return;
-
-                    Script.Wait(50);
-                    Player.Position = respawnLocation; // Move player to the spawn point
-                    ResetPlayerRelations();
-                    Script.Wait(500);
-                    GTA.UI.Screen.FadeIn(500); // Fade in for 500ms
-
-                    PlayerDied = false; // Reset death state
-                    CurrentGamemode.OnPlayerDeath();
-                }
+                CurrentGamemode.OnTickGameRunning();
 
                 if (CurrentGamemode.ShouldSpawnSquad())
                 {
@@ -234,10 +254,14 @@ namespace GangWarSandbox
                     if (GameTime % AI_UPDATE_FREQUENCY == 0 || squad.JustSpawned)
                     {
                         squad.SquadAIHandler();
+                        CurrentGamemode.OnSquadUpdate(squad);
                     }
 
                     // Corpse Removal
                     List<Ped> deadPeds = squad.CleanupDead();
+
+                    if (deadPeds == null) continue;
+
                     DeadPeds.AddRange(deadPeds);
 
                     while (DeadPeds.Count >= MAX_CORPSES)
@@ -255,9 +279,6 @@ namespace GangWarSandbox
                     if (GameTime % POINT_UPDATE_FREQUENCY == 0)
                     point.CapturePointHandler(); // Process capture points
                 }
-
-                CurrentGamemode.OnTickGameRunning();
-
             }
         }
 
@@ -381,23 +402,39 @@ namespace GangWarSandbox
         private void StartBattle()
         {
             IsBattleRunning = true;
+            StartingMoney = Player.Money; // Save starting money!!
 
             Ped player = Game.Player.Character;
 
             ResetPlayerRelations();
 
+            for (int i = 0; i < CapturePoints.Count; i++)
+            {
+                CapturePoints[i].BattleStart();
+            }
+
+            foreach (var team in Teams)
+            {
+                team.RecolorBlips();
+            }
+
+            CurrentGamemode.InitializeUI();
+
+            CurrentGamemode.OnStart();
+
             // Spawn squads for each team
             SpawnSquads();
 
-            CurrentGamemode.OnStart();
-            CurrentGamemode.InitializeUI();
+
 
             Game.Player.WantedLevel = 0; // Reset wanted level
-            Game.Player.DispatchsCops = true; // disable cop dispatches
+            Game.Player.DispatchsCops = false; // disable cop dispatches
         }
 
         private void StopBattle()
         {
+            Player.Money = StartingMoney;
+
             IsBattleRunning = false;
             CurrentGamemode.OnEnd();
 
@@ -447,22 +484,26 @@ namespace GangWarSandbox
             if (!IsBattleRunning)
             {
                 CapturePoint point;
+                Vector3 pos;
 
                 if (Game.IsWaypointActive)
                 {
-                    Vector3 waypointPos = World.WaypointPosition;
-                    point = new CapturePoint(waypointPos);
+                    pos = World.WaypointPosition;
 
                     GTA.UI.Screen.ShowSubtitle($"Capture point created at waypoint.");
                     World.RemoveWaypoint();
                 }
                 else
                 {
-                    Vector3 charPos = Game.Player.Character.Position;
-                    point = new CapturePoint(charPos);
+                    pos = Game.Player.Character.Position;
 
                     GTA.UI.Screen.ShowSubtitle($"Capture point created at player location.");
                 }
+
+                if (pos == Vector3.Zero) return;
+
+                pos.Z = World.GetGroundHeight(pos);
+                point = new CapturePoint(pos);
 
                 CapturePoints.Add(point);
             }

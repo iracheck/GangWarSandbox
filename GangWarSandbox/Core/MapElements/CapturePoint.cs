@@ -23,10 +23,10 @@ namespace GangWarSandbox
         public Team Owner;
         public Vector3 Position;
 
-        public float Radius = 5f; // Radius of the capture point area
+        public float Radius = 10f; // Radius of the capture point area
 
         // Capture Information
-        public const float CAPTURE_RATE = 5f; // Rate at which capture progresses per second, per ped
+        public const float CAPTURE_RATE = 10f; // Rate at which capture progresses per second, per ped
 
         public float CaptureProgress; // Progress of capture from 0 to 100
         public Team CaptureTeam; // Team currently capturing the point, null if not being captured
@@ -87,6 +87,7 @@ namespace GangWarSandbox
         {
             CaptureProgress = Math.Min(100f, Math.Max(0f, CaptureProgress));
             PedsNearby = PedAI.GetNearbyPeds(Position, Radius); // update PedsNearby
+            if (PedsNearby == null) return;
             Team nearbyTeam;
 
             int numTeamsNearby = PedsNearby.Count(team => team.Value > 0); // Count how many teams have peds nearby
@@ -95,11 +96,15 @@ namespace GangWarSandbox
 
             if (IsContested) return;
 
-            
-            int numPeds = PedsNearby.Values.Sum(); // Total number of peds nearby
-            var key_value = PedsNearby.FirstOrDefault(v => v.Value > 0);
-            nearbyTeam = key_value.Key; // Get the first team with peds nearby
+            // If the capturing team has no peds left nearby, cancel the capture
+            if (CaptureTeam != null && (!PedsNearby.ContainsKey(CaptureTeam) || PedsNearby[CaptureTeam] <= 0))
+            {
+                ResetCaptureProgress();
+            }
 
+            int numPeds = PedsNearby.Values.Sum(); // Total number of peds nearby
+            var keyValue = PedsNearby.FirstOrDefault(v => v.Value > 0);
+            nearbyTeam = keyValue.Key; // Get the first team with peds nearby
 
             // If no team is nearby or the nearby team is the owner, do nothing
             if (nearbyTeam == null || nearbyTeam == Owner) return;
@@ -107,9 +112,11 @@ namespace GangWarSandbox
             if (CaptureProgress >= 100f && CaptureTeam == nearbyTeam)
             {
                 // Capture completed
-                Owner = CaptureTeam; // Set the owner to the capturing team
+                Owner = nearbyTeam; // Set the owner to the capturing team
+
+                PointBlip.Color = Owner.BlipColor;
                 ResetCaptureProgress(); // Reset capture progress after capture is complete
-                GTA.UI.Screen.ShowSubtitle("Capture Point " + PointID + " captured by Team " + CaptureTeam.Name, 5000); // Show capture message
+
                 return;
             }
 
@@ -124,7 +131,7 @@ namespace GangWarSandbox
 
             if (CaptureTeam == nearbyTeam)
             {
-                CaptureProgress += (CAPTURE_RATE * numPeds); // Increment capture progress based on number of peds and time elapsed
+                CaptureProgress += CAPTURE_RATE; // Increment capture progress based on number of peds and time elapsed
                 CaptureProgress = Math.Min(100f, CaptureProgress); // Ensure capture progress does not exceed 100
                 GTA.UI.Screen.ShowSubtitle("Capture Progress: " + CaptureProgress, 5000); // Show capture message
 
@@ -137,6 +144,13 @@ namespace GangWarSandbox
             IsCapturing = false;
             IsContested = false;
             CaptureProgress = 0.0f; // Reset capture progress
+        }
+
+        public void BattleStart()
+        {
+            Owner = null;
+            PointBlip.Color = BlipColor.White; // Reset blip color to white
+            ResetCaptureProgress();
         }
 
     }

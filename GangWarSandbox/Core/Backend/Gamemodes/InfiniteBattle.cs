@@ -8,38 +8,15 @@ using System.Threading.Tasks;
 
 namespace GangWarSandbox.Gamemodes
 {
+    /// <summary>
+    /// Infinite Battle Gamemode is the barebones gamemode-- nothing special happens, just peds constantly spawning and running toward eachother. Capture Points work but are only there for show --> no victory conditions.
+    /// </summary>
     internal class InfiniteBattleGamemode : Gamemode
     {
-
+        // Summary:
+        // 
         public InfiniteBattleGamemode() : base("Infinite Battle", "Peds will spawn forever, putting you in a battle that never ends!", 4)
-        {
-            
-        }
-
-        public override void InitializeGamemode() { }
-
-        public override void InitializeUI() { }
-
-        public override void OnTick() { }
-
-        public override void OnTickGameRunning() { }
-
-        public override void OnStart()
-        {
-        }
-
-        public override void OnEnd() { }
-
-        public override void OnPedKilled(Ped ped, Team teamOfPed) { }
-
-        public override void OnSquadDestroyed(Squad squad, Team teamOfSquad) { }
-
-        public virtual bool ShouldSpawnSquad()
-        {
-            return true;
-        }
-
-        public override void OnPlayerDeath() {}
+        { }
 
     }
 }
