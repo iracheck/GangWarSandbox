@@ -194,6 +194,22 @@ namespace GangWarSandbox
             {
                 World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(point.Radius, point.Radius, 1f), Color.White);
             }
+
+            if (DEBUG == 1)
+            {
+                foreach (var team in Teams)
+                {
+                    foreach (var squad in team.Squads)
+                    {
+                        if (squad.Waypoints.Count == 0) continue;
+
+                        Vector3 squadLeaderPos = squad.SquadLeader.Position;
+                        Vector3 targetPos = squad.Waypoints[0];
+
+                        World.DrawLine(squadLeaderPos, targetPos, Color.LimeGreen);
+                    }
+                }
+            }
         }
 
         private void OnTick(object sender, EventArgs e)

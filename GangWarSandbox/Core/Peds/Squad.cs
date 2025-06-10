@@ -16,6 +16,7 @@ using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
 using System.ComponentModel;
 using GangWarSandbox.Core.StrategyAI;
+using GangWarSandbox.Core.Backend;
 
 namespace GangWarSandbox
 {
@@ -267,6 +268,13 @@ namespace GangWarSandbox
 
                 if (ped == null || !ped.Exists() || !ped.IsAlive) continue;
 
+                // Clear nearby waypoints
+                if (Waypoints[0] != Vector3.Zero && ped.Position.DistanceTo(Waypoints[0]) < 10f)
+                {
+                    Waypoints.RemoveAt(0);
+                    if (PedAssignments[ped] == PedAssignment.RunToPosition) PedAssignments[ped] = PedAssignment.None;
+                }
+
                 // Handle logic with enemy detection, combat, etc.
                 bool combat = PedAI_Combat(ped);
 
@@ -361,25 +369,10 @@ namespace GangWarSandbox
         {
             if (ped == SquadLeader)
             {
-                if (PedAssignments[ped] != PedAssignment.RunToPosition && Waypoints[0] != Vector3.Zero) // if the squad has a target, but the squad leader is not moving toward it, move!
+                if (PedAssignments[ped] != PedAssignment.RunToPosition && Waypoints.Count > 0 && Waypoints[0] != Vector3.Zero) // if the squad has a target, but the squad leader is not moving toward it, move!
                 {
                     PedAI.RunToFarAway(ped, Waypoints[0]);
                     PedAssignments[ped] = PedAssignment.RunToPosition;
-                }
-                else if (PedAssignments[ped] == PedAssignment.RunToPosition && ped.Velocity.Length() < 0.2f && Waypoints[0] != Vector3.Zero)
-                {
-                    SquadLeaderStuckTicks++;
-
-                    if (SquadLeaderStuckTicks >= 40) // if the squad leader has been stuck for too long, reset ped assignments
-                    {
-                        SquadLeaderStuckTicks = 0;
-                        PedAssignments[ped] = PedAssignment.None;
-                    }
-                }
-                else if (Vector3.Distance(ped.Position, Waypoints[0]) < 10f || Waypoints[0] == Vector3.Zero)
-                {
-                    Waypoints.RemoveAt(0);
-                    PedAssignments[ped] = PedAssignment.None;
                 }
 
             }

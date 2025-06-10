@@ -113,6 +113,7 @@ namespace GangWarSandbox
         }
 
         // This method makes a progressievly larger circle around the coordinate until it finds a safe position.
+        // This method, while functional, relatively frequently results in strange behavior, so it's not going to be used for now.
         public static Vector3 FindSafePositionNearCoord(Vector3 coord)
         {
             List<float> distances = new List<float> { 2f, 5f, 10f, 15f, 20f, 25f };
@@ -146,51 +147,63 @@ namespace GangWarSandbox
             return Vector3.Zero;
         }
 
-        public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, float maxStepSize = 50f, bool followRoads = true)
+        public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, float maxStepSize = 50f)
         {
             List<Vector3> points = new List<Vector3>();
 
+            // Convert END to a temporary road-based destination
+            Vector3 endRoad = World.GetNextPositionOnStreet(end);
 
-            Vector3 direction = end - start;
+            // If the end road is a valid target, use that instead, to help with routing around buildings.
+            Vector3 navTarget = endRoad != Vector3.Zero ? endRoad : end;
 
+            Vector3 direction = navTarget - start;
             float distance = direction.Length();
-            direction.Normalize(); // convert it to a normal vector, so we know which direction to count in
+            direction.Normalize();
 
-            GTA.UI.Screen.ShowSubtitle(distance.ToString());
             int numSteps = (int)(distance / maxStepSize);
 
-            //points.Add(start);
             for (int i = 1; i < numSteps; i++)
             {
                 Vector3 step = start + direction * (i * maxStepSize);
-                step = World.GetSafeCoordForPed(step, true);
+                Vector3 safeStep = World.GetSafeCoordForPed(step, true);
 
-                if (step == Vector3.Zero)
+                // Fallback 1: Try your custom safe finder
+                //if (safeStep == Vector3.Zero)
+                //{
+                //    safeStep = FindSafePositionNearCoord(step);
+                //}
+
+                // Fallback 2: Use nearest road
+                if (safeStep == Vector3.Zero)
                 {
-                    step = FindSafePositionNearCoord(start + direction * (i * maxStepSize));
+                    safeStep = World.GetNextPositionOnStreet(step);
                 }
 
-                Vector3 testStep = World.GetSafeCoordForPed(step, true);
-
-                if (testStep != Vector3.Zero) step = testStep;
-
-                if (step != Vector3.Zero)
+                if (safeStep != Vector3.Zero)
                 {
-                    points.Add(step);
+                    points.Add(safeStep);
                 }
                 else
                 {
-                    GTA.UI.Screen.ShowSubtitle("Pathfinding error. WIP, sorry!");
-                    Logger.LogDebug("A coordinate failed: " + step);
-
+                    Logger.LogDebug($"[WAYPOINT ERROR] No valid waypoint at step {i}: {step}");
+                    GTA.UI.Screen.ShowSubtitle($"Pathfinding failed at step {i}");
                 }
             }
 
-            points.Add(end);
+            // If we routed to the road near the end, add final leg to the real endpoint
+            if (endRoad != Vector3.Zero)
+            {
+                points.Add(end);
+            }
+
+            foreach (var point in points)
+            {
+                Logger.LogDebug("Waypoint: " + point);
+            }
 
             return points;
         }
-
 
 
 
