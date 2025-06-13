@@ -6,6 +6,7 @@ A mod for Grand Theft Auto V that allows players to immerse themselves into a ba
 ### Dependencies:
 - LemonUI 2.2+
 - ScriptHookVDotNet-Nightly 3.7+
+
 ### Recommended Mods:
 - Menyoo (to create battlefields with Object Spooner)
 
@@ -25,11 +26,8 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [x] Peds use line of sight targetting
 - [x] Waypoint Movement System (Allow peds to move >150m distances)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
-- [ ] Advanced Custom AI Behaviors
-- [ ] Strategy AI-- Order squads to go to places around the map to achieve victory conditions
-- [ ] __Battle Type: Conquest / KOTH__
-- [x] Battle Type: Endless
 - [ ] Battle Type: Skirmish
+- [x] Battle Type: Endless
 - [x] Capture Points
 - [ ] Vehicle Support
 - [ ] Helicopter Support
@@ -44,6 +42,8 @@ Features that may not fit into Version 1, but I want to include.
 - [ ] Radio System (call for reinforcements, air strikes, etc)
 - [ ] Battle Type: Defend the Point
 - [ ] Battle Type: Gun Game
+- [ ] Advanced Custom AI Behaviors
+- [ ] Strategy AI-- Order squads to go to places around the map to achieve victory conditions
 
 
 
