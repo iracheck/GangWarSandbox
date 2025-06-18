@@ -2,18 +2,27 @@
 A mod for Grand Theft Auto V that allows players to immerse themselves into a battlefield.
 
 # Installation
-[A copy of these dependencies are included with the mod file. Only use them if you don't already have those installed.]
+A copy of these dependencies are included with the mod file. Only use them if you don't already have those installed.
 ### Dependencies:
 - LemonUI 2.2+
 - ScriptHookVDotNet-Nightly 3.7+
+- ScriptHookV v3521.0/814.9
 
 ### Recommended Mods:
-- Menyoo (to create battlefields with Object Spooner)
+- Menyoo (Create battlefields)
 
 ### Instructions:
 1. Install all above dependencies
-2. Drag GangWarSandbox.dll and GangWarSandbox.ini into your *scripts* folder.
-3. Run GTAV.exe, and press F10 to open the mod menu. 
+2. Drag GangWarSandbox.dll and the GangWarSandbox folder into your *scripts* folder.
+3. Run GTAV.exe, and press F10 (or optionally configured key) to open the mod menu.
+
+## Customization Instructions
+Currently, you can customize Factions and their VehicleSets. The mod checks everything within the given folder (e.g. ...scripts/GangWarSandbox/Factions), and then parses out any .ini files inside of it. To create a new Faction or VehicleSet, create a new .ini file and follow the instructions given in the Creation Guide given in each folder.
+
+You can use the following links to find ped or vehicle models:
+https://docs.fivem.net/docs/game-references/vehicle-references/vehicle-models/
+
+__Note__ Use the name of the model, e.g. "hc_driver" or "issi2"
 
 # Features
 All of these features are __planned__. When or in what state they arrive in is unknown. Anything marked in bold is a priority.
@@ -61,4 +70,4 @@ Features that may not fit into Version 1, but I want to include.
 
 
 #### Regarding the Codebase
-Much of this mod will be rewritten over time. I started it just for fun, until it became something more substantial, so much of the early code is written poorly. 
+Much of this mod will be rewritten over time. I started it just for fun, until it became something more substantial, so much of the early code is written poorly. As a result, some of the first things I worked on will be rewritten, in some cases to be more modular/customizable by the end user (you!).
