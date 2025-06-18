@@ -197,11 +197,6 @@ namespace GangWarSandbox
                 points.Add(end);
             }
 
-            foreach (var point in points)
-            {
-                Logger.LogDebug("Waypoint: " + point);
-            }
-
             return points;
         }
 

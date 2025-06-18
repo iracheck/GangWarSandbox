@@ -1,4 +1,5 @@
-﻿using GTA;
+﻿using GangWarSandbox.Core;
+using GTA;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,7 @@ namespace GangWarSandbox
         public string[] Tier3Weapons;
 
         public BlipColor Color = BlipColor.White;
+        public VehicleSet VehicleSet;
 
         public int MaxSoldiers;
         public int BaseHealth;

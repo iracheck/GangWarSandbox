@@ -133,8 +133,8 @@ namespace GangWarSandbox
                 int assault = 0;
                 int defend = 0;
 
-                assault += StrategyAI_Helpers.CalculateNeedToAssaultPoint(Owner);
-                defend += StrategyAI_Helpers.CalculateNeedToDefendPoint(Owner);
+                assault += StrategyAIHelpers.CalculateNeedToAssaultPoint(Owner);
+                defend += StrategyAIHelpers.CalculateNeedToDefendPoint(Owner);
                 max += assault + defend;
 
                 int randNum = rand.Next(0, max);

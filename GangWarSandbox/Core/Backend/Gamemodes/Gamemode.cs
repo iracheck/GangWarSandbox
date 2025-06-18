@@ -40,6 +40,11 @@ namespace GangWarSandbox.Gamemodes
         public virtual void InitializeGamemode() { }
 
         /// <summary>
+        /// Executes when the game mode is first selected by the player. This is the best place to initialize certain Gamemode attributes, such as CaptureProgressMultiplier or PedHealthMultiplier. Of course, you can still modify them later.
+        /// </summary>
+        public virtual void TerminateGamemode() { }
+
+        /// <summary>
         /// Initializes the UI for the gamemode, such as setting up menus or HUD elements. Executes once when battle begins.
         /// </summary>
         public virtual void InitializeUI() { }

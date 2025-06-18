@@ -51,7 +51,7 @@ namespace GangWarSandbox
             BlipSprite.Number4,
             BlipSprite.Number5,
             BlipSprite.Number6
-        }; // Track last spawn time for each team to prevent spamming or crowding
+        };
 
 
         // Tracked Peds
@@ -60,17 +60,19 @@ namespace GangWarSandbox
         // Capture Points
         public List<CapturePoint> CapturePoints = new List<CapturePoint>();
 
-        // UI Elements
-        private ObjectPool _menuPool = new ObjectPool();
+        // LemonUI Menus
+        private ObjectPool MenuPool = new ObjectPool();
 
-        private NativeMenu _mainMenu;
-        private NativeMenu _teamSetupMenu;
-        private NativeMenu _spawnpointMenu;
-        private NativeMenu _battleControlMenu;
-        private List<NativeListItem<string>> _teamFactionItems = new List<NativeListItem<string>>();
+        private NativeMenu MainMenu;
+        private NativeMenu BattleSetupMenu;
+        private NativeMenu TeamSetupMenu;
+        private NativeMenu SpawnpointMenu;
+        private NativeMenu BattleControlMenu;
+        private List<NativeListItem<string>> TeamFactionItems = new List<NativeListItem<string>>();
 
         // Game State
         private bool IsBattleRunning = false;
+        public float UnitCountMultiplier = 1; // Multiplier for unit count, used to scale the number of soldiers per team based on faction settings
         public Gamemode CurrentGamemode = new InfiniteBattleGamemode();
         private List<Gamemode> AvaliableGamemodes = new List<Gamemode>
         {
@@ -92,10 +94,13 @@ namespace GangWarSandbox
         {
             Instance = this;
 
+            // Try to load the config
+            Factions = ConfigParser.LoadFactions();
+
             Tick += OnTick;
             KeyDown += OnKeyDown;
 
-            _menuPool = new ObjectPool();
+            MenuPool = new ObjectPool();
 
             for (int i = 0; i < NUM_TEAMS; i++)
             {
@@ -105,116 +110,14 @@ namespace GangWarSandbox
                 Teams[i].BlipSprite = BlipSprites[i]; // Assign a unique blip sprite for each team
             }
 
-            LoadINI();
+
 
             SetupMenu();
         }
 
-        private void LoadINI()
-        {
-            try
-            {
-                string path = "scripts/GangWarSandbox.ini";
-                if (!File.Exists(path)) return;
-
-                var lines = File.ReadAllLines(path);
-
-                string currentFaction = null;
-                Faction faction = null;
-
-                foreach (var line in lines)
-                {
-                    if (string.IsNullOrWhiteSpace(line) || !line.Contains("=") && !line.StartsWith("[")) continue;
-
-                    if (line.StartsWith("["))
-                    {
-                        currentFaction = line.Trim('[', ']');
-                        faction = new Faction { Name = currentFaction };
-                        Factions[currentFaction] = faction;
-                        continue;
-                    }
-
-                    if (faction == null) continue;
-
-                    int equalsIndex = line.IndexOf('=');
-                    if (equalsIndex == -1 || equalsIndex == line.Length - 1) continue; // skip invalid lines
-
-                    string key = line.Substring(0, equalsIndex).Trim();
-                    string value = line.Substring(equalsIndex + 1).Trim();
-
-                    switch (key)
-                    {
-                        case "Models":
-                            faction.Models = value.Split(',').Select(s => s.Trim()).ToArray();
-                            break;
-                        case "Tier4Model":
-                            faction.Tier4Model = value;
-                            break;
-                        case "Tier1Weapons":
-                            faction.Tier1Weapons = value.Split(',').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToArray();
-                            break;
-                        case "Tier2Weapons":
-                            faction.Tier2Weapons = value.Split(',').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToArray();
-                            break;
-                        case "Tier3Weapons":
-                            faction.Tier3Weapons = value.Split(',').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToArray();
-                            break;
-                        case "MaxSoldiers":
-                            if (int.TryParse(value, out int soldiers))
-                                faction.MaxSoldiers = soldiers;
-                            break;
-                        case "BaseHealth":
-                            if (int.TryParse(value, out int health))
-                                faction.BaseHealth = health;
-                            break;
-                        case "AccuracyBonus":
-                            if (int.TryParse(value, out int accuracy))
-                                faction.Accuracy = accuracy;
-                            break;
-                        case "TierUpgradeMultiplier":
-                            if (float.TryParse(value, out float mult))
-                                faction.TierUpgradeMultiplier = mult;
-                            break;
-                        case "BlipColor":
-                            if (Enum.TryParse(value, out BlipColor blipColor))
-                                faction.Color = blipColor;
-                            break;
-                    }
-                }
-            }
-            catch
-            {
-                GTA.UI.Screen.ShowSubtitle("Error in loading INI. Please report it on the mod page, sorry!");
-            }
-        }
-
-        private void DrawMarkers()
-        {
-            foreach (var point in CapturePoints)
-            {
-                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(point.Radius, point.Radius, 1f), Color.White);
-            }
-
-            if (DEBUG == 1)
-            {
-                foreach (var team in Teams)
-                {
-                    foreach (var squad in team.Squads)
-                    {
-                        if (squad.Waypoints.Count == 0) continue;
-
-                        Vector3 squadLeaderPos = squad.SquadLeader.Position;
-                        Vector3 targetPos = squad.Waypoints[0];
-
-                        World.DrawLine(squadLeaderPos, targetPos, Color.LimeGreen);
-                    }
-                }
-            }
-        }
-
         private void OnTick(object sender, EventArgs e)
         {
-            _menuPool.Process();
+            MenuPool.Process();
 
             CurrentGamemode.OnTick();
 
@@ -241,16 +144,16 @@ namespace GangWarSandbox
                         Teams[PlayerTeam].Tier4Ped = Player; // Reset the Tier 4 Ped for the team
 
                         GTA.UI.Screen.FadeOut(2000);
-                        Script.Wait(500);
+                        Script.Wait(2000);
 
                         Player.Position = respawnLocation; // Move player to the spawn point
                         ResetPlayerRelations();
 
-                        Script.Wait(1500);
-                        GTA.UI.Screen.FadeIn(500); // Fade in for 500ms
-
                         PlayerDied = false; // Reset death state
                         CurrentGamemode.OnPlayerDeath();
+
+                        Script.Wait(500);
+                        GTA.UI.Screen.FadeIn(500); // Fade in for 500ms
                     }
                 }
 
@@ -302,25 +205,58 @@ namespace GangWarSandbox
         {
             if (e.KeyCode == Keys.F10)
             {
-                if (!_menuPool.AreAnyVisible)
-                    _mainMenu.Visible = true;
+                if (!MenuPool.AreAnyVisible)
+                    MainMenu.Visible = true;
                 else
-                    _menuPool.HideAll();
+                    MenuPool.HideAll();
             }
         }
 
 
-        // This is due a rewrite simply due to my lacking knowledge of lemonui
+        // Parts of this was written for debugging and so I will need to rewrite it eventually
         private void SetupMenu()
         {
             // MAIN MENU
-            _mainMenu = new NativeMenu("Gang War Sandbox", "MAIN MENU");
-            _menuPool.Add(_mainMenu);
+            MainMenu = new NativeMenu("Gang War Sandbox", "MAIN MENU");
+            MenuPool.Add(MainMenu);
+
+            // Submenu: BATTLE SETUP
+            BattleSetupMenu = new NativeMenu("Battle Setup", "Configure Battle");
+            MenuPool.Add(BattleSetupMenu);
+            MainMenu.AddSubMenu(BattleSetupMenu);
+
+            var gamemodeItem = new NativeListItem<string>("Gamemode", AvaliableGamemodes.Select(g => g.Name).ToArray());
+            gamemodeItem.Description = "Select the gamemode for this battle. Each gamemode has different rules and mechanics that can be viewed on the mod page or readme file.";
+
+            gamemodeItem.ItemChanged += (item, args) =>
+            {
+                var selectedGamemode = AvaliableGamemodes.FirstOrDefault(g => g.Name == gamemodeItem.SelectedItem);
+                if (selectedGamemode != null)
+                {
+                    CurrentGamemode.TerminateGamemode();
+
+                    CurrentGamemode = selectedGamemode;
+                    CurrentGamemode.InitializeGamemode();
+                }
+            };
+
+            // A multiplier from the value located in the faction settings, max of 10x
+            var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 90, 1);
+
+            unitCountMultiplier.ValueChanged += (item, args) =>
+            {
+                unitCountMultiplier.Description = "Current Multiplier: " + (unitCountMultiplier.Value / 10) + "x";
+                UnitCountMultiplier = (10 + unitCountMultiplier.Value) / 10;
+            };
+
+            BattleSetupMenu.Add(gamemodeItem);
+            BattleSetupMenu.Add(unitCountMultiplier);
+
 
             // Submenu: TEAM SETUP
-            _teamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
-            _menuPool.Add(_teamSetupMenu);
-            _mainMenu.AddSubMenu(_teamSetupMenu);
+            TeamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
+            MenuPool.Add(TeamSetupMenu);
+            MainMenu.AddSubMenu(TeamSetupMenu);
 
             List<String> playerTeamItem_Teams = new List<String> { "Neutral" };
 
@@ -328,6 +264,7 @@ namespace GangWarSandbox
                 playerTeamItem_Teams.Add("Team " + (i + 1));
 
             var playerTeamItem = new NativeListItem<string>("Player Team", playerTeamItem_Teams.ToArray());
+            playerTeamItem.Description = "The team of the player character. If selecting 'Neutral' you will still be attacked if you attack someone.";
 
             playerTeamItem.ItemChanged += (item, args) =>
             {
@@ -335,27 +272,30 @@ namespace GangWarSandbox
                 PlayerTeam = (sel == "Neutral") ? -1 : int.Parse(sel.Substring(5)) - 1;
             };
 
-            _teamFactionItems.Clear();
+            TeamFactionItems.Clear();
             for (int i = 0; i < NUM_TEAMS; i++)
             {
                 var teamFactionItem = new NativeListItem<string>($"Team {i + 1} Faction", Factions.Keys.ToArray());
-                _teamFactionItems.Add(teamFactionItem);
-                _teamSetupMenu.Add(teamFactionItem);
+                teamFactionItem.Add("The faction of team" + i + 1 + ". This will determine the models, weapons, vehicles, and other attributes of the team.");
+                TeamFactionItems.Add(teamFactionItem);
+                TeamSetupMenu.Add(teamFactionItem);
             }
-            _teamSetupMenu.Add(playerTeamItem);
+            TeamSetupMenu.Add(playerTeamItem);
 
             // Submenu: SPAWNPOINT SETUP
-            _spawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
-            _menuPool.Add(_spawnpointMenu);
-            _mainMenu.AddSubMenu(_spawnpointMenu);
+            SpawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
+            MenuPool.Add(SpawnpointMenu);
+            MainMenu.AddSubMenu(SpawnpointMenu);
 
             var addT1 = new NativeItem("Add Spawnpoint - Team 1");
             var addT2 = new NativeItem("Add Spawnpoint - Team 2");
             var addT3 = new NativeItem("Add Spawnpoint - Team 3");
             var addT4 = new NativeItem("Add Spawnpoint - Team 4");
-            var clearNearest = new NativeItem("Clear Nearest Spawnpoint");
-            var clear = new NativeItem("Clear All Spawnpoints");
             var addCapPt = new NativeItem("Add Capture Point");
+
+            var clearNearest = new NativeItem("Clear Nearest Point");
+            var clear = new NativeItem("Clear All Points");
+
 
 
 
@@ -370,17 +310,19 @@ namespace GangWarSandbox
 
 
 
-            _spawnpointMenu.Add(addT1);
-            _spawnpointMenu.Add(addT2);
-            _spawnpointMenu.Add(addT3);
-            _spawnpointMenu.Add(addT4);
-            _spawnpointMenu.Add(addCapPt);
-            _spawnpointMenu.Add(clear);
+            SpawnpointMenu.Add(addT1);
+            SpawnpointMenu.Add(addT2);
+            SpawnpointMenu.Add(addT3);
+            SpawnpointMenu.Add(addT4);
+            SpawnpointMenu.Add(addCapPt);
+
+            SpawnpointMenu.Add(clearNearest);
+            SpawnpointMenu.Add(clear);
 
             // Submenu: BATTLE CONTROL
-            _battleControlMenu = new NativeMenu("Battle Control", "Start or Stop Battle");
-            _menuPool.Add(_battleControlMenu);
-            _mainMenu.AddSubMenu(_battleControlMenu);
+            BattleControlMenu = new NativeMenu("Battle Control", "Start or Stop Battle");
+            MenuPool.Add(BattleControlMenu);
+            MainMenu.AddSubMenu(BattleControlMenu);
 
             var start = new NativeItem("Start Battle");
             var stop = new NativeItem("Stop Battle");
@@ -388,13 +330,13 @@ namespace GangWarSandbox
             start.Activated += (item, args) =>
             {
                 for (int i = 0; i < NUM_TEAMS; i++)
-                    ApplyFactionToTeam(Teams[i], _teamFactionItems[i].SelectedItem);
+                    ApplyFactionToTeam(Teams[i], TeamFactionItems[i].SelectedItem);
                 StartBattle();
             };
             stop.Activated += (item, args) => StopBattle();
 
-            _battleControlMenu.Add(start);
-            _battleControlMenu.Add(stop);
+            BattleControlMenu.Add(start);
+            BattleControlMenu.Add(stop);
         }
 
         private void ApplyFactionToTeam(Team team, string factionName)
@@ -411,7 +353,7 @@ namespace GangWarSandbox
                 team.Accuracy = faction.Accuracy;
                 team.TierUpgradeMultiplier = faction.TierUpgradeMultiplier;
                 team.BlipColor = faction.Color;
-                team.teamIndex = Teams.IndexOf(team);
+                team.TeamIndex = Teams.IndexOf(team);
             }
         }
 
@@ -636,6 +578,34 @@ namespace GangWarSandbox
                 if (Teams[PlayerTeam].SpawnPoints.Count > 0)
                 {
                     Player.Position = Teams[PlayerTeam].SpawnPoints[0];
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Draws markers for capture points, and if debug mode is enabled, squad movement orders
+        /// </summary>
+        private void DrawMarkers()
+        {
+            foreach (var point in CapturePoints)
+            {
+                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(point.Radius, point.Radius, 1f), Color.White);
+            }
+
+            if (DEBUG == 1)
+            {
+                foreach (var team in Teams)
+                {
+                    foreach (var squad in team.Squads)
+                    {
+                        if (squad.Waypoints.Count == 0) continue;
+
+                        Vector3 squadLeaderPos = squad.SquadLeader.Position;
+                        Vector3 targetPos = squad.Waypoints[0];
+
+                        World.DrawLine(squadLeaderPos, targetPos, Color.LimeGreen);
+                    }
                 }
             }
         }

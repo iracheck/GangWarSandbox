@@ -55,19 +55,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\Backend\ConfigParser.cs" />
     <Compile Include="Core\Backend\Gamemodes\Gamemode.cs" />
     <Compile Include="Core\Backend\Gamemodes\InfiniteBattle.cs" />
     <Compile Include="Core\Backend\Gamemodes\Skirmish.cs" />
     <Compile Include="Core\Backend\Logger.cs" />
     <Compile Include="Core\Helpers\Helpers.cs" />
     <Compile Include="Core\MapElements\CapturePoint.cs" />
-    <Compile Include="Core\Backend\Faction.cs" />
-    <Compile Include="Core\Backend\GangWarSandbox.cs" />
+    <Compile Include="Core\Backend\Gameplay\Faction.cs" />
+    <Compile Include="Core\Backend\Gameplay\GangWarSandbox.cs" />
     <Compile Include="Core\Peds\PedAI.cs" />
-    <Compile Include="Core\StrategyAI\StrategyAI_Helpers.cs" />
+    <Compile Include="Core\Peds\VehicleSet.cs" />
+    <Compile Include="Core\StrategyAI\StrategyAIHelpers.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\Peds\Squad.cs" />
-    <Compile Include="Core\Backend\Team.cs" />
+    <Compile Include="Core\Backend\Gameplay\Team.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

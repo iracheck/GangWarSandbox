@@ -9,7 +9,7 @@ using GTA;
 
 namespace GangWarSandbox.Core.StrategyAI
 {
-    static class StrategyAI_Helpers
+    static class StrategyAIHelpers
     {
         static GangWarSandbox ModData = GangWarSandbox.Instance;
 

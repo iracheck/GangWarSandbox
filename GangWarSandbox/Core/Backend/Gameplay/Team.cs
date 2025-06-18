@@ -8,6 +8,7 @@ using System.Linq;
 using System.Windows.Forms;
 using LemonUI;
 using LemonUI.Menus;
+using GangWarSandbox.Core;
 
 namespace GangWarSandbox
 {
@@ -15,11 +16,10 @@ namespace GangWarSandbox
     {
         static GangWarSandbox ModData = GangWarSandbox.Instance;
 
-        //
-
         public string Name { get; }
         public RelationshipGroup Group { get; set; }
         public Faction Faction { get; set; } = null;
+        VehicleSet TeamVehicles { get; set; } = null;
 
         public int MAX_SOLDIERS { get; set; } = 25;
         public int BaseHealth { get; set; } = 300;
@@ -30,7 +30,7 @@ namespace GangWarSandbox
         public List<Ped> DeadPeds { get; } = new List<Ped>();
         public Ped Tier4Ped = null;
 
-        public int teamIndex;
+        public int TeamIndex;
 
 
         public List<Blip> Blips { get; } = new List<Blip>();
@@ -143,10 +143,12 @@ namespace GangWarSandbox
         {
             SpawnPoints.Add(position);
             Blip blip = World.CreateBlip(position);
+
             blip.Sprite = BlipSprite;
             blip.Name = "Team " + Name + " Spawn";
             blip.Color = BlipColor;
             blip.Scale = 0.8f;
+
             Blips.Add(blip);
         }
 
