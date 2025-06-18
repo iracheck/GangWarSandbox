@@ -6,7 +6,7 @@ A copy of these dependencies are included with the mod file. Only use them if yo
 ### Dependencies:
 - LemonUI 2.2+
 - ScriptHookVDotNet-Nightly 3.7+
-- ScriptHookV v3521.0/814.9
+- ScriptHookV
 
 ### Recommended Mods:
 - Menyoo (Create battlefields)
