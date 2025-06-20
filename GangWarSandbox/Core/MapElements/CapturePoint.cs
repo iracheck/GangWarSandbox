@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using GangWarSandbox;
+using GangWarSandbox.Peds;
 using System.Windows.Forms;
 
 namespace GangWarSandbox
@@ -23,7 +24,7 @@ namespace GangWarSandbox
         public Team Owner;
         public Vector3 Position;
 
-        public float Radius = 10f; // Radius of the capture point area
+        public static float Radius = 10f; // Radius of the capture point area
 
         // Capture Information
         public const float CAPTURE_RATE = 10f; // Rate at which capture progresses per second, per ped
@@ -37,7 +38,7 @@ namespace GangWarSandbox
         public const int HEALING_RATE = 25; // per second
 
         // Capture Point Icons
-        BlipSprite[] CapturePointIcons =
+        static BlipSprite[] CapturePointIcons =
         {
             BlipSprite.TargetA,
             BlipSprite.TargetB,
@@ -49,12 +50,12 @@ namespace GangWarSandbox
             BlipSprite.TargetH
         };
 
-        String[] CapturePointNames =
+        static String[] CapturePointNames =
         {
             "A", "B", "C", "D", "E", "F", "G", "H"
         };
 
-        BlipSprite FallbackIcon = BlipSprite.CaptureFlag; // Fallback icon if no specific icon is set for the point
+        static BlipSprite FallbackIcon = BlipSprite.CaptureFlag; // Fallback icon if no specific icon is set for the point
 
 
         public Dictionary<Team, int> PedsNearby = new Dictionary<Team, int>(); // Track how many squad members are nearby
@@ -73,10 +74,10 @@ namespace GangWarSandbox
 
             PointID = ModData.CapturePoints.Count + 1;
 
-            if (PointID >= CapturePointIcons.Length) PointBlip.Sprite = FallbackIcon; 
-            else PointBlip.Sprite = CapturePointIcons[PointID - 1];
+            if (PointID <= CapturePointIcons.Length) PointBlip.Sprite = CapturePointIcons[PointID - 1]; 
+            else PointBlip.Sprite = FallbackIcon;
 
-            if (PointID >= CapturePointNames.Length) Name = "Point " + CapturePointNames[CapturePointNames.Length - 1];
+            if (PointID <= CapturePointNames.Length) Name = "Point " + CapturePointNames[CapturePointNames.Length - 1];
             else Name = "Capture Point";
 
             PointBlip.Name = "Capture Point " + Name;

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using GangWarSandbox;
+using GangWarSandbox.Peds;
 using GTA;
 
 namespace GangWarSandbox.Core.StrategyAI

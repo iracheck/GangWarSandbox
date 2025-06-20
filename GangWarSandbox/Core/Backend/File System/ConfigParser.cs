@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GangWarSandbox.Core.Backend
+namespace GangWarSandbox.Core
 {
     static class ConfigParser 
     {
@@ -17,9 +17,9 @@ namespace GangWarSandbox.Core.Backend
         /// <summary>
         /// Vehicle Sets are loaded during the initialization of the mod, before initializing factions. 
         /// </summary>
-        /// <returns></returns>
         private static Dictionary<string, VehicleSet> LoadVehicleSets()
         {
+            Logger.Log("Parsing VehicleSets from INI files...");
             try
             {
                 string path = "scripts/GangWarSandbox/VehicleSets";
@@ -27,6 +27,7 @@ namespace GangWarSandbox.Core.Backend
 
                 foreach (var file in files)
                 {
+                    Logger.Log("Trying to parse new vehicle set file: " + file);
                     var lines = File.ReadAllLines(file);
                     if (lines.Length == 0) continue; // skip empty files
 
@@ -81,6 +82,8 @@ namespace GangWarSandbox.Core.Backend
         public static Dictionary<string, Faction> LoadFactions()
         {
             LoadVehicleSets(); // vehicle sets should be loaded first, to be applied to factions
+
+            Logger.Log("Parsing Factions from INI files...");
             Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
 
             try
@@ -92,6 +95,7 @@ namespace GangWarSandbox.Core.Backend
 
                 foreach (var file in files)
                 {
+                    Logger.Log("Trying to parse new faction file: " + file);
                     string currentFaction = null;
                     Faction faction = null;
 

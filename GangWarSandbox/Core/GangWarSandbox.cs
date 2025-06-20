@@ -15,11 +15,11 @@ using System.Windows.Forms;
 using LemonUI;
 using LemonUI.Menus;
 using GangWarSandbox;
+using GangWarSandbox.Peds;
 using GangWarSandbox.Gamemodes;
 using System.Runtime.InteropServices;
-using GangWarSandbox.Core.Backend;
+using GangWarSandbox.Core;
 using System.Runtime.Remoting.Messaging;
-using GangWarSandbox.Core.Backend.Gamemodes;
 
 namespace GangWarSandbox
 {
@@ -31,7 +31,6 @@ namespace GangWarSandbox
         public int DEBUG = 1;
 
         // Constants
-        private const String LOG_FILE_PATH = "scripts/GangWarSandbox.log"; // Path to the log file
         private const int AI_UPDATE_FREQUENCY = 200; // How often squad AI will be updated, in milliseconds
         private const int POINT_UPDATE_FREQUENCY = 1000; // How often capture points will be updated, in milliseconds
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
@@ -72,7 +71,15 @@ namespace GangWarSandbox
 
         // Game State
         private bool IsBattleRunning = false;
+
+        // Game Options
+        // Options relating to the battle, e.g. unit counts or vehicles
         public float UnitCountMultiplier = 1; // Multiplier for unit count, used to scale the number of soldiers per team based on faction settings
+
+        public bool UseVehicles = false;
+        public bool UseWeaponizedVehicles = false;
+        public bool UseHelicopters = false;
+
         public Gamemode CurrentGamemode = new InfiniteBattleGamemode();
         private List<Gamemode> AvaliableGamemodes = new List<Gamemode>
         {
@@ -93,6 +100,9 @@ namespace GangWarSandbox
         public GangWarSandbox()
         {
             Instance = this;
+
+            // Ensure valid directories exist on startup
+            ModFiles.EnsureDirectoriesExist();
 
             // Try to load the config
             Factions = ConfigParser.LoadFactions();
@@ -245,12 +255,24 @@ namespace GangWarSandbox
 
             unitCountMultiplier.ValueChanged += (item, args) =>
             {
-                unitCountMultiplier.Description = "Current Multiplier: " + (unitCountMultiplier.Value / 10) + "x";
-                UnitCountMultiplier = (10 + unitCountMultiplier.Value) / 10;
+                UnitCountMultiplier = ((float) unitCountMultiplier.Value) / 10;
+                unitCountMultiplier.Description = "Current Multiplier: " + UnitCountMultiplier + "x";
             };
+
+            var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.");
+            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "Allow weaponized vehicles to be used in the battle.");
+            var allowHelicopters = new NativeCheckboxItem("Helicopters", "Allow helicopters to be used in the battle. ");
+
+            allowVehicles.Checked = true;
+            allowWeaponizedVehicles.Checked = true;
+            allowHelicopters.Checked = true;
 
             BattleSetupMenu.Add(gamemodeItem);
             BattleSetupMenu.Add(unitCountMultiplier);
+
+            BattleSetupMenu.Add(allowVehicles);
+            BattleSetupMenu.Add(allowWeaponizedVehicles);
+            BattleSetupMenu.Add(allowHelicopters);
 
 
             // Submenu: TEAM SETUP
@@ -264,7 +286,7 @@ namespace GangWarSandbox
                 playerTeamItem_Teams.Add("Team " + (i + 1));
 
             var playerTeamItem = new NativeListItem<string>("Player Team", playerTeamItem_Teams.ToArray());
-            playerTeamItem.Description = "The team of the player character. If selecting 'Neutral' you will still be attacked if you attack someone.";
+            playerTeamItem.Description = "The team of the player character. If selecting 'Neutral' you will still be attacked if you are shooting in the area.";
 
             playerTeamItem.ItemChanged += (item, args) =>
             {
@@ -276,7 +298,7 @@ namespace GangWarSandbox
             for (int i = 0; i < NUM_TEAMS; i++)
             {
                 var teamFactionItem = new NativeListItem<string>($"Team {i + 1} Faction", Factions.Keys.ToArray());
-                teamFactionItem.Add("The faction of team" + i + 1 + ". This will determine the models, weapons, vehicles, and other attributes of the team.");
+                teamFactionItem.Description = "The faction of team " + (i + 1) + ". This will determine the models, weapons, vehicles, and other attributes of the team.";
                 TeamFactionItems.Add(teamFactionItem);
                 TeamSetupMenu.Add(teamFactionItem);
             }
@@ -296,9 +318,6 @@ namespace GangWarSandbox
             var clearNearest = new NativeItem("Clear Nearest Point");
             var clear = new NativeItem("Clear All Points");
 
-
-
-
             addT1.Activated += (item, args) => AddSpawnpoint(1);
             addT2.Activated += (item, args) => AddSpawnpoint(2);
             addT3.Activated += (item, args) => AddSpawnpoint(3);
@@ -306,6 +325,7 @@ namespace GangWarSandbox
 
             addCapPt.Activated += (item, args) => AddCapturePoint();
 
+            clearNearest.Activated += (item, args) => ClearClosestPoint();
             clear.Activated += (item, args) => ClearAllPoints();
 
 
@@ -354,6 +374,8 @@ namespace GangWarSandbox
                 team.TierUpgradeMultiplier = faction.TierUpgradeMultiplier;
                 team.BlipColor = faction.Color;
                 team.TeamIndex = Teams.IndexOf(team);
+                
+                team.TeamVehicles = faction.VehicleSet;
             }
         }
 
@@ -424,13 +446,22 @@ namespace GangWarSandbox
 
                 if (squadSize <= 0) continue;
 
-                if (Game.GameTime - LastSquadSpawnTime[team] >= TIME_BETWEEN_SQUAD_SPAWNS && numAlive + squadSize <= team.Faction.MaxSoldiers)
+                if (Game.GameTime - LastSquadSpawnTime[team] >= TIME_BETWEEN_SQUAD_SPAWNS && numAlive + squadSize <= team.GetMaxNumPeds())
                 {
                     LastSquadSpawnTime[team] = Game.GameTime;
 
-                    Squad squad = new Squad(team, 0);
-                    team.Squads.Add(squad);
-                    numAlive += squad.Members.Count;
+                    Squad squad = null;
+
+                    if (team.ShouldSpawnVehicle())
+                    {
+                        Logger.Log("Trying to spawn a vehicle squad", "ATTEMPT");
+                        squad = new Squad(team, true);
+                    }
+                    else
+                    {
+                        squad = new Squad(team);
+                    }
+                        
                 }
 
 
@@ -498,6 +529,57 @@ namespace GangWarSandbox
             }
         }
 
+        private void ClearClosestPoint()
+        {
+            Dictionary<Object, Vector3> list = new Dictionary<Object, Vector3>();
+
+            if (IsBattleRunning)
+            {
+                GTA.UI.Screen.ShowSubtitle("Stop the battle to remove spawnpoints.");
+                return;
+            }
+
+            foreach (var team in Teams)
+            {
+                foreach (var blip in team.Blips)
+                {
+                    if (blip.Exists()) list.Add(blip, blip.Position);
+                }
+            }
+
+            foreach (var point in CapturePoints)
+            {
+                if (point.PointBlip.Exists()) list.Add(point, point.Position);
+            }
+
+            if (list.Count == 0)
+            {
+                GTA.UI.Screen.ShowSubtitle("No points to clear.");
+                return;
+            }
+
+            // Find the closest point
+            Vector3 playerPos = Game.Player.Character.Position;
+            Object closestPoint = list.OrderBy(p => Vector3.Distance(playerPos, list[p])).FirstOrDefault().Key;
+
+            if (closestPoint == null) return;
+
+            if (closestPoint is Blip bpt)
+            {
+                bpt.Delete();
+                foreach (var team in Teams)
+                {
+                    if (team.Blips.Contains(bpt))
+                        team.Blips.Remove(bpt); // Remove from team's blips
+                }
+            }
+            else if (closestPoint is CapturePoint cpt)
+            {
+                if (cpt.PointBlip.Exists()) cpt.PointBlip.Delete();
+                CapturePoints.Remove(cpt);
+            }
+        }
+
         private void ClearAllPoints()
         {
             if (IsBattleRunning)
@@ -529,6 +611,11 @@ namespace GangWarSandbox
             {
                 // Make a copy of the list to avoid modifying it while iterating
                 var squadsToRemove = team.Squads.ToList();
+                
+                squadsToRemove.AddRange(team.VehicleSquads.ToList());
+                squadsToRemove.AddRange(team.WeaponizedVehicleSquads.ToList());
+                squadsToRemove.AddRange(team.HelicopterSquads.ToList());
+
 
                 foreach (var squad in squadsToRemove)
                 {
@@ -538,11 +625,14 @@ namespace GangWarSandbox
                     }
                     catch (Exception ex)
                     {
-                        GTA.UI.Screen.ShowSubtitle($"Squad cleanup error: {ex.Message}");
+                        Logger.LogError($"Error cleaning up squad: {ex.Message}"); // Log any errors during cleanup
                     }
                 }
 
-                team.Squads.Clear(); // extra safety to make sure it's empty
+                team.Squads.Clear();
+                team.VehicleSquads.Clear();
+                team.WeaponizedVehicleSquads.Clear();
+                team.HelicopterSquads.Clear();
             }
 
             // Also clean up DeadPeds if needed
@@ -590,7 +680,7 @@ namespace GangWarSandbox
         {
             foreach (var point in CapturePoints)
             {
-                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(point.Radius, point.Radius, 1f), Color.White);
+                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(CapturePoint.Radius, CapturePoint.Radius, 1f), Color.White);
             }
 
             if (DEBUG == 1)
@@ -599,7 +689,8 @@ namespace GangWarSandbox
                 {
                     foreach (var squad in team.Squads)
                     {
-                        if (squad.Waypoints.Count == 0) continue;
+                        if (squad.Waypoints == null || squad.Waypoints.Count == 0)
+                            continue;
 
                         Vector3 squadLeaderPos = squad.SquadLeader.Position;
                         Vector3 targetPos = squad.Waypoints[0];

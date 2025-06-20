@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using LemonUI;
 using LemonUI.Menus;
 using GangWarSandbox.Core;
+using GangWarSandbox.Peds;
 
 namespace GangWarSandbox
 {
@@ -18,8 +19,9 @@ namespace GangWarSandbox
 
         public string Name { get; }
         public RelationshipGroup Group { get; set; }
+
         public Faction Faction { get; set; } = null;
-        VehicleSet TeamVehicles { get; set; } = null;
+        public VehicleSet TeamVehicles { get; set; } = null;
 
         public int MAX_SOLDIERS { get; set; } = 25;
         public int BaseHealth { get; set; } = 300;
@@ -27,6 +29,10 @@ namespace GangWarSandbox
         public List<Vector3> SpawnPoints { get; } = new List<Vector3>();
 
         public List<Squad> Squads = new List<Squad>();
+        public List<Squad> VehicleSquads = new List<Squad>();
+        public List<Squad> WeaponizedVehicleSquads = new List<Squad>();
+        public List<Squad> HelicopterSquads = new List<Squad>();
+
         public List<Ped> DeadPeds { get; } = new List<Ped>();
         public Ped Tier4Ped = null;
 
@@ -39,11 +45,14 @@ namespace GangWarSandbox
         public string[] Tier1Weapons { get; set; } = Array.Empty<string>();
         public string[] Tier2Weapons { get; set; } = Array.Empty<string>();
         public string[] Tier3Weapons { get; set; } = Array.Empty<string>();
-
         public float TierUpgradeMultiplier;
 
         public BlipColor BlipColor { get; set; } = BlipColor.White;
         public BlipSprite BlipSprite { get; set; } = BlipSprite.Standard;
+
+
+
+
 
         public Team(string name)
         {
@@ -59,7 +68,7 @@ namespace GangWarSandbox
                 return 5; // default
             }
 
-            int squadSize = Faction.MaxSoldiers / 5;
+            int squadSize = (int) (Faction.MaxSoldiers * ModData.UnitCountMultiplier) / 5;
 
             if (squadSize > 6) squadSize = 6;
             if (squadSize < 2) squadSize = 2;
@@ -67,37 +76,30 @@ namespace GangWarSandbox
             return squadSize;
         }
 
-        public int GetMaxNumSquads()
+        public int GetMaxNumPeds()
         {
-            int squadSize = GetSquadSize();
-            if (squadSize <= 0) return 0;
-
-            int maxSquads = MAX_SOLDIERS / squadSize;
-
-            if (maxSquads < 1) maxSquads = 1; // ensure at least one squad
-
-            return maxSquads;
+            return (int) (MAX_SOLDIERS * ModData.UnitCountMultiplier);
         }
 
-        //public int GetNumEnemiesNearSpawnpoint()
-        //{
-        //    int numEnemies = 0;
+        public bool ShouldSpawnVehicle()
+        {
+            if (TeamVehicles == null)
+            {
+                Logger.Log("TeamVehicles of team " + Name + " is null. Cannot spawn vehicles. Please set TeamVehicles before spawning vehicles.");
+                return false;
+            }
+            else if (TeamVehicles.Vehicles.Count == 0 && TeamVehicles.WeaponizedVehicles.Count == 0 && TeamVehicles.Helicopters.Count == 0)
+            {
+                Logger.Log("TeamVehicles of team " + Name + " is empty!");
+                return false; // no vehicles available
+            }
+            else if (VehicleSquads.Count + WeaponizedVehicleSquads.Count + HelicopterSquads.Count < 1)
+            {
+                return true;
+            }
 
-        //    foreach (var team in ModData.Teams)
-        //    {
-        //        if (team == null) continue;
-        //        if (team == this) continue; // skip own team
-
-        //        foreach (var squad in team.Squads)
-        //        {
-        //            if (squad.IsEmpty()) continue;
-
-        //            numEnemies += squad.Members.Count(ped => ped.Exists() && !ped.IsDead && ped.IsAlive && ped.Position.DistanceTo(SpawnPoints[0]) < 30f);
-        //        }
-        //    }
-
-        //    return numEnemies;
-        //}
+            return false;
+        }
 
         public List<Ped> GetAllPeds()
         {

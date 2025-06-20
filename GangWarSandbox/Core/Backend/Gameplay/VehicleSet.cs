@@ -3,7 +3,7 @@ using GTA;
 using System.Collections.Generic;
 using System;
 
-namespace GangWarSandbox.Core
+namespace GangWarSandbox
 {
     public class VehicleSet
     {
@@ -22,7 +22,7 @@ namespace GangWarSandbox.Core
             Helicopter,
         }
 
-        protected Dictionary<Type, List<string>> VehicleTypes => new Dictionary<Type, List<string>>()
+        public Dictionary<Type, List<string>> VehicleTypes => new Dictionary<Type, List<string>>()
         {
             { Type.Vehicle, Vehicles },
             { Type.WeaponizedVehicle, WeaponizedVehicles },
@@ -35,20 +35,6 @@ namespace GangWarSandbox.Core
                 return null;
 
             return list[rand.Next(0, list.Count)];
-        }
-
-        // Optional: you could expose a Spawn method for convenience
-        public Vehicle SpawnVehicle(Type type, Vector3 position)
-        {
-            string modelName = ChooseVehicleModel(type);
-            if (modelName == null) return null;
-
-            Model model = new Model(modelName);
-            if (!model.IsValid || !model.IsVehicle) return null;
-
-            Vehicle vehicle = World.CreateVehicle(model, position);
-
-            return vehicle;
         }
     }
 }

@@ -1,0 +1,310 @@
+﻿
+using GTA;
+using GTA.Native;
+using GTA.Math;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
+using LemonUI;
+using LemonUI.Menus;
+using GangWarSandbox;
+using System.Runtime.InteropServices;
+using System.Drawing;
+using System.Runtime.Serialization;
+using System.Security.Cryptography.X509Certificates;
+using System.ComponentModel;
+using GangWarSandbox.Core.StrategyAI;
+using GangWarSandbox.Core;
+
+namespace GangWarSandbox.Peds
+{
+    public partial class Squad
+    {
+        // Where the squad spawns. Only used once to ensure they spawn together
+        public Vector3 SpawnPos;
+
+        // The index of the currently spawned ped. Never used once spawning process has completed
+        // Used for determining positions of seat in vehicle
+        // Starts at -1; increments every time someone is spawned (think: starts counting at zero) 
+        public int SpawnIndex = -1;
+
+        public List<Ped> CleanupDead()
+        {
+            List<Ped> deadPeds = new List<Ped>();
+
+            if (Members.Count == 0)
+            {
+                Owner.Squads.Remove(this);
+                ModData.CurrentGamemode.OnSquadDestroyed(this, Owner);
+                return null;
+            }
+
+
+            // iterate from the end, for safety
+            for (int i = Members.Count - 1; i >= 0; i--)
+            {
+                if (Members[i].IsDead)
+                {
+                    deadPeds.Add(Members[i]);
+                    if (Members[i].AttachedBlip != null && Members[i].AttachedBlip.Exists())
+                        Members[i].AttachedBlip.Delete();
+
+                    ModData.CurrentGamemode.OnPedKilled(Members[i], Owner);
+                    Members.RemoveAt(i);
+                }
+            }
+
+            return deadPeds;
+        }
+
+        public void Destroy(bool killPeds = true)
+        {
+            foreach (var ped in Members)
+            {
+                if (ped != null)
+                {
+                    if (ped.AttachedBlip != null && ped.AttachedBlip.Exists())
+                        ped.AttachedBlip.Delete();
+
+                    if (ped.Exists())
+                        ped.Delete();
+                }
+            }
+
+            if (SquadVehicle != null & SquadVehicle.Exists())
+                SquadVehicle.Delete();
+
+            Members.Clear(); // clear list after cleanup
+        }
+
+        // When the squad is spawned, spawn its peds 
+        private void SpawnSquadPeds(int num)
+        {
+            if (num == 0) num = 4; // if the squad is invalidly sized, give it a default value
+
+            SquadLeader = SpawnPed(Owner, true);
+            SpawnIndex++; // must increase spawn index, to ensure vehicle squads are spawned correctly
+
+            for (int i = 0; i < num - 1; i++)
+            {
+                Ped ped = SpawnPed(Owner, false);
+                SpawnIndex++;
+            }
+        }
+
+        public bool IsSpawnPosSafe(Vector3 spawnPos)
+        {
+            int RADIUS = 50;
+
+            // Check if the spawn position is crowded
+            var nearbyPeds = World.GetNearbyPeds(spawnPos, RADIUS);
+
+            if (nearbyPeds.Length > 20) return false;
+            else return true;
+        }
+
+        public Ped CreatePedInWorld(Model model, Vector3 spawnPos, bool isSquadLeader = false)
+        {
+            Ped ped;
+
+            if (SquadVehicle == null)
+                ped = World.CreatePed(model, spawnPos);
+            else
+            {
+                if (SquadVehicle.IsSeatFree((VehicleSeat)SpawnIndex))
+                {
+                    ped = SquadVehicle.CreatePedOnSeat((VehicleSeat)SpawnIndex, model);
+                }
+                else ped = null;
+            }
+
+            return ped;
+        }
+
+        public void SpawnVehicle(VehicleSet.Type type, Vector3 position)
+        {
+            string modelName = Owner.TeamVehicles.ChooseVehicleModel(type);
+            if (modelName == null) return;
+
+            Model model = new Model(modelName);
+            if (!model.IsValid || !model.IsVehicle) return;
+
+            SquadVehicle = World.CreateVehicle(model, position);
+        }
+
+        // SpawnPed -- Spawns a ped based on the team, with a given loadout.
+        public Ped SpawnPed(Team team, bool isSquadLeader)
+        {
+            int pedValue = 0;
+            int baseAccuracy = 15;
+
+            if (team.SpawnPoints.Count == 0 || team.Models.Length == 0 || team.Tier1Weapons.Length == 0 || team.Tier2Weapons.Length == 0 || team.Tier3Weapons.Length == 0)
+                return null;
+
+            // Tier 4 peds only spawn when there is no tier 4 living tier 4 ped of that team AND when the player is on an opposing team
+            bool shouldSpawnTier4 = (team.Tier4Ped == null || !team.Tier4Ped.Exists() || team.Tier4Ped.IsDead) && 
+                (ModData.PlayerTeam != -1 && ModData.PlayerTeam < ModData.Teams.Count && ModData.Teams[ModData.PlayerTeam] != team);
+
+            int tier;
+            int rnum = rand.Next(0, 100);
+
+            rnum = (int)(rnum * team.TierUpgradeMultiplier);
+
+            if (isSquadLeader || rnum >= 95) tier = 3;
+            else if (rnum >= 60) tier = 2;
+            else tier = 1;
+
+
+            if (shouldSpawnTier4)
+            {
+                tier = 4;
+                team.Tier4Ped = null;
+            }
+
+            var model = new Model(team.Models[rand.Next(team.Models.Length)]);
+            if (tier == 4 && !string.IsNullOrEmpty(team.Faction.Tier4Model)) model = new Model(team.Faction.Tier4Model);
+
+            if (!model.IsValid || !model.IsInCdImage) return null;
+            model.Request(500);
+            if (!model.IsLoaded) return null;
+
+
+            var ped = CreatePedInWorld(model, SpawnPos, isSquadLeader);
+
+            if (ped == null) return null;
+
+            ped.RelationshipGroup = team.Group;
+
+            String weapon = "";
+
+            Blip blip = ped.AddBlip();
+
+            if (tier == 1)
+            {
+                weapon = Helpers.GetRandom(team.Tier1Weapons);
+                ped.Health = team.BaseHealth;
+                baseAccuracy = 7;
+                blip.Sprite = BlipSprite.Enemy;
+                blip.Scale = 0.4f;
+                pedValue = 40;
+
+                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2);
+            }
+            else if (tier == 2)
+            {
+                weapon = Helpers.GetRandom(team.Tier2Weapons);
+                ped.Health = team.BaseHealth + 100;
+                baseAccuracy = 15;
+                blip.Sprite = BlipSprite.Enemy;
+                blip.Scale = 0.4f;
+                pedValue = 100;
+
+                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2); // offensive
+            }
+            else if (tier == 3)
+            {
+                weapon = Helpers.GetRandom(team.Tier3Weapons);
+                ped.Health = team.BaseHealth + 250;
+                baseAccuracy = 30;
+                blip.Sprite = BlipSprite.Enemy;
+                blip.Scale = 0.6f;
+                pedValue = 280;
+
+                ped.CanSufferCriticalHits = false;
+
+
+                Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 60, true); // Throws smoke grenades
+                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2); // offensive
+            }
+            else if (tier == 4)
+            {
+                weapon = Helpers.GetRandom(team.Tier3Weapons);
+                ped.Health = (team.BaseHealth * 2) + 400;
+                baseAccuracy = 75;
+
+                blip.Sprite = BlipSprite.Juggernaut;
+                pedValue = 675;
+
+                team.Tier4Ped = ped;
+
+                ped.Armor = 350;
+                ped.CanWrithe = false;
+                ped.IsFireProof = true;
+                ped.IsInvincible = false;
+                ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)
+
+                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 3); // suicidal
+
+            }
+            else
+            {
+                blip.Sprite = BlipSprite.Enemy;
+                blip.Scale = 0.5f;
+                weapon = "WEAPON_PISTOL";
+            }
+
+            // Calculate an accuracy bonus
+            ped.Accuracy = baseAccuracy + team.Accuracy; // adds the accuracy bonus
+
+            if (!string.IsNullOrEmpty(weapon))
+            {
+                ped.Weapons.Give((WeaponHash)Game.GenerateHash(weapon), 999, true, true);
+            }
+            else
+            {
+                ped.Weapons.Give(WeaponHash.Pistol, 999, true, true);
+            }
+
+            // Force equip weapon
+            Function.Call(Hash.SET_CURRENT_PED_WEAPON, ped, Game.GenerateHash(weapon), true);
+            ped.Task.SwapWeapon();
+
+            blip.IsShortRange = true;
+            blip.Name = $"Team {team.Name} Infantry";
+            blip.Color = team.BlipColor;
+
+            ped.AlwaysKeepTask = true;
+            ped.HearingRange = 5;
+            ped.IsPersistent = true;
+            ped.LodDistance = 750; // Increase the distance at which peds will do tasks
+            ped.DropsEquippedWeaponOnDeath = false;
+
+            Members.Add(ped);
+            PedAssignments[ped] = PedAssignment.None;
+
+            // Combat Flags
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 0, true);  // Always fight
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 1, true);  // Can use cover
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 5, true);  // Can fight armed when unarmed
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 21, false); // Can drag friends to safety
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 22, true); // Can drag friends to safety
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 50, true); // Can charge
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 58, true); // Don't flee from combat
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 53, true); // Advance if no cover avaliable
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 42, true); // Can flank
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 28, true); // Advance if frustrated (can't see the enemy?)
+            Function.Call(Hash.SET_PED_CONFIG_FLAG, ped, 77, true); // Disable threat broadcast
+
+            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 70f);
+            Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
+            Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 1);
+            Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 1); // 0 = near, 1 = medium, 2 = far
+          
+
+
+            // Fight against any nearby targets, at an even greater range than normal behavior
+
+            PedTargetCache[ped] = (null, 0);
+            PedAssignments[ped] = PedAssignment.None;
+
+            squadValue += pedValue;
+            return ped;
+        }
+
+    }
+
+
+
+}

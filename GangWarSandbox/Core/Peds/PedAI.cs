@@ -12,11 +12,9 @@ using GangWarSandbox;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Runtime.Serialization;
-using GTA;
-using static GangWarSandbox.Squad;
-using GangWarSandbox.Core.Backend;
+using GangWarSandbox.Core;
 
-namespace GangWarSandbox
+namespace GangWarSandbox.Peds
 {
     public class PedAI
     {
@@ -94,6 +92,17 @@ namespace GangWarSandbox
 
             Function.Call(Hash.TASK_SEEK_COVER_FROM_POS, ped.Handle, position.X, position.Y, position.Z, 15000, false);
         }
+
+        public static void EnterVehicle(Ped ped, Vehicle target)
+        {
+            ped.Task.EnterVehicle(target);
+        }
+
+        public static void DriveToFarAway(Ped ped, Vector3 target)
+        {
+            ped.Task.DriveTo(ped.CurrentVehicle, target, 5f, 60f, DrivingStyle.Rushed);
+        }
+
 
         public static bool HasLineOfSight(Ped source, Ped target)
         {
