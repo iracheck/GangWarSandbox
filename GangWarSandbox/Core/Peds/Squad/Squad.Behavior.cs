@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using GangWarSandbox.Peds;
 using GangWarSandbox;
+using System.ComponentModel;
 
 namespace GangWarSandbox.Peds
 {
@@ -139,18 +140,21 @@ namespace GangWarSandbox.Peds
             if (SquadLeader == null || SquadLeader.IsDead || !SquadLeader.Exists())
                 PromoteLeader();
 
+            // Clear nearby waypoints
+            if (Waypoints[0] != Vector3.Zero && (SquadLeader.Position.DistanceTo(Waypoints[0]) < 10f || SquadVehicle.Position.DistanceTo(Waypoints[0]) < 15f))
+            {
+                Waypoints.RemoveAt(0);
+                foreach (var ped in Members)
+                {
+                    if (PedAssignments[ped] == PedAssignment.RunToPosition) PedAssignments[ped] = PedAssignment.None;
+                }
+            }
+
             for (int i = 0; i < Members.Count; i++)
             {
                 Ped ped = Members[i];
 
                 if (ped == null || !ped.Exists() || !ped.IsAlive) continue;
-
-                // Clear nearby waypoints
-                if (Waypoints[0] != Vector3.Zero && ped.Position.DistanceTo(Waypoints[0]) < 10f)
-                {
-                    Waypoints.RemoveAt(0);
-                    if (PedAssignments[ped] == PedAssignment.RunToPosition) PedAssignments[ped] = PedAssignment.None;
-                }
 
                 // Handle logic with enemy detection, combat, etc.
                 bool combat = PedAI_Combat(ped);
@@ -158,12 +162,11 @@ namespace GangWarSandbox.Peds
                 // Handle logic on defending or assaulting capture points
                 PedAI_CapturePoint(ped);
 
-                if (ped.IsInCombat || PedAssignments[ped] == PedAssignment.AttackNearby || combat) continue;
+                if ((ped.IsShooting && ped.IsInCombat) || ped.IsBeingStunned || PedAssignments[ped] == PedAssignment.AttackNearby || combat) continue;
 
                 // Handle logic with ped moving to and from its target
-                if (SquadLeader.IsInVehicle())
-                    PedAI_Driving(ped);
-                PedAI_Movement(ped);
+                bool movementChecked = PedAI_Driving(ped);
+                if (!movementChecked) movementChecked = PedAI_Movement(ped);
             }
 
             return true;
@@ -244,7 +247,7 @@ namespace GangWarSandbox.Peds
             return false;
         }
 
-        private void PedAI_Movement(Ped ped)
+        private bool PedAI_Movement(Ped ped)
         {
             if (ped == SquadLeader)
             {
@@ -264,10 +267,14 @@ namespace GangWarSandbox.Peds
                     PedAssignments[ped] = PedAssignment.FollowSquadLeader;
                 }
             }
+
+            return true;
         }
 
-        private void PedAI_Driving(Ped ped)
+        private bool PedAI_Driving(Ped ped)
         {
+            if (SquadVehicle == null || !SquadVehicle.Exists() || !SquadVehicle.IsAlive) return false;
+
             if (ped == SquadLeader)
             {
                 // IF the ped is not in a vehicle, has waypoints, and is not currently entering a vehicle, enter a vehicle
@@ -276,13 +283,18 @@ namespace GangWarSandbox.Peds
                     PedAI.EnterVehicle(ped, SquadVehicle);
                     PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
                 }
-
                 else if (ped.IsInVehicle() && Waypoints.Count > 0)
                 {
                     if (ped.IsInPoliceVehicle && !SquadVehicle.IsSirenActive) SquadVehicle.IsSirenActive = true; // activate the siren if the ped is in a police vehicle
 
-                    if (PedAssignments[ped] != PedAssignment.DriveToPosition)
+                    
+
+                    if (PedAssignments[ped] != PedAssignment.DriveToPosition && Waypoints.Count > 0 && Waypoints[0] != Vector3.Zero)
                     {
+                        bool squadInside = Members.All(m => m.IsInVehicle() && m.CurrentVehicle == SquadLeader.CurrentVehicle);
+
+                        if (!squadInside) return false;
+
                         PedAI.DriveToFarAway(ped, Waypoints[0]);
                         PedAssignments[ped] = PedAssignment.DriveToPosition; // set the ped to drive to the target position
                     }
@@ -290,12 +302,14 @@ namespace GangWarSandbox.Peds
             }
             else
             {
-                if (SquadLeader.CurrentVehicle != null && ped.IsInVehicle() == false)
+                if (SquadLeader.IsInVehicle() && SquadLeader.CurrentVehicle != null && ped.IsInVehicle() == false)
                 {
                     PedAI.EnterVehicle(ped, SquadLeader.CurrentVehicle);
                     PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
                 }
             }
+
+            return true;
         }
 
         private Ped FindNearbyEnemy(Ped self, Team team, float distance, bool infiniteSearch = false)
