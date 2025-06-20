@@ -6,7 +6,7 @@ A copy of these dependencies are included with the mod file. Only use them if yo
 ### Dependencies:
 - LemonUI 2.2+
 - ScriptHookVDotNet-Nightly 3.7+
-- ScriptHookV v3521.0/814.9
+- ScriptHookV
 
 ### Recommended Mods:
 - Menyoo (Create battlefields)
@@ -41,7 +41,7 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [ ] Vehicle Support
 - [ ] Helicopter Support
 - [x] Decrease performance overhead of large squad/ped counts
-- [ ] Rework file structure, with two INIs-- one for faction setup, one for mod options
+- [x] Rework file structure, with two INIs-- one for faction setup, one for mod options
 
 ### "Beyond 1.0" Features
 Features that may not fit into Version 1, but I want to include.
@@ -63,6 +63,7 @@ Features that may not fit into Version 1, but I want to include.
 - [x] Ped limits per faction is ~25 default, but only 13-16 peds spawn (why?)
 - [x] NPCs far from the player don't have their AI update
 - [ ] Placing victory points/spawn points in an unloaded area causes them to be placed underneath the map
+- [ ] Not providing all the information for a faction may result in a mod crash (trying to access or compare a null value)
 
 
 
