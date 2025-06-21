@@ -71,21 +71,46 @@ namespace GangWarSandbox.Core
                         string key = thisLine.Substring(0, equalsIndex).Trim();
                         string value = thisLine.Substring(equalsIndex + 1).Trim(); // gets everything after the equals sign
 
+                        bool vehicles = false,
+                            weaponizedVehicles = false,
+                            helicopters = false;
+
                         switch (key)
                         {
                             case "Vehicles":
                                 currentSet.Vehicles = value.Split(',').Select(s => s.Trim()).ToList();
+                                vehicles = true;
                                 break;
                             case "WeaponizedVehicles":
                                 currentSet.WeaponizedVehicles = value.Split(',').Select(s => s.Trim()).ToList();
+                                weaponizedVehicles = true;
                                 break;
                             case "Helicopters":
                                 currentSet.Helicopters = value.Split(',').Select(s => s.Trim()).ToList();
+                                helicopters = true;
                                 break;
                             default:
                                 // Handle any other keys you might want to add in the future
                                 Logger.ParserError($"Unknown key '{key}' in vehicle set file '{file}'.");
                                 break;
+                        }
+
+                        // Check if all required fields were set
+                        if (currentSet != null)
+                        {
+                            if (!(vehicles || weaponizedVehicles || helicopters))
+                            {
+                                Logger.ParserError($"Missing any fields in vehicle set from file '{file}'.");
+                                VehicleSets.Remove(currentSet.Vehicles.FirstOrDefault().ToLower()); // remove the set if it has no valid vehicles
+                            }
+                            else
+                            {
+                                Logger.Log($"Successfully parsed vehicle set from file '{file}'.");
+                            }
+                        }
+                        else
+                        {
+                            Logger.ParserError($"No valid vehicle set data found in file '{file}'.");
                         }
 
                         // Note: It's important to later set the faction of the vehicle set, when the vehicle set is actually initialized onto a team
