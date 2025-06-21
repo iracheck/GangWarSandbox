@@ -37,5 +37,10 @@ namespace GangWarSandbox
         {
             Log(data, "EVENT");
         }
+
+        public static void ParserError(String data)
+        {
+            Log(data, "PARSER_ERROR");
+        }   
     }
 }

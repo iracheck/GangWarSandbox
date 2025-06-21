@@ -132,6 +132,17 @@ namespace GangWarSandbox.Peds
             if (!model.IsValid || !model.IsVehicle) return;
 
             SquadVehicle = World.CreateVehicle(model, position);
+
+            SquadVehicle.AddBlip();
+            SquadVehicle.AttachedBlip.Color = Owner.BlipColor;
+            SquadVehicle.AttachedBlip.Name = $"Team {Owner.Name} Vehicle";
+
+            if (type == VehicleSet.Type.Vehicle)
+                SquadVehicle.AttachedBlip.Sprite = BlipSprite.PersonalVehicleCar;
+            else if (type == VehicleSet.Type.WeaponizedVehicle)
+                SquadVehicle.AttachedBlip.Sprite = BlipSprite.WeaponizedTampa;
+            else if (type == VehicleSet.Type.Helicopter)
+                SquadVehicle.AttachedBlip.Sprite = BlipSprite.HelicopterAnimated;
         }
 
         // SpawnPed -- Spawns a ped based on the team, with a given loadout.
