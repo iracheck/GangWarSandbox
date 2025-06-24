@@ -37,6 +37,25 @@ namespace GangWarSandbox.Peds
             if (Members.Count == 0)
             {
                 Owner.Squads.Remove(this);
+                if (Owner.VehicleSquads.Contains(this))
+                {
+                    Owner.VehicleSquads.Remove(this);
+                }
+                else if (Owner.WeaponizedVehicleSquads.Contains(this))
+                {
+                    Owner.WeaponizedVehicleSquads.Remove(this);
+                }
+                else if (Owner.HelicopterSquads.Contains(this))
+                {
+                    Owner.HelicopterSquads.Remove(this);
+                }
+
+                try
+                {
+                    SquadVehicle.AttachedBlip.Delete();
+                } catch { }
+                
+
                 ModData.CurrentGamemode.OnSquadDestroyed(this, Owner);
                 return null;
             }
@@ -70,6 +89,12 @@ namespace GangWarSandbox.Peds
 
                     if (ped.Exists())
                         ped.Delete();
+
+                    if (SquadVehicle != null && SquadVehicle.Exists())
+                    {
+                        SquadVehicle.Delete();
+                        ModData.SquadlessVehicles.Add(SquadVehicle);
+                    }
                 }
             }
 
@@ -125,20 +150,19 @@ namespace GangWarSandbox.Peds
 
         public void SpawnVehicle(VehicleSet.Type type, Vector3 position)
         {
-            string modelName = Owner.TeamVehicles.ChooseVehicleModel(type);
-            if (modelName == null) return;
+            Model model = Owner.TeamVehicles.ChooseVehicleModel(type);
+            if (model == null) return;
 
-            Model model = new Model(modelName);
             if (!model.IsValid || !model.IsVehicle) return;
 
             SquadVehicle = World.CreateVehicle(model, position);
 
             SquadVehicle.AddBlip();
-            SquadVehicle.AttachedBlip.Color = Owner.BlipColor;
             SquadVehicle.AttachedBlip.Name = $"Team {Owner.Name} Vehicle";
+            SquadVehicle.AttachedBlip.Color = Owner.BlipColor;
 
             if (type == VehicleSet.Type.Vehicle)
-                SquadVehicle.AttachedBlip.Sprite = BlipSprite.PersonalVehicleCar;
+                SquadVehicle.AttachedBlip.Sprite = BlipSprite.ExportVehicle;
             else if (type == VehicleSet.Type.WeaponizedVehicle)
                 SquadVehicle.AttachedBlip.Sprite = BlipSprite.WeaponizedTampa;
             else if (type == VehicleSet.Type.Helicopter)

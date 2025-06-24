@@ -31,7 +31,8 @@ namespace GangWarSandbox
         public int DEBUG = 1;
 
         // Constants
-        private const int AI_UPDATE_FREQUENCY = 200; // How often squad AI will be updated, in milliseconds
+        private const int AI_UPDATE_FREQUENCY = 250; // How often squad AI will be updated, in milliseconds
+        private const int VEHICLE_AI_UPDATE_FREQUENCY = 100; // How often squad AI will be updated, in milliseconds
         private const int POINT_UPDATE_FREQUENCY = 1000; // How often capture points will be updated, in milliseconds
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
         public const int NUM_TEAMS = 4; // How many teams? In the future, it will be loaded from a settings file, but for now it's constant to keep stability
@@ -55,6 +56,7 @@ namespace GangWarSandbox
 
         // Tracked Peds
         public List<Ped> DeadPeds = new List<Ped>();
+        public List<Vehicle> SquadlessVehicles = new List<Vehicle>();
 
         // Capture Points
         public List<CapturePoint> CapturePoints = new List<CapturePoint>();
@@ -123,103 +125,6 @@ namespace GangWarSandbox
 
 
             SetupMenu();
-        }
-
-        private void OnTick(object sender, EventArgs e)
-        {
-            MenuPool.Process();
-
-            CurrentGamemode.OnTick();
-
-            DrawMarkers();
-
-            int GameTime = Game.GameTime;
-
-            if (IsBattleRunning)
-            {
-                if (PlayerTeam != -1)
-                {
-                    if (Player.IsDead)
-                    {
-                        PlayerDied = true;
-                        TimeOfDeath = GameTime;
-                    }
-
-                    if (PlayerDied && TimeOfDeath + 5000 <= GameTime)
-                    {
-                        // Player has died and respawned after 5 seconds
-                        Vector3 respawnLocation = Teams[PlayerTeam].SpawnPoints.Count > 0 ? Teams[PlayerTeam].SpawnPoints[0] : Vector3.Zero;
-
-                        if (respawnLocation == Vector3.Zero) return;
-                        Teams[PlayerTeam].Tier4Ped = Player; // Reset the Tier 4 Ped for the team
-
-                        GTA.UI.Screen.FadeOut(2000);
-                        Script.Wait(2000);
-
-                        Player.Position = respawnLocation; // Move player to the spawn point
-                        ResetPlayerRelations();
-
-                        PlayerDied = false; // Reset death state
-                        CurrentGamemode.OnPlayerDeath();
-
-                        Script.Wait(500);
-                        GTA.UI.Screen.FadeIn(500); // Fade in for 500ms
-                    }
-                }
-
-                CurrentGamemode.OnTickGameRunning();
-
-                if (CurrentGamemode.ShouldSpawnSquad())
-                {
-                    SpawnSquads(); // spawn squads that may be missing
-                }
-
-                // Collection error prevention
-                var allSquads = Teams.SelectMany(t => t.Squads).ToList();
-
-                foreach (var squad in allSquads)
-                {
-                    // Ped AI
-                    if (GameTime % AI_UPDATE_FREQUENCY == 0 || squad.JustSpawned)
-                    {
-                        squad.SquadAIHandler();
-                        CurrentGamemode.OnSquadUpdate(squad);
-                    }
-
-                    // Corpse Removal
-                    List<Ped> deadPeds = squad.CleanupDead();
-
-                    if (deadPeds == null) continue;
-
-                    DeadPeds.AddRange(deadPeds);
-
-                    while (DeadPeds.Count >= MAX_CORPSES)
-                    {
-                        if (DeadPeds[0] != null && DeadPeds[0].Exists())
-                        {
-                            DeadPeds[0].Delete();
-                        }
-                        DeadPeds.RemoveAt(0);
-                    }
-                }
-
-                foreach (var point in CapturePoints)
-                {
-                    if (GameTime % POINT_UPDATE_FREQUENCY == 0)
-                    point.CapturePointHandler(); // Process capture points
-                }
-            }
-        }
-
-        private void OnKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.F10)
-            {
-                if (!MenuPool.AreAnyVisible)
-                    MainMenu.Visible = true;
-                else
-                    MenuPool.HideAll();
-            }
         }
 
 
@@ -379,6 +284,101 @@ namespace GangWarSandbox
             }
         }
 
+        private void OnTick(object sender, EventArgs e)
+        {
+            MenuPool.Process();
+
+            CurrentGamemode.OnTick();
+
+            DrawMarkers();
+
+            int GameTime = Game.GameTime;
+
+            if (IsBattleRunning)
+            {
+                if (PlayerTeam != -1)
+                {
+                    if (Player.IsDead)
+                    {
+                        PlayerDied = true;
+                        TimeOfDeath = GameTime;
+                    }
+
+                    if (PlayerDied && TimeOfDeath + 5000 <= GameTime)
+                    {
+                        // Player has died and respawned after 5 seconds
+                        Vector3 respawnLocation = Teams[PlayerTeam].SpawnPoints.Count > 0 ? Teams[PlayerTeam].SpawnPoints[0] : Vector3.Zero;
+
+                        if (respawnLocation == Vector3.Zero) return;
+                        Teams[PlayerTeam].Tier4Ped = Player; // Reset the Tier 4 Ped for the team
+
+                        GTA.UI.Screen.FadeOut(2000);
+                        Script.Wait(2000);
+
+                        Player.Position = respawnLocation; // Move player to the spawn point
+                        ResetPlayerRelations();
+
+                        PlayerDied = false; // Reset death state
+
+                        CurrentGamemode.OnPlayerDeath();
+
+                        Script.Wait(500);
+                        GTA.UI.Screen.FadeIn(500); // Fade in for 500ms
+                    }
+                }
+
+                CurrentGamemode.OnTickGameRunning();
+
+                SpawnSquads();
+
+                // Collection error prevention
+                var allSquads = Teams.SelectMany(t => t.GetAllSquads()).ToList();
+
+                foreach (var squad in allSquads)
+                {
+                    // Ped AI
+                    if ((squad.SquadVehicle != null && GameTime % VEHICLE_AI_UPDATE_FREQUENCY == 0) || (squad.SquadVehicle == null && GameTime % AI_UPDATE_FREQUENCY == 0) || squad.JustSpawned)
+                    {
+                        squad.SquadAIHandler();
+                        CurrentGamemode.OnSquadUpdate(squad);
+                    }
+
+                    // Corpse Removal
+                    List<Ped> deadPeds = squad.CleanupDead();
+
+                    if (deadPeds == null) continue;
+
+                    DeadPeds.AddRange(deadPeds);
+
+                    while (DeadPeds.Count >= MAX_CORPSES)
+                    {
+                        if (DeadPeds[0] != null && DeadPeds[0].Exists())
+                        {
+                            DeadPeds[0].Delete();
+                        }
+                        DeadPeds.RemoveAt(0);
+                    }
+                }
+
+                foreach (var point in CapturePoints)
+                {
+                    if (GameTime % POINT_UPDATE_FREQUENCY == 0)
+                        point.CapturePointHandler(); // Process capture points
+                }
+            }
+        }
+
+        private void OnKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F10)
+            {
+                if (!MenuPool.AreAnyVisible)
+                    MainMenu.Visible = true;
+                else
+                    MenuPool.HideAll();
+            }
+        }
+
         private void StartBattle()
         {
             IsBattleRunning = true;
@@ -427,8 +427,11 @@ namespace GangWarSandbox
 
         private void SpawnSquads()
         {
+
             foreach (var team in Teams)
             {
+                if (!CurrentGamemode.ShouldSpawnSquad(team)) continue;
+
                 // SAFETY CHECKS: Prevent crashes
                 if (team.SpawnPoints.Count == 0 || team.Models.Length == 0)
                 {
@@ -454,14 +457,12 @@ namespace GangWarSandbox
 
                     if (team.ShouldSpawnVehicle())
                     {
-                        Logger.Log("Trying to spawn a vehicle squad", "ATTEMPT");
-                        squad = new Squad(team, true);
+                        new Squad(team, 1);
                     }
                     else
                     {
-                        squad = new Squad(team);
+                        new Squad(team, 0);
                     }
-                        
                 }
 
 
@@ -611,7 +612,7 @@ namespace GangWarSandbox
             {
                 // Make a copy of the list to avoid modifying it while iterating
                 var squadsToRemove = team.Squads.ToList();
-                
+
                 squadsToRemove.AddRange(team.VehicleSquads.ToList());
                 squadsToRemove.AddRange(team.WeaponizedVehicleSquads.ToList());
                 squadsToRemove.AddRange(team.HelicopterSquads.ToList());
@@ -633,23 +634,41 @@ namespace GangWarSandbox
                 team.VehicleSquads.Clear();
                 team.WeaponizedVehicleSquads.Clear();
                 team.HelicopterSquads.Clear();
-            }
 
-            // Also clean up DeadPeds if needed
-            foreach (var ped in DeadPeds.ToList())
-            {
-                try
+                // Clean up squadless vehicles
+                foreach (var vehicle in SquadlessVehicles)
                 {
-                    if (ped != null && ped.Exists())
-                        ped.Delete();
-                }
-                catch (Exception ex)
-                {
-                    GTA.UI.Screen.ShowSubtitle($"Dead ped cleanup error: {ex.Message}");
-                }
-            }
+                    vehicle.AttachedBlip?.Delete(); // Remove blip if it exists
 
-            DeadPeds.Clear();
+                    try
+                    {
+                        if (vehicle.Exists())
+                            vehicle.Delete();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError($"Error cleaning up vehicle: {ex.Message}"); // Log any errors during cleanup
+                    }
+                }
+
+                SquadlessVehicles.Clear();
+
+                // Also clean up DeadPeds if needed
+                foreach (var ped in DeadPeds.ToList())
+                {
+                    try
+                    {
+                        if (ped != null && ped.Exists())
+                            ped.Delete();
+                    }
+                    catch (Exception ex)
+                    {
+                        GTA.UI.Screen.ShowSubtitle($"Dead ped cleanup error: {ex.Message}");
+                    }
+                }
+
+                DeadPeds.Clear();
+            }
         }
 
         private void ResetPlayerRelations()

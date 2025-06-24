@@ -92,19 +92,61 @@ namespace GangWarSandbox.Gamemodes
 
         /// <summary>
         /// Allows you to determine new conditions for when a squad should spawn. 
+        /// Note that this looks at ALL squads, including infantry, vehicles, and helicopters.
         /// This does not overwrite existing conditions, rather allows you to set new ones. 
         /// For example, teams will not go over their unit caps even with this method overriden. 
-        /// Return true to allow squad spawning, return false to prevent it.
+        /// Return true to allow squad spawning, return false to prevent it. Returns true by default.
         /// </summary>
-        public virtual bool ShouldSpawnSquad()
+        public virtual bool ShouldSpawnSquad(Team team)
         {
             return true;
         }
 
         /// <summary>
-        /// Listener for when the player dies. Used to determine custom effects during battle when the player dies. --> Executes after the player respawns.
+        /// Allows you to determine new conditions for when a vehicle squad should spawn. Unlike ShouldSpawnSquad(), this OVERWRITES EXISTING conditions, as existing conditions are incredibly circumstanstial.
+        /// Example: Infinite Battle/Skirmish conditions say "roughly" 20% of a team's population is allocated to regular vehicle squads.
+        /// Return true to allow spawning, return false to prevent it. Returns true by default.
+        /// </summary>
+        public virtual bool ShouldSpawnVehicleSquad(Team team)
+        {
+            return true;
+        }
+
+        /// <summary>
+        /// Allows you to determine new conditions for when a vehicle squad should spawn. Unlike ShouldSpawnSquad(), this OVERWRITES EXISTING conditions, as existing conditions are incredibly circumstanstial.
+        /// Example: Infinite Battle/Skirmish conditions say "roughly" 10% of a team's population is allocated to helicopter squads.
+        /// Return true to allow spawning, return false to prevent it. Returns true by default.
+        /// </summary>
+        public virtual bool ShouldSpawnWeaponizedVehicleSquad(Team team)
+        {
+            return true;
+        }
+
+        /// <summary>
+        /// Allows you to determine new conditions for when a vehicle squad should spawn. Unlike ShouldSpawnSquad(), this OVERWRITES EXISTING conditions, as existing conditions are incredibly circumstanstial.
+        /// Example: Infinite Battle/Skirmish conditions say "roughly" 10% of a team's population is allocated to helicopter squads. 
+        /// Return true to allow spawning, return false to prevent it. Returns true by default.
+        /// </summary>
+        public virtual bool ShouldSpawnHelicopterSquad(Team team)
+        {
+            return true;
+        }
+
+        /// <summary>
+        /// Listener for when the player dies. Used to determine custom effects during battle when the player dies. Executes *AFTER* the player respawns.
         /// </summary>
         public virtual void OnPlayerDeath() { }
 
+        protected int GetMemberCountByType(Team team, List<Squad> list)
+        {
+            int count = 0;
+
+            foreach (var squad in list)
+            {
+                count += squad.Members.Count;
+            }
+
+            return count;
+        }
     }
 }

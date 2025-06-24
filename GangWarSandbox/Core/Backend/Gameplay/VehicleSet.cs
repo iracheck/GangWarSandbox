@@ -11,9 +11,9 @@ namespace GangWarSandbox
 
         public BlipColor Color { get; set; } = BlipColor.White;
 
-        public List<string> Vehicles { get; set; } = new List<string>();
-        public List<string> WeaponizedVehicles { get; set; } = new List<string>();
-        public List<string> Helicopters { get; set; } = new List<string>();
+        public List<Model> Vehicles { get; set; } = new List<Model>();
+        public List<Model> WeaponizedVehicles { get; set; } = new List<Model>();
+        public List<Model> Helicopters { get; set; } = new List<Model>();
 
         public enum Type
         {
@@ -22,14 +22,14 @@ namespace GangWarSandbox
             Helicopter,
         }
 
-        public Dictionary<Type, List<string>> VehicleTypes => new Dictionary<Type, List<string>>()
+        public Dictionary<Type, List<Model>> VehicleTypes => new Dictionary<Type, List<Model>>()
         {
             { Type.Vehicle, Vehicles },
             { Type.WeaponizedVehicle, WeaponizedVehicles },
             { Type.Helicopter, Helicopters }
         };
 
-        public string ChooseVehicleModel(Type type)
+        public Model ChooseVehicleModel(Type type)
         {
             if (!VehicleTypes.TryGetValue(type, out var list) || list.Count == 0)
                 return null;

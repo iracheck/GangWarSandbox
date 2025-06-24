@@ -22,14 +22,6 @@ namespace GangWarSandbox.Gamemodes
             
         }
 
-        public override void InitializeGamemode() { }
-
-        public override void InitializeUI() { }
-
-        public override void OnTick() { }
-
-        public override void OnTickGameRunning() { }
-
         public override void OnStart()
         {
             // Calculate the reserves of each team!
@@ -41,24 +33,42 @@ namespace GangWarSandbox.Gamemodes
             }
         }
 
-        public override void OnEnd()
+        public override bool ShouldSpawnHelicopterSquad(Team team)
         {
+            int members = GetMemberCountByType(team, team.HelicopterSquads);
 
+            if (members >= (team.GetMaxNumPeds() * 0.1f)) // 10%
+            {
+                return false;
+            }
+
+            return true;
         }
 
-        public override void OnPedKilled(Ped ped, Team teamOfPed)
+        public override bool ShouldSpawnWeaponizedVehicleSquad(Team team)
         {
-            
+            int members = GetMemberCountByType(team, team.HelicopterSquads);
+
+            if (members >= (team.GetMaxNumPeds() * 0.1f)) // 10%
+            {
+                return false;
+            }
+
+            return true;
         }
 
-        public override void OnSquadUpdate(Squad squad) { }
-
-        public override void OnSquadDestroyed(Squad squad, Team teamOfSquad)
+        public override bool ShouldSpawnVehicleSquad(Team team)
         {
-            // Handle logic when a Squad is destroyed in Skirmish mode
+            int members = GetMemberCountByType(team, team.HelicopterSquads);
+
+            if (members >= (team.GetMaxNumPeds() * 0.2f)) // 20%
+            {
+                return false;
+            }
+
+            return true;
         }
 
-        public override void OnPlayerDeath() { }
 
     }
 }

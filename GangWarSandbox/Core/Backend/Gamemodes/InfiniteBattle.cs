@@ -18,5 +18,42 @@ namespace GangWarSandbox.Gamemodes
         public InfiniteBattleGamemode() : base("Infinite Battle", "Peds will spawn forever, putting you in a battle that never ends!", 4)
         { }
 
+        // The only thing unique about a "infinite battle" is that it sets loose restrictions on how many vehicles a team can have! In this case, only 40% of their population is dedicated to vehicles
+        public override bool ShouldSpawnHelicopterSquad(Team team)
+        {
+            int members = GetMemberCountByType(team, team.HelicopterSquads);
+
+            if (members >= (team.GetMaxNumPeds() * 0.1f)) // 10%
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public override bool ShouldSpawnWeaponizedVehicleSquad(Team team)
+        {
+            int members = GetMemberCountByType(team, team.HelicopterSquads);
+
+            if (members >= (team.GetMaxNumPeds() * 0.1f)) // 10%
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public override bool ShouldSpawnVehicleSquad(Team team)
+        {
+            int members = GetMemberCountByType(team, team.HelicopterSquads);
+
+            if (members >= (team.GetMaxNumPeds() * 0.2f)) // 20%
+            {
+                return false;
+            }
+
+            return true;
+        }
+
     }
 }

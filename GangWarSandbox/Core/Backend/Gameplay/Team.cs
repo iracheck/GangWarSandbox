@@ -76,6 +76,18 @@ namespace GangWarSandbox
             return squadSize;
         }
 
+        public List<Squad> GetAllSquads()
+        {
+            List<Squad> squads = new List<Squad>();
+
+            squads.AddRange(Squads);
+            squads.AddRange(VehicleSquads);
+            squads.AddRange(WeaponizedVehicleSquads);
+            squads.AddRange(HelicopterSquads);
+
+            return squads;
+        }
+
         public int GetMaxNumPeds()
         {
             return (int) (MAX_SOLDIERS * ModData.UnitCountMultiplier);
@@ -83,6 +95,17 @@ namespace GangWarSandbox
 
         public bool ShouldSpawnVehicle()
         {
+            int numVehiclePeds = 0;
+
+            foreach (var squad in VehicleSquads)
+            {
+                if (squad.IsEmpty() || (squad.SquadVehicle != null && squad.SquadVehicle.IsDead))
+                {
+                    VehicleSquads.Remove(squad);
+                }
+
+                numVehiclePeds += squad.Members.Count(ped => ped.Exists() && !ped.IsDead && ped.IsInVehicle());
+            }
             if (TeamVehicles == null)
             {
                 Logger.Log("TeamVehicles of team " + Name + " is null. Cannot spawn vehicles. Please set TeamVehicles before spawning vehicles.");
@@ -93,7 +116,7 @@ namespace GangWarSandbox
                 Logger.Log("TeamVehicles of team " + Name + " is empty!");
                 return false; // no vehicles available
             }
-            else if (VehicleSquads.Count + WeaponizedVehicleSquads.Count + HelicopterSquads.Count < 1)
+            else if (numVehiclePeds < (GetMaxNumPeds() * 0.15f))
             {
                 return true;
             }

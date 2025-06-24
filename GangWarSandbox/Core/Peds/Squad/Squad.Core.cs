@@ -13,7 +13,6 @@ using GangWarSandbox;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Runtime.Serialization;
-using System.Security.Cryptography.X509Certificates;
 using System.ComponentModel;
 using GangWarSandbox.Core.StrategyAI;
 using GangWarSandbox.Core;
@@ -55,7 +54,7 @@ namespace GangWarSandbox.Peds
         // these are orders that come from the "Strategy AI" of each team
         CapturePoint TargetPoint; // the location that the squad's role will be applied to-- variable
 
-        Vehicle SquadVehicle = null;
+        public Vehicle SquadVehicle = null;
 
         // Squad roles are the command to the squad from AI overseer
 
@@ -84,7 +83,7 @@ namespace GangWarSandbox.Peds
             Aggressive = 1, // the squad may not wait for combat to end to push its target
         }
 
-        public Squad(Team owner, bool vehicle = false, SquadRole role = 0, SquadType type = 0, SquadPersonality personality = 0)
+        public Squad(Team owner, int vehicle = 0, SquadRole role = 0, SquadType type = 0, SquadPersonality personality = 0)
         {
             Owner = owner;
             Role = role;
@@ -96,11 +95,22 @@ namespace GangWarSandbox.Peds
             if (!IsSpawnPosSafe(SpawnPos)) return;
             else Owner.Squads.Add(this);
 
-            if (vehicle)
+            if (vehicle == 3) // helicopter
+            {
+                SpawnVehicle(VehicleSet.Type.Helicopter, SpawnPos);
+                Owner.WeaponizedVehicleSquads.Add(this);
+            }
+            else if (vehicle == 2) // wpnzd vehicle
+            {
+                SpawnVehicle(VehicleSet.Type.WeaponizedVehicle, SpawnPos);
+                Owner.WeaponizedVehicleSquads.Add(this);
+            }
+            else if (vehicle == 1) // reg vehicle
             {
                 SpawnVehicle(VehicleSet.Type.Vehicle, SpawnPos);
                 Owner.VehicleSquads.Add(this);
             }
+            // if vehicle == 0, it's a regular squad
 
             if (role == 0)
             {

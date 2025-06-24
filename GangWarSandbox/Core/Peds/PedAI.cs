@@ -98,9 +98,29 @@ namespace GangWarSandbox.Peds
             ped.Task.EnterVehicle(target);
         }
 
-        public static void DriveToFarAway(Ped ped, Vector3 target)
+        public static void DriveToReckless(Ped ped, Vector3 target)
         {
-            ped.Task.DriveTo(ped.CurrentVehicle, target, 5f, 60f, DrivingStyle.Rushed);
+            ped.Task.DriveTo(ped.CurrentVehicle, target, 5f, 60f, DrivingStyle.AvoidTrafficExtremely);
+
+            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 60f, VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights, 20f, 15f, false);
+        }
+
+        public static void DriveToRecklessFast(Ped ped, Vector3 target)
+        {
+            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 80f, VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights, 20f, 15f, true);
+        }
+
+        public static void DriveToSafely(Ped ped, Vector3 target)
+        {
+            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.GoTo, 40f, VehicleDrivingFlags.None, 10f, 15f, true);
+        }
+
+        public static void DriveBy(Ped ped, Ped target)
+        {
+            if (ped.IsInVehicle())
+            {
+                ped.Task.VehicleShootAtPed(target);
+            }
         }
 
 
@@ -156,9 +176,13 @@ namespace GangWarSandbox.Peds
             return Vector3.Zero;
         }
 
-        public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, float maxStepSize = 50f)
+        public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, bool hasVehicle = false)
         {
             List<Vector3> points = new List<Vector3>();
+
+            float maxStepSize = 50f;
+
+            if (hasVehicle) maxStepSize = 80f;
 
             // Convert END to a temporary road-based destination
             Vector3 endRoad = World.GetNextPositionOnStreet(end);
