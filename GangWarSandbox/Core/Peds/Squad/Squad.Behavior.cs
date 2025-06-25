@@ -142,12 +142,27 @@ namespace GangWarSandbox.Peds
                 PromoteLeader();
 
             // Clear nearby waypoints
-            if (Waypoints.Count > 0 && Waypoints[0] != Vector3.Zero && (SquadLeader.Position.DistanceTo(Waypoints[0]) < 10f || (SquadVehicle != null && SquadVehicle.Position.DistanceTo(Waypoints[0]) < 25f)))
+            if (
+                Waypoints.Count > 0 &&
+                Waypoints[0] != Vector3.Zero &&
+                (
+                    (SquadLeader.Position.DistanceTo(Waypoints[0]) < 10f) || // 1.
+                    (SquadVehicle != null && SquadVehicle.Position.DistanceTo(Waypoints[0]) < 25f) || // 2. lines 1 and 2 handle when close to waypoints-- greater threshold for vehicle squads
+                    (Waypoints.Count > 1 && // 3.
+                     Waypoints[1] != null && // 4.
+                     Waypoints[1] != Vector3.Zero && // 5.
+                     Waypoints[0].DistanceTo(Waypoints[1]) < Waypoints[0].DistanceTo(SquadLeader.Position)) // 6. lines 3 through 6 handle when the squad is closer to their next waypoint then their current one-- "waypoint skipping"
+                )
+            )
             {
                 Waypoints.RemoveAt(0);
                 foreach (var ped in Members)
                 {
-                    if (PedAssignments[ped] == PedAssignment.RunToPosition || PedAssignments[ped] == PedAssignment.DriveToPosition) PedAssignments[ped] = PedAssignment.None;
+                    if (PedAssignments[ped] == PedAssignment.RunToPosition ||
+                        PedAssignments[ped] == PedAssignment.DriveToPosition)
+                    {
+                        PedAssignments[ped] = PedAssignment.None;
+                    }
                 }
             }
 
@@ -287,6 +302,13 @@ namespace GangWarSandbox.Peds
 
         private bool PedAI_Driving(Ped ped)
         {
+            // If the squad leader is in the drivers seat of a vehicle, the squad can "take over" that vehicle.
+            if (SquadVehicle == null && SquadLeader.IsInVehicle() && SquadLeader.CurrentVehicle.Driver == SquadLeader)
+            {
+                SquadVehicle = SquadLeader.CurrentVehicle;
+                return true;
+            }
+
             if (SquadVehicle == null || !SquadVehicle.Exists() || !SquadVehicle.IsAlive) return false;
 
             if (ped == SquadLeader)
@@ -305,7 +327,7 @@ namespace GangWarSandbox.Peds
                     {
                         bool squadInside = Members.All(m => m.IsInVehicle() && m.CurrentVehicle == SquadLeader.CurrentVehicle);
 
-                        if (!squadInside) return false;
+                        if (!squadInside) return true;
 
                         if (Waypoints.Count == 0 || Waypoints[0] == Vector3.Zero) return false; // no waypoints? can't do anything
 
@@ -326,10 +348,14 @@ namespace GangWarSandbox.Peds
             }
             else
             {
-                if (SquadLeader.IsInVehicle() && SquadLeader.CurrentVehicle != null && ped.IsInVehicle() == false)
+                if (SquadLeader.IsInVehicle() && SquadLeader.CurrentVehicle != ped.CurrentVehicle)
                 {
                     PedAI.EnterVehicle(ped, SquadLeader.CurrentVehicle);
                     PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
+                }
+                else if (ped.IsInVehicle() && ped.SeatIndex == VehicleSeat.Driver)
+                {
+                    ped.Task.LeaveVehicle();
                 }
             }
 

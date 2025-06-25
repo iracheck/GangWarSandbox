@@ -176,6 +176,10 @@ namespace GangWarSandbox.Peds
             return Vector3.Zero;
         }
 
+
+
+        // The following are all helper methods to help peds reach locations, or find destinations. They do not directly control peds.
+
         public static List<Vector3> GetIntermediateWaypoints(Vector3 start, Vector3 end, bool hasVehicle = false)
         {
             List<Vector3> points = new List<Vector3>();
@@ -208,7 +212,7 @@ namespace GangWarSandbox.Peds
                 //}
 
                 // Fallback 2: Use nearest road
-                if (safeStep == Vector3.Zero)
+                if (safeStep == Vector3.Zero || hasVehicle)
                 {
                     safeStep = World.GetNextPositionOnStreet(step);
                 }
@@ -232,13 +236,6 @@ namespace GangWarSandbox.Peds
 
             return points;
         }
-
-
-
-
-        // The following are all helper methods to help peds reach locations, or find destinations. They do not directly control peds.
-
-
 
         public static Vector3 FindRandomEnemySpawnpoint(Team team)
         {

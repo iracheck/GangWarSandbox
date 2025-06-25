@@ -28,6 +28,7 @@ namespace GangWarSandbox
 
         // Capture Information
         public const float CAPTURE_RATE = 10f; // Rate at which capture progresses per second, per ped
+        public float LastUpdate = 0;
 
         public float CaptureProgress; // Progress of capture from 0 to 100
         public Team CaptureTeam; // Team currently capturing the point, null if not being captured

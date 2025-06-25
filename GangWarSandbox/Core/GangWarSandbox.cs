@@ -362,8 +362,7 @@ namespace GangWarSandbox
 
                 foreach (var point in CapturePoints)
                 {
-                    if (GameTime % POINT_UPDATE_FREQUENCY == 0)
-                        point.CapturePointHandler(); // Process capture points
+                    point.CapturePointHandler(); // Process capture points
                 }
             }
         }

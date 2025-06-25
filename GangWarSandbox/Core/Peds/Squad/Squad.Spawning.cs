@@ -53,7 +53,11 @@ namespace GangWarSandbox.Peds
                 try
                 {
                     SquadVehicle.AttachedBlip.Delete();
-                } catch { }
+                    ModData.SquadlessVehicles.Add(SquadVehicle);
+                    SquadVehicle = null;
+
+                } 
+                catch { }
                 
 
                 ModData.CurrentGamemode.OnSquadDestroyed(this, Owner);
@@ -89,12 +93,6 @@ namespace GangWarSandbox.Peds
 
                     if (ped.Exists())
                         ped.Delete();
-
-                    if (SquadVehicle != null && SquadVehicle.Exists())
-                    {
-                        SquadVehicle.Delete();
-                        ModData.SquadlessVehicles.Add(SquadVehicle);
-                    }
                 }
             }
 
@@ -121,7 +119,7 @@ namespace GangWarSandbox.Peds
 
         public bool IsSpawnPosSafe(Vector3 spawnPos)
         {
-            int RADIUS = 50;
+            int RADIUS = 30;
 
             // Check if the spawn position is crowded
             var nearbyPeds = World.GetNearbyPeds(spawnPos, RADIUS);
@@ -167,6 +165,43 @@ namespace GangWarSandbox.Peds
                 SquadVehicle.AttachedBlip.Sprite = BlipSprite.WeaponizedTampa;
             else if (type == VehicleSet.Type.Helicopter)
                 SquadVehicle.AttachedBlip.Sprite = BlipSprite.HelicopterAnimated;
+        }
+
+        public Vector3 FindRandomPositionAroundSpawnpoint(Vector3 spawnpoint)
+        {
+            Vector3 newSpawnPoint = spawnpoint;
+            int radius = 10;
+
+            bool pointInvalid = true;
+            int attempts = 0;
+
+            while (pointInvalid)
+            {
+                newSpawnPoint = spawnpoint;
+                attempts++;
+
+                Vector3 randXOffset = new Vector3(rand.Next(-radius, radius), 0, 0);
+                Vector3 randYOffset = new Vector3(0, rand.Next(-radius, radius), 0);
+
+                newSpawnPoint += randXOffset + randYOffset;
+
+                int safetyRadius = SquadVehicle == null ? 1 : 3;
+
+                int numNearby = World.GetNearbyPeds(newSpawnPoint, safetyRadius).Length;
+
+                if (numNearby == 0) pointInvalid = false;
+
+                if (attempts > 20 && pointInvalid)
+                {
+                    pointInvalid = false;
+                    newSpawnPoint = spawnpoint; // if we can't find a valid spawn point, just use the original spawn point
+                }
+
+
+            }
+
+            return newSpawnPoint;
+
         }
 
         // SpawnPed -- Spawns a ped based on the team, with a given loadout.

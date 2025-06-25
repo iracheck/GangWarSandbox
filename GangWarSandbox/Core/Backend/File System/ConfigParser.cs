@@ -11,7 +11,7 @@ using System.Xml.Linq;
 
 namespace GangWarSandbox.Core
 {
-    static class ConfigParser 
+    static class ConfigParser
     {
         private static Dictionary<string, VehicleSet> VehicleSets = new Dictionary<string, VehicleSet>();
 
@@ -61,7 +61,7 @@ namespace GangWarSandbox.Core
                             continue;
                         }
 
-                        
+
 
                         if (currentSet == null) continue;
 
@@ -232,7 +232,7 @@ namespace GangWarSandbox.Core
                                 break;
                         }
 
-                    
+
                     }
 
                     // Check if all required fields were set
@@ -255,6 +255,26 @@ namespace GangWarSandbox.Core
             }
 
             return Factions;
+        }
+
+        public static void LoadConfiguration()
+        {
+            Logger.LogDebug("Loading mod config file...");
+            try
+            {
+                string path = ModFiles.ConfigPath;
+
+                string[] file = (string[])File.ReadLines(path);
+
+                foreach (var line in file)
+                {
+                    Logger.Log("");
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.ParserError("Failed to parse mod configuration file. Using defaults instead...");
+            }
         }
 
         // Below are parser methods used to parse the INI files for vehicle sets and factions that are not directly linked to a specific dataset. E.g. removing comments is a universal requirement
@@ -317,7 +337,6 @@ namespace GangWarSandbox.Core
                 Logger.Log($"Successfully parsed {fileType} file '{fileName}'.");
             }
         }
-
 
 
     }

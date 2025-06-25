@@ -90,7 +90,11 @@ namespace GangWarSandbox.Peds
             Personality = personality;
             Type = type;
 
-            SpawnPos = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
+            // First, determine a spawnpoint
+            Vector3 spawnpoint = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
+
+            // Find a random point around the spawn position to actually spawn in
+            SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
             if (!IsSpawnPosSafe(SpawnPos)) return;
             else Owner.Squads.Add(this);

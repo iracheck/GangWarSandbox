@@ -10,6 +10,7 @@ namespace GangWarSandbox.Core
     static class ModFiles
     {
         public static string ModPath = "scripts/GangWarSandbox";
+        public static string ConfigPath = "scripts/GangWarSandbox/Configuration.ini";
         public static string VehicleSetPath = ModPath + "/VehicleSets";
         public static string FactionsPath = ModPath + "/Factions";
         public const String LOG_FILE_PATH = "scripts/GangWarSandbox/GWS.log"; // Path to the log file
