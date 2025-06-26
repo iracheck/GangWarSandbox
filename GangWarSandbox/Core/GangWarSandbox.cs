@@ -28,7 +28,7 @@ namespace GangWarSandbox
         public static GangWarSandbox Instance { get; private set; }
 
         private readonly Random rand = new Random();
-        public int DEBUG = 1;
+        public int DEBUG = 0;
 
         // Constants
         private const int AI_UPDATE_FREQUENCY = 250; // How often squad AI will be updated, in milliseconds
@@ -622,6 +622,11 @@ namespace GangWarSandbox
                     try
                     {
                         squad.Destroy(); // This can safely remove it from team.Squads now
+
+                        team.Squads.Remove(squad);
+                        team.VehicleSquads.Remove(squad);
+                        team.WeaponizedVehicleSquads.Remove(squad);
+                        team.HelicopterSquads.Remove(squad);
                     }
                     catch (Exception ex)
                     {

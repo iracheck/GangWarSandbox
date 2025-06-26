@@ -86,7 +86,6 @@ namespace GangWarSandbox.Core
                                 helicopters = true;
                                 break;
                             default:
-                                // Handle any other keys you might want to add in the future
                                 Logger.ParserError($"Unknown key '{key}' in vehicle set file '{file}'.");
                                 break;
                         }
@@ -227,7 +226,6 @@ namespace GangWarSandbox.Core
                                 blpClr = true;
                                 break;
                             default:
-                                // Handle any other keys you might want to add in the future
                                 Logger.Log($"Unknown key '{key}' in faction file '{file}'.");
                                 break;
                         }

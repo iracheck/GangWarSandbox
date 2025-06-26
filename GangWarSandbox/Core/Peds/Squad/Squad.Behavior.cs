@@ -141,25 +141,16 @@ namespace GangWarSandbox.Peds
             if (SquadLeader == null || SquadLeader.IsDead || !SquadLeader.Exists())
                 PromoteLeader();
 
+            bool isCloseEnough = (SquadLeader.Position.DistanceTo(Waypoints[0]) < 10f) || (SquadVehicle != null && SquadVehicle.Position.DistanceTo(Waypoints[0]) < 25f);
+            bool waypointSkipped = Waypoints.Count > 1 && Waypoints[1] != null && Waypoints[1] != Vector3.Zero && Waypoints[0].DistanceTo(Waypoints[1]) < Waypoints[0].DistanceTo(SquadLeader.Position);
+
             // Clear nearby waypoints
-            if (
-                Waypoints.Count > 0 &&
-                Waypoints[0] != Vector3.Zero &&
-                (
-                    (SquadLeader.Position.DistanceTo(Waypoints[0]) < 10f) || // 1.
-                    (SquadVehicle != null && SquadVehicle.Position.DistanceTo(Waypoints[0]) < 25f) || // 2. lines 1 and 2 handle when close to waypoints-- greater threshold for vehicle squads
-                    (Waypoints.Count > 1 && // 3.
-                     Waypoints[1] != null && // 4.
-                     Waypoints[1] != Vector3.Zero && // 5.
-                     Waypoints[0].DistanceTo(Waypoints[1]) < Waypoints[0].DistanceTo(SquadLeader.Position)) // 6. lines 3 through 6 handle when the squad is closer to their next waypoint then their current one-- "waypoint skipping"
-                )
-            )
+            if (isCloseEnough || waypointSkipped)
             {
                 Waypoints.RemoveAt(0);
                 foreach (var ped in Members)
                 {
-                    if (PedAssignments[ped] == PedAssignment.RunToPosition ||
-                        PedAssignments[ped] == PedAssignment.DriveToPosition)
+                    if (PedAssignments[ped] == PedAssignment.RunToPosition || PedAssignments[ped] == PedAssignment.DriveToPosition)
                     {
                         PedAssignments[ped] = PedAssignment.None;
                     }

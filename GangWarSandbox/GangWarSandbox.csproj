@@ -59,7 +59,7 @@
     <Compile Include="Core\Backend\Gamemodes\Gamemode.cs" />
     <Compile Include="Core\Backend\Gamemodes\InfiniteBattle.cs" />
     <Compile Include="Core\Backend\Gamemodes\Skirmish.cs" />
-    <Compile Include="Core\Backend\Logger.cs" />
+    <Compile Include="Core\Backend\File System\Logger.cs" />
     <Compile Include="Core\Helpers\Helpers.cs" />
     <Compile Include="Core\MapElements\CapturePoint.cs" />
     <Compile Include="Core\Backend\Gameplay\Faction.cs" />

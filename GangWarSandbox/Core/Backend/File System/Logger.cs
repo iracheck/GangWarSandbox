@@ -12,7 +12,7 @@ namespace GangWarSandbox
     {
         private static GangWarSandbox ModData = GangWarSandbox.Instance; // Reference to the main mod instance
 
-        public static void Log(String data, String logType = "DEBUG")
+        public static void Log(String data, String logType = "LOG")
         {
             if (!File.Exists(ModFiles.LOG_FILE_PATH))
             {
@@ -35,12 +35,12 @@ namespace GangWarSandbox
 
         public static void LogEvent(String data)
         {
-            Log(data, "EVENT");
+            Log(data, "LOG");
         }
 
         public static void ParserError(String data)
         {
-            Log(data, "PARSER_ERROR");
+            Log(data, "PARSER");
         }   
     }
 }

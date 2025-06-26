@@ -30,13 +30,20 @@ namespace GangWarSandbox.Peds
         // Starts at -1; increments every time someone is spawned (think: starts counting at zero) 
         public int SpawnIndex = -1;
 
+        public bool IsDestroyed = false;
+
         public List<Ped> CleanupDead()
         {
             List<Ped> deadPeds = new List<Ped>();
 
             if (Members.Count == 0)
             {
+                IsDestroyed = true;
                 Owner.Squads.Remove(this);
+                Owner.VehicleSquads.Remove(this);
+                Owner.WeaponizedVehicleSquads.Remove(this);
+                Owner.HelicopterSquads.Remove(this);
+
                 if (Owner.VehicleSquads.Contains(this))
                 {
                     Owner.VehicleSquads.Remove(this);
@@ -84,6 +91,8 @@ namespace GangWarSandbox.Peds
 
         public void Destroy(bool killPeds = true)
         {
+            IsDestroyed = true;
+
             foreach (var ped in Members)
             {
                 if (ped != null)
@@ -265,7 +274,7 @@ namespace GangWarSandbox.Peds
             else if (tier == 2)
             {
                 weapon = Helpers.GetRandom(team.Tier2Weapons);
-                ped.Health = team.BaseHealth + 100;
+                ped.Health = (int)(team.BaseHealth * 1.2f) ;
                 baseAccuracy = 15;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
@@ -276,7 +285,7 @@ namespace GangWarSandbox.Peds
             else if (tier == 3)
             {
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
-                ped.Health = team.BaseHealth + 250;
+                ped.Health = (int)(team.BaseHealth * 1.5f);
                 baseAccuracy = 30;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.6f;
@@ -291,7 +300,7 @@ namespace GangWarSandbox.Peds
             else if (tier == 4)
             {
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
-                ped.Health = (team.BaseHealth * 2) + 400;
+                ped.Health = (int)(team.BaseHealth * 2.0);
                 baseAccuracy = 75;
 
                 blip.Sprite = BlipSprite.Juggernaut;
@@ -338,7 +347,7 @@ namespace GangWarSandbox.Peds
             ped.AlwaysKeepTask = true;
             ped.HearingRange = 5;
             ped.IsPersistent = true;
-            ped.LodDistance = 750; // Increase the distance at which peds will do tasks
+            ped.LodDistance = 2000; // Increase the distance at which peds will do tasks
             ped.DropsEquippedWeaponOnDeath = false;
 
             Members.Add(ped);
