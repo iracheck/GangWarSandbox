@@ -86,7 +86,7 @@ namespace GangWarSandbox.Core
                                 helicopters = true;
                                 break;
                             default:
-                                Logger.ParserError($"Unknown key '{key}' in vehicle set file '{file}'.");
+                                Logger.ParserError($"Unknown key '{key}' in vehicle set file {file}.");
                                 break;
                         }
 
@@ -332,7 +332,7 @@ namespace GangWarSandbox.Core
             }
             else
             {
-                Logger.Log($"Successfully parsed {fileType} file '{fileName}'.");
+                Logger.Log($"Successfully parsed {fileType} file {fileName}.");
             }
         }
 

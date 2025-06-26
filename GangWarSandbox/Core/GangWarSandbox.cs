@@ -28,7 +28,7 @@ namespace GangWarSandbox
         public static GangWarSandbox Instance { get; private set; }
 
         private readonly Random rand = new Random();
-        public int DEBUG = 0;
+        public int DEBUG = 1;
 
         // Constants
         private const int AI_UPDATE_FREQUENCY = 250; // How often squad AI will be updated, in milliseconds
@@ -156,7 +156,7 @@ namespace GangWarSandbox
             };
 
             // A multiplier from the value located in the faction settings, max of 10x
-            var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 90, 1);
+            var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 100, 10);
 
             unitCountMultiplier.ValueChanged += (item, args) =>
             {
@@ -207,9 +207,16 @@ namespace GangWarSandbox
                 TeamFactionItems.Add(teamFactionItem);
                 TeamSetupMenu.Add(teamFactionItem);
             }
+
+            // sets each team faction definition to a random value, for quick plug n' play
+            foreach (var  teamFactionItem in TeamFactionItems)
+            {
+                teamFactionItem.SelectedIndex = rand.Next(0, TeamFactionItems.Count);
+            }
+
             TeamSetupMenu.Add(playerTeamItem);
 
-            // Submenu: SPAWNPOINT SETUP
+            // Submenu: POINT SETUP
             SpawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
             MenuPool.Add(SpawnpointMenu);
             MainMenu.AddSubMenu(SpawnpointMenu);
@@ -514,6 +521,8 @@ namespace GangWarSandbox
 
                     GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at waypoint.");
                     World.RemoveWaypoint();
+
+                    
                 }
                 else
                 {

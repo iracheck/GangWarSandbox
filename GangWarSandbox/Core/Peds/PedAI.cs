@@ -22,14 +22,15 @@ namespace GangWarSandbox.Peds
         static GangWarSandbox ModData = GangWarSandbox.Instance;
         static Random rand = new Random();
 
+
         public static void GoToFarAway(Ped ped, Vector3 coord)
         {
-            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 1.5f, -1, 5.0f, 0, 0.0f);
+            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 1.5f, -1, 5.0f, 8, 0.0f);
         }
 
         public static void RunToFarAway(Ped ped, Vector3 coord)
         {
-            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2f, -1, 5.0f, 0, 0.0f);
+            Function.Call(Hash.TASK_FOLLOW_NAV_MESH_TO_COORD, ped, coord.X, coord.Y, coord.Z, 2f, -1, 5.0f, 8, 0.0f);
         }
 
         public static void DefendArea(Ped ped, Vector3 point)
@@ -100,14 +101,12 @@ namespace GangWarSandbox.Peds
 
         public static void DriveToReckless(Ped ped, Vector3 target)
         {
-            ped.Task.DriveTo(ped.CurrentVehicle, target, 5f, 60f, DrivingStyle.AvoidTrafficExtremely);
-
-            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 60f, VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights, 20f, 15f, false);
+            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 60f, VehicleDrivingFlags.SteerAroundObjects | VehicleDrivingFlags.SteerAroundPeds | VehicleDrivingFlags.SteerAroundStationaryVehicles | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights, 20f, 15f, false);
         }
 
         public static void DriveToRecklessFast(Ped ped, Vector3 target)
         {
-            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 80f, VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights, 20f, 15f, true);
+            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 80f, VehicleDrivingFlags.SteerAroundObjects | VehicleDrivingFlags.SteerAroundPeds | VehicleDrivingFlags.SteerAroundStationaryVehicles | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights, 20f, 15f, true);
         }
 
         public static void DriveToSafely(Ped ped, Vector3 target)
@@ -204,12 +203,6 @@ namespace GangWarSandbox.Peds
             {
                 Vector3 step = start + direction * (i * maxStepSize);
                 Vector3 safeStep = World.GetSafeCoordForPed(step, true);
-
-                // Fallback 1: Try your custom safe finder
-                //if (safeStep == Vector3.Zero)
-                //{
-                //    safeStep = FindSafePositionNearCoord(step);
-                //}
 
                 // Fallback 2: Use nearest road
                 if (safeStep == Vector3.Zero || hasVehicle)
@@ -311,6 +304,12 @@ namespace GangWarSandbox.Peds
             }
 
             return new Vector3(offsetX, offsetY, 0);
+        }
+
+        // AI STREAMING
+        public static void CreateStreamVolumeAt(Vector3 position, float radius = 100f)
+        {
+            int vol = Function.Call<int>(Hash.STREAMVOL_CREATE_SPHERE, position.X, position.Y, position.Z, radius, 0, 0);
         }
 
     }

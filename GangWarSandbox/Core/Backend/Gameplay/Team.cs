@@ -97,23 +97,27 @@ namespace GangWarSandbox
         {
             int numVehiclePeds = 0;
 
-            foreach (var squad in VehicleSquads)
+            foreach (var squad in VehicleSquads.ToList())
             {
                 if (squad.IsEmpty() || (squad.SquadVehicle != null && squad.SquadVehicle.IsDead))
                 {
                     VehicleSquads.Remove(squad);
                 }
+                else
+                {
+                    numVehiclePeds += squad.Members.Count(ped => ped.Exists() && !ped.IsDead);
+                }
 
-                numVehiclePeds += squad.Members.Count(ped => ped.Exists() && !ped.IsDead && ped.IsInVehicle());
+                
             }
             if (TeamVehicles == null)
             {
-                Logger.Log("TeamVehicles of team " + Name + " is null. Cannot spawn vehicles. Please set TeamVehicles before spawning vehicles.");
+                Logger.LogDebug("CRITICAL: TeamVehicles of team " + Name + " is null. This should never happen.");
                 return false;
             }
             else if (TeamVehicles.Vehicles.Count == 0 && TeamVehicles.WeaponizedVehicles.Count == 0 && TeamVehicles.Helicopters.Count == 0)
             {
-                Logger.Log("TeamVehicles of team " + Name + " is empty!");
+                Logger.LogDebug("TeamVehicles of team " + Name + " is empty!");
                 return false; // no vehicles available
             }
             else if (numVehiclePeds < (GetMaxNumPeds() * 0.15f))
@@ -175,6 +179,7 @@ namespace GangWarSandbox
             blip.Scale = 0.8f;
 
             Blips.Add(blip);
+
         }
 
         public void Cleanup()

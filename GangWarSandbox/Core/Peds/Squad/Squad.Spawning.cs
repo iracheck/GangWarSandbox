@@ -338,7 +338,6 @@ namespace GangWarSandbox.Peds
 
             // Force equip weapon
             Function.Call(Hash.SET_CURRENT_PED_WEAPON, ped, Game.GenerateHash(weapon), true);
-            ped.Task.SwapWeapon();
 
             blip.IsShortRange = true;
             blip.Name = $"Team {team.Name} Infantry";
@@ -347,7 +346,7 @@ namespace GangWarSandbox.Peds
             ped.AlwaysKeepTask = true;
             ped.HearingRange = 5;
             ped.IsPersistent = true;
-            ped.LodDistance = 2000; // Increase the distance at which peds will do tasks
+            ped.LodDistance = 750; // Increase the distance at which peds will do tasks
             ped.DropsEquippedWeaponOnDeath = false;
 
             Members.Add(ped);
@@ -370,7 +369,14 @@ namespace GangWarSandbox.Peds
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
             Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 1);
             Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 1); // 0 = near, 1 = medium, 2 = far
-          
+
+            Function.Call(Hash.SET_PED_LOD_MULTIPLIER, ped, 10.0f);
+            Function.Call(Hash.SET_ENTITY_AS_MISSION_ENTITY, ped, true, true);
+            Function.Call(Hash.SET_ENTITY_LOAD_COLLISION_FLAG, ped, true);
+
+            Function.Call(Hash.SET_PED_PATH_MAY_ENTER_WATER, ped, true);
+            Function.Call(Hash.SET_PED_PATH_PREFER_TO_AVOID_WATER, ped, false);
+
 
 
             // Fight against any nearby targets, at an even greater range than normal behavior

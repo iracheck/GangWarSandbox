@@ -118,6 +118,11 @@ namespace GangWarSandbox.Peds
 
             if (role == 0)
             {
+                if (vehicle != 0 || SquadVehicle != null)
+                {
+                    Role = SquadRole.VehicleSupport;
+                }
+
                 int max = 20; // weights for seek and destroy included in the max
                 int assault = 0;
                 int defend = 0;
