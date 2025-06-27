@@ -165,15 +165,17 @@ namespace GangWarSandbox.Peds
             SquadVehicle = World.CreateVehicle(model, position);
 
             SquadVehicle.AddBlip();
-            SquadVehicle.AttachedBlip.Name = $"Team {Owner.Name} Vehicle";
-            SquadVehicle.AttachedBlip.Color = Owner.BlipColor;
 
             if (type == VehicleSet.Type.Vehicle)
-                SquadVehicle.AttachedBlip.Sprite = BlipSprite.ExportVehicle;
+                SquadVehicle.AttachedBlip.Sprite = BlipSprite.GangVehiclePolice;
             else if (type == VehicleSet.Type.WeaponizedVehicle)
                 SquadVehicle.AttachedBlip.Sprite = BlipSprite.WeaponizedTampa;
             else if (type == VehicleSet.Type.Helicopter)
                 SquadVehicle.AttachedBlip.Sprite = BlipSprite.HelicopterAnimated;
+
+            SquadVehicle.AttachedBlip.Name = $"Team {Owner.Name} Vehicle";
+            SquadVehicle.AttachedBlip.Color = Owner.BlipColor;
+
         }
 
         public Vector3 FindRandomPositionAroundSpawnpoint(Vector3 spawnpoint)
@@ -194,11 +196,13 @@ namespace GangWarSandbox.Peds
 
                 newSpawnPoint += randXOffset + randYOffset;
 
-                int safetyRadius = SquadVehicle == null ? 1 : 3;
+                int safetyRadius = SquadVehicle == null ? 1 : 6;
 
-                int numNearby = World.GetNearbyPeds(newSpawnPoint, safetyRadius).Length;
+                bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, safetyRadius).Length > 0;
+                bool noObjectsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length > 0;
+                bool noBuildingsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length > 0;
 
-                if (numNearby == 0) pointInvalid = false;
+                if (noPedsNearby && noObjectsNearby && noBuildingsNearby) pointInvalid = false;
 
                 if (attempts > 20 && pointInvalid)
                 {
@@ -223,8 +227,9 @@ namespace GangWarSandbox.Peds
                 return null;
 
             // Tier 4 peds only spawn when there is no tier 4 living tier 4 ped of that team AND when the player is on an opposing team
-            bool shouldSpawnTier4 = (team.Tier4Ped == null || !team.Tier4Ped.Exists() || team.Tier4Ped.IsDead) && 
-                (ModData.PlayerTeam != -1 && ModData.PlayerTeam < ModData.Teams.Count && ModData.Teams[ModData.PlayerTeam] != team);
+            bool playerHasNoTeam = ModData.PlayerTeam == -1 || ModData.PlayerTeam == -2 || ModData.PlayerTeam < 0 || ModData.PlayerTeam >= ModData.Teams.Count || ModData.Teams[ModData.PlayerTeam] == null;
+
+            bool shouldSpawnTier4 = (team.Tier4Ped == null || !team.Tier4Ped.Exists() || team.Tier4Ped.IsDead) && !playerHasNoTeam;
 
             int tier;
             int rnum = rand.Next(0, 100);
@@ -237,10 +242,7 @@ namespace GangWarSandbox.Peds
 
 
             if (shouldSpawnTier4)
-            {
                 tier = 4;
-                team.Tier4Ped = null;
-            }
 
             var model = new Model(team.Models[rand.Next(team.Models.Length)]);
             if (tier == 4 && !string.IsNullOrEmpty(team.Faction.Tier4Model)) model = new Model(team.Faction.Tier4Model);

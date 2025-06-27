@@ -11,6 +11,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using GTA.Native;
 using System.Drawing;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace GangWarSandbox.Peds
 {
@@ -161,10 +162,6 @@ namespace GangWarSandbox.Peds
                 Ped ped = Members[i];
 
                 if (ped == null || !ped.Exists() || !ped.IsAlive) continue; // skip to the next ped
-
-                // Update ped's blip i
-                if (ped.IsInVehicle()) ped.AttachedBlip.Alpha = 50;
-                else ped.AttachedBlip.Alpha = 255;
 
                 // Handle logic with enemy detection, combat, etc.
                 bool combat = PedAI_Combat(ped);
@@ -341,7 +338,32 @@ namespace GangWarSandbox.Peds
             return true;
         }
 
+        private int GetDesiredBlipVisibility(Ped ped)
+        {
+            int maxAlpha = 0;
 
+            // Absolute conditions
+            if (ped.IsInVehicle() || ped.IsDead) return 0;
+            else if (ped == SquadLeader) maxAlpha = 255;
+            else maxAlpha = 200;
+
+            // Relative conditions
+            float healthPercent = (float) ped.Health / (float)ped.MaxHealth;
+            maxAlpha = (int) (maxAlpha * healthPercent + 10); // health
+
+            if (maxAlpha == 0) return 0;
+
+            float dist = ped.Position.DistanceTo(Game.Player.Character.Position);
+
+            if (dist > 100f) return 0;
+            else
+            {
+                maxAlpha = (int)(maxAlpha * (1 - (dist / 100)));
+            }
+
+            return maxAlpha;
+
+        }
 
         private Ped FindNearbyEnemy(Vector3 selfPosition, Team team, float distance, bool infiniteSearch = false)
         {

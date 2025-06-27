@@ -78,7 +78,7 @@ namespace GangWarSandbox
             if (PointID <= CapturePointIcons.Length) PointBlip.Sprite = CapturePointIcons[PointID - 1]; 
             else PointBlip.Sprite = FallbackIcon;
 
-            if (PointID <= CapturePointNames.Length) Name = "Point " + CapturePointNames[CapturePointNames.Length - 1];
+            if (PointID <= CapturePointNames.Length) Name = "Point " + CapturePointNames[PointID - 1];
             else Name = "Capture Point";
 
             PointBlip.Name = "Capture Point " + Name;

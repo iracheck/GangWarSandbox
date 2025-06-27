@@ -28,7 +28,10 @@ namespace GangWarSandbox
         public static GangWarSandbox Instance { get; private set; }
 
         private readonly Random rand = new Random();
+
+        // Debug Utilities
         public int DEBUG = 1;
+        private Blip DEBUG_active_ai_zone_blip;
 
         // Constants
         private const int AI_UPDATE_FREQUENCY = 250; // How often squad AI will be updated, in milliseconds
@@ -185,7 +188,7 @@ namespace GangWarSandbox
             MenuPool.Add(TeamSetupMenu);
             MainMenu.AddSubMenu(TeamSetupMenu);
 
-            List<String> playerTeamItem_Teams = new List<String> { "Neutral" };
+            List<String> playerTeamItem_Teams = new List<String> { "Neutral", "Hates Everyone" };
 
             for (int i = 0; i < NUM_TEAMS; i++)
                 playerTeamItem_Teams.Add("Team " + (i + 1));
@@ -196,7 +199,10 @@ namespace GangWarSandbox
             playerTeamItem.ItemChanged += (item, args) =>
             {
                 var sel = playerTeamItem.SelectedItem;
-                PlayerTeam = (sel == "Neutral") ? -1 : int.Parse(sel.Substring(5)) - 1;
+                if (sel == "Neutral") PlayerTeam = -1;
+                else if (sel == "Hates Everyone") PlayerTeam = -2;
+                else if (sel.StartsWith("Team ")) PlayerTeam = int.Parse(sel.Substring(5)) - 1;
+                else PlayerTeam = -1;
             };
 
             TeamFactionItems.Clear();
@@ -303,7 +309,7 @@ namespace GangWarSandbox
 
             if (IsBattleRunning)
             {
-                if (PlayerTeam != -1)
+                if (PlayerTeam != -1 && PlayerTeam != -2)
                 {
                     if (Player.IsDead)
                     {
@@ -387,12 +393,14 @@ namespace GangWarSandbox
 
         private void StartBattle()
         {
+            if (IsBattleRunning) return;
+
             IsBattleRunning = true;
             StartingMoney = Player.Money; // Save starting money!!
 
             Ped player = Game.Player.Character;
 
-            ResetPlayerRelations();
+            SetTeamRelations();
 
             for (int i = 0; i < CapturePoints.Count; i++)
             {
@@ -411,7 +419,9 @@ namespace GangWarSandbox
             // Spawn squads for each team
             SpawnSquads();
 
-
+            DEBUG_active_ai_zone_blip = World.CreateBlip(Game.Player.Character.Position, 500f);
+            DEBUG_active_ai_zone_blip.Color = BlipColor.Red;
+            DEBUG_active_ai_zone_blip.Alpha = 60;
 
             Game.Player.WantedLevel = 0; // Reset wanted level
             Game.Player.DispatchsCops = false; // disable cop dispatches
@@ -426,6 +436,8 @@ namespace GangWarSandbox
 
             GTA.UI.Screen.ShowSubtitle("Battle Ended!");
             CleanupAll();
+
+            DEBUG_active_ai_zone_blip.Delete();
 
 
             Game.Player.DispatchsCops = true; // Re-enable cop dispatches
@@ -684,10 +696,33 @@ namespace GangWarSandbox
             }
         }
 
+        private void SetTeamRelations()
+        {
+            ResetPlayerRelations();
+
+            foreach (var team1 in Teams)
+            {
+                foreach (var team2 in Teams)
+                {
+                    if (team1 == team2) continue;
+
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Hate, team1.Group, team2.Group);
+                }
+
+                // player "hates everyone"
+                if (PlayerTeam == -2)
+                {
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Hate, Game.Player.Character.RelationshipGroup, team1.Group);
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Hate, team1.Group, Game.Player.Character.RelationshipGroup);
+                }
+                    
+            }
+        }
+
         private void ResetPlayerRelations()
         {
             // Assign player to team
-            if (PlayerTeam == -1)
+            if (PlayerTeam == -1 || PlayerTeam == -2)
             {
                 Game.Player.Character.RelationshipGroup = "PLAYER";
             }
@@ -715,13 +750,24 @@ namespace GangWarSandbox
                 World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(CapturePoint.Radius, CapturePoint.Radius, 1f), Color.White);
             }
 
-            if (DEBUG == 1)
+            if (DEBUG_active_ai_zone_blip != null)
+            {
+                DEBUG_active_ai_zone_blip.Position = Game.Player.Character.Position;
+            }
+
+
+            if (DEBUG == 1 && Teams != null)
             {
                 foreach (var team in Teams)
                 {
+                    if (team?.Squads == null) continue;
+
                     foreach (var squad in team.Squads)
                     {
-                        if (squad.Waypoints == null || squad.Waypoints.Count == 0)
+                        if (squad == null || squad.Waypoints == null || squad.Waypoints.Count == 0)
+                            continue;
+
+                        if (squad.SquadLeader == null || !squad.SquadLeader.Exists())
                             continue;
 
                         Vector3 squadLeaderPos = squad.SquadLeader.Position;
