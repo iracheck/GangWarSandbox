@@ -54,24 +54,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Core\Backend\File System\ConfigParser.cs" />
-    <Compile Include="Core\Backend\File System\ModFiles.cs" />
-    <Compile Include="Core\Backend\Gamemodes\Gamemode.cs" />
-    <Compile Include="Core\Backend\Gamemodes\InfiniteBattle.cs" />
-    <Compile Include="Core\Backend\Gamemodes\Skirmish.cs" />
-    <Compile Include="Core\Backend\File System\Logger.cs" />
-    <Compile Include="Core\Helpers\Helpers.cs" />
-    <Compile Include="Core\MapElements\CapturePoint.cs" />
-    <Compile Include="Core\Backend\Gameplay\Faction.cs" />
-    <Compile Include="Core\GangWarSandbox.cs" />
-    <Compile Include="Core\Peds\PedAI.cs" />
-    <Compile Include="Core\Peds\Squad\Squad.Behavior.cs" />
-    <Compile Include="Core\Peds\Squad\Squad.Spawning.cs" />
-    <Compile Include="Core\Peds\Squad\Squad.Core.cs" />
-    <Compile Include="Core\Backend\Gameplay\VehicleSet.cs" />
-    <Compile Include="Core\StrategyAI\StrategyAIHelpers.cs" />
+    <Compile Include="Game\Backend\File System\ConfigParser.cs" />
+    <Compile Include="Game\Backend\File System\ModFiles.cs" />
+    <Compile Include="Game\Backend\Gamemodes\Gamemode.cs" />
+    <Compile Include="Game\Backend\Gamemodes\InfiniteBattle.cs" />
+    <Compile Include="Game\Backend\Gamemodes\Skirmish.cs" />
+    <Compile Include="Game\Backend\Utilities\Logger.cs" />
+    <Compile Include="Game\Backend\Utilities\Helpers.cs" />
+    <Compile Include="Game\World\MapElements\CapturePoint.cs" />
+    <Compile Include="Game\Backend\Gameplay\Faction.cs" />
+    <Compile Include="Game\GangWarSandbox.cs" />
+    <Compile Include="Game\World\MapElements\MapCenter.cs" />
+    <Compile Include="Game\Peds\PedAI.cs" />
+    <Compile Include="Game\Squad\Squad.Behavior.cs" />
+    <Compile Include="Game\Squad\Squad.Spawning.cs" />
+    <Compile Include="Game\Squad\Squad.Core.cs" />
+    <Compile Include="Game\Backend\Gameplay\VehicleSet.cs" />
+    <Compile Include="Game\StrategyAI\StrategyAIHelpers.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Core\Backend\Gameplay\Team.cs" />
+    <Compile Include="Game\Backend\Gameplay\Team.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
