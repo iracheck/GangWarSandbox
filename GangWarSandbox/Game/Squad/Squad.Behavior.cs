@@ -162,6 +162,7 @@ namespace GangWarSandbox.Peds
             for (int i = 0; i < Members.Count; i++)
             {
                 Ped ped = Members[i];
+                ped.AttachedBlip.Alpha = GetDesiredBlipVisibility(ped, Owner);
 
                 if (ped == null || !ped.Exists() || !ped.IsAlive) continue; // skip to the next ped
 
@@ -340,9 +341,11 @@ namespace GangWarSandbox.Peds
             return true;
         }
 
-        private int GetDesiredBlipVisibility(Ped ped)
+        private int GetDesiredBlipVisibility(Ped ped, Team team)
         {
             int maxAlpha = 0;
+
+            //if (ModData.DEBUG == 1) return 255;
 
             // Absolute conditions
             if (ped.IsInVehicle() || ped.IsDead) return 0;
@@ -357,7 +360,12 @@ namespace GangWarSandbox.Peds
 
             float dist = ped.Position.DistanceTo(Game.Player.Character.Position);
 
+
+            if (team.TeamIndex == ModData.PlayerTeam || ModData.PlayerTeam == -1) return maxAlpha;
+
+            // Distance conditions, only happens when player is on a team
             if (dist > 100f) return 0;
+            else if (dist < 25f) return maxAlpha;
             else
             {
                 maxAlpha = (int)(maxAlpha * (1 - (dist / 100)));
