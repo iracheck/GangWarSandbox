@@ -96,8 +96,10 @@ namespace GangWarSandbox.Peds
             // Find a random point around the spawn position to actually spawn in
             SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
-            if (!IsSpawnPosSafe(SpawnPos)) return;
-            else Owner.Squads.Add(this);
+            Logger.Log(SpawnPos.ToString());
+
+            // CRITICAL: Saves the squad in memory to be cleaned up later
+            Owner.Squads.Add(this);
 
             if (vehicle == 3) // helicopter
             {
@@ -156,8 +158,6 @@ namespace GangWarSandbox.Peds
                 else
                     Personality = SquadPersonality.Normal;
             }
-
-            // Vehicle creation is handled within the squad
 
             PedTargetCache = new Dictionary<Ped, (Ped enemy, int timestamp)>();
             SpawnSquadPeds(GetSquadSizeByType(Type));

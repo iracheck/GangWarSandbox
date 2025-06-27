@@ -126,17 +126,6 @@ namespace GangWarSandbox.Peds
             }
         }
 
-        public bool IsSpawnPosSafe(Vector3 spawnPos)
-        {
-            int RADIUS = 30;
-
-            // Check if the spawn position is crowded
-            var nearbyPeds = World.GetNearbyPeds(spawnPos, RADIUS);
-
-            if (nearbyPeds.Length > 20) return false;
-            else return true;
-        }
-
         public Ped CreatePedInWorld(Model model, Vector3 spawnPos, bool isSquadLeader = false)
         {
             Ped ped;
@@ -198,16 +187,32 @@ namespace GangWarSandbox.Peds
 
                 int safetyRadius = SquadVehicle == null ? 1 : 6;
 
-                bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, safetyRadius).Length > 0;
-                bool noObjectsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length > 0;
-                bool noBuildingsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length > 0;
+                bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, safetyRadius).Length == 0;
+                bool noBuildingsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length == 0;
 
-                if (noPedsNearby && noObjectsNearby && noBuildingsNearby) pointInvalid = false;
+                // Testing spots for safety
+                Vector3 testSpot;
+                if (SquadVehicle == null)
+                {
+                    testSpot = World.GetSafeCoordForPed(newSpawnPoint, true);
+                }
+                else
+                {
+                    testSpot = World.GetNextPositionOnStreet(newSpawnPoint, true);
+                }
+                
 
-                if (attempts > 20 && pointInvalid)
+                if (testSpot.DistanceTo(spawnpoint) <= 20f && testSpot != Vector3.Zero)
+                    newSpawnPoint = testSpot; // if the point is valid, use it as the spawn point
+
+                Logger.Log("Peds: " + noPedsNearby + ", Buildings: " + noBuildingsNearby + ", Attempts: " + attempts + ", Point: " + newSpawnPoint.ToString());
+
+                if (noPedsNearby && noBuildingsNearby) pointInvalid = false;
+
+                if (attempts > 10 && pointInvalid)
                 {
                     pointInvalid = false;
-                    newSpawnPoint = spawnpoint; // if we can't find a valid spawn point, just use the original spawn point
+                    newSpawnPoint = spawnpoint; // if we can't find a valid spawn point, send back an invalid point
                 }
 
 

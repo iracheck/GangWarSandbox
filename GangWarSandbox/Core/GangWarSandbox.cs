@@ -329,7 +329,6 @@ namespace GangWarSandbox
                         Script.Wait(2000);
 
                         Player.Position = respawnLocation; // Move player to the spawn point
-                        ResetPlayerRelations();
 
                         PlayerDied = false; // Reset death state
 
@@ -698,8 +697,6 @@ namespace GangWarSandbox
 
         private void SetTeamRelations()
         {
-            ResetPlayerRelations();
-
             foreach (var team1 in Teams)
             {
                 foreach (var team2 in Teams)
@@ -715,12 +712,14 @@ namespace GangWarSandbox
                     Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Hate, Game.Player.Character.RelationshipGroup, team1.Group);
                     Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Hate, team1.Group, Game.Player.Character.RelationshipGroup);
                 }
+                else
+                {
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Neutral, Game.Player.Character.RelationshipGroup, team1.Group);
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Neutral, team1.Group, Game.Player.Character.RelationshipGroup);
+                }
                     
             }
-        }
 
-        private void ResetPlayerRelations()
-        {
             // Assign player to team
             if (PlayerTeam == -1 || PlayerTeam == -2)
             {
