@@ -214,6 +214,21 @@ namespace GangWarSandbox.Peds
                     newSpawnPoint = spawnpoint; // if we can't find a valid spawn point, send back an invalid point
                 }
 
+                // FINALLY, let's put it at the highest point at that given coordinate, then check if its too far. 
+                Vector3 rayStart = newSpawnPoint + new Vector3(0, 0, 100f);
+                Vector3 rayEnd = newSpawnPoint + new Vector3(0, 0, 0f);
+                RaycastResult downcast = World.Raycast(rayStart, rayEnd, IntersectFlags.Map);
+
+                Vector3 upStart = newSpawnPoint;
+                Vector3 upEnd = newSpawnPoint + new Vector3(0, 0, 15f);
+                RaycastResult upcast = World.Raycast(upStart, upEnd, IntersectFlags.Map);
+
+                // Only snap upward if nothing is above (we’re not inside a garage etc.)
+                if (!upcast.DidHit && downcast.DidHit && downcast.HitPosition.DistanceTo(newSpawnPoint) <= 15f)
+                {
+                    newSpawnPoint = downcast.HitPosition;
+                }
+
 
             }
 

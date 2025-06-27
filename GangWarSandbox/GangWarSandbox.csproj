@@ -65,7 +65,7 @@
     <Compile Include="Game\World\MapElements\CapturePoint.cs" />
     <Compile Include="Game\Backend\Gameplay\Faction.cs" />
     <Compile Include="Game\GangWarSandbox.cs" />
-    <Compile Include="Game\World\MapElements\MapCenter.cs" />
+    <Compile Include="Game\World\MapCenter.cs" />
     <Compile Include="Game\Peds\PedAI.cs" />
     <Compile Include="Game\Squad\Squad.Behavior.cs" />
     <Compile Include="Game\Squad\Squad.Spawning.cs" />

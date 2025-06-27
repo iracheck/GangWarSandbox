@@ -289,7 +289,7 @@ namespace GangWarSandbox.Peds
             else // Squad members
             {
                 // Follow the squad leader around
-                if (PedAssignments[ped] != PedAssignment.FollowSquadLeader && Vector3.Distance(ped.Position, SquadLeader.Position) > 5f)
+                if (PedAssignments[ped] != PedAssignment.FollowSquadLeader)
                 {
                     ped.Task.FollowToOffsetFromEntity(SquadLeader, PedAI.GenerateRandomOffset(), 2f);
                     PedAssignments[ped] = PedAssignment.FollowSquadLeader;

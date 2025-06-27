@@ -1,4 +1,6 @@
-﻿using GTA.Math;
+﻿using GTA;
+using GTA.Math;
+using GTA.Native;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,13 +27,13 @@ namespace GangWarSandbox
 
         static void OnBattleEnd()
         {
-
+            Function.Call(Hash.SET_FOCUS_ENTITY, Game.Player.Character.Handle);
         }
 
 
         static void SetFocalPoint()
         {
-
+            Function.Call(Hash.SET_FOCUS_POS_AND_VEL, Location.X, Location.Y, Location.Z, 0, 0, 0);
         }
     }
 }
