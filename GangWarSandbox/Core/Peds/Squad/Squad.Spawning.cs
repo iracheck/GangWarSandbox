@@ -60,8 +60,12 @@ namespace GangWarSandbox.Peds
                 try
                 {
                     SquadVehicle.AttachedBlip.Delete();
+                    SquadVehicle.Health = 50;
+                    SquadVehicle.IsPersistent = false; // remove from memory
+
                     ModData.SquadlessVehicles.Add(SquadVehicle);
                     SquadVehicle = null;
+
 
                 } 
                 catch { }
@@ -105,7 +109,7 @@ namespace GangWarSandbox.Peds
                 }
             }
 
-            if (SquadVehicle != null & SquadVehicle.Exists())
+            if (SquadVehicle != null && SquadVehicle.Exists())
                 SquadVehicle.Delete();
 
             Members.Clear(); // clear list after cleanup
