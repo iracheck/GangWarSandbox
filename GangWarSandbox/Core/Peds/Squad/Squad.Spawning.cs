@@ -191,21 +191,16 @@ namespace GangWarSandbox.Peds
                 bool noBuildingsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length == 0;
 
                 // Testing spots for safety
-                Vector3 testSpot;
-                if (SquadVehicle == null)
-                {
-                    testSpot = World.GetSafeCoordForPed(newSpawnPoint, true);
-                }
-                else
+                Vector3 testSpot = Vector3.Zero;
+
+                if (SquadVehicle != null)
                 {
                     testSpot = World.GetNextPositionOnStreet(newSpawnPoint, true);
+
+                    if (testSpot != Vector3.Zero && testSpot.DistanceTo(spawnpoint) <= 20f)
+                        newSpawnPoint = testSpot; // if the point is valid, use it as the spawn point
                 }
-                
 
-                if (testSpot.DistanceTo(spawnpoint) <= 20f && testSpot != Vector3.Zero)
-                    newSpawnPoint = testSpot; // if the point is valid, use it as the spawn point
-
-                Logger.Log("Peds: " + noPedsNearby + ", Buildings: " + noBuildingsNearby + ", Attempts: " + attempts + ", Point: " + newSpawnPoint.ToString());
 
                 if (noPedsNearby && noBuildingsNearby) pointInvalid = false;
 

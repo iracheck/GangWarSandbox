@@ -55,6 +55,8 @@ namespace GangWarSandbox.Peds
 
         public void SetTarget(Vector3 target)
         {
+            if (target == Vector3.Zero) return;
+
             bool hasVehicle = SquadVehicle != null && SquadVehicle.Exists() && SquadVehicle.IsAlive;
             Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target, hasVehicle); // set the waypoints to the target position
         }
@@ -114,8 +116,8 @@ namespace GangWarSandbox.Peds
                 // Still can't find one? Fallback solution
                 if (target == Vector3.Zero)
                 {
-                    GTA.UI.Screen.ShowSubtitle("A squad failed to find a valid target. Please report this issue to the developers.", 1000);
-                    target = SquadLeader.Position + PedAI.GenerateRandomOffset(); // generate a random offset from the spawn position if no target is found
+                    Logger.LogError("A squad failed to find a valid target.");
+                    GTA.UI.Screen.ShowSubtitle("A squad failed to find a valid target. This is a bug, please report it to the developer.");
                 }
             }
 

@@ -109,8 +109,9 @@ namespace GangWarSandbox
             // Ensure valid directories exist on startup
             ModFiles.EnsureDirectoriesExist();
 
-            // Try to load the config
+            // Try to load the configuration files
             Factions = ConfigParser.LoadFactions();
+            ConfigParser.LoadConfiguration();
 
             Tick += OnTick;
             KeyDown += OnKeyDown;
@@ -122,7 +123,7 @@ namespace GangWarSandbox
                 Teams.Add(new Team((i + 1).ToString())); // Initialize teams with default names and groups
                 LastSquadSpawnTime[Teams[i]] = 0; // Initialize last spawn time for each team
 
-                Teams[i].BlipSprite = BlipSprites[i]; // Assign a unique blip sprite for each team
+                Teams[i].BlipSprite = BlipSprites[i]; // Assign a unique blip sprite for each team (for spawnpoints)
             }
 
 
@@ -399,7 +400,7 @@ namespace GangWarSandbox
 
             Ped player = Game.Player.Character;
 
-            SetTeamRelations();
+            ResetPlayerRelations();
 
             for (int i = 0; i < CapturePoints.Count; i++)
             {
@@ -695,33 +696,10 @@ namespace GangWarSandbox
             }
         }
 
-        private void SetTeamRelations()
+        private void ResetPlayerRelations()
         {
-            foreach (var team1 in Teams)
-            {
-                foreach (var team2 in Teams)
-                {
-                    if (team1 == team2) continue;
-
-                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Hate, team1.Group, team2.Group);
-                }
-
-                // player "hates everyone"
-                if (PlayerTeam == -2)
-                {
-                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Hate, Game.Player.Character.RelationshipGroup, team1.Group);
-                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Hate, team1.Group, Game.Player.Character.RelationshipGroup);
-                }
-                else
-                {
-                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Neutral, Game.Player.Character.RelationshipGroup, team1.Group);
-                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, Relationship.Neutral, team1.Group, Game.Player.Character.RelationshipGroup);
-                }
-                    
-            }
-
             // Assign player to team
-            if (PlayerTeam == -1 || PlayerTeam == -2)
+            if (PlayerTeam < 0)
             {
                 Game.Player.Character.RelationshipGroup = "PLAYER";
             }

@@ -96,8 +96,6 @@ namespace GangWarSandbox.Peds
             // Find a random point around the spawn position to actually spawn in
             SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
-            Logger.Log(SpawnPos.ToString());
-
             // CRITICAL: Saves the squad in memory to be cleaned up later
             Owner.Squads.Add(this);
 
