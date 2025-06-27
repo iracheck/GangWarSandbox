@@ -64,21 +64,11 @@ namespace GangWarSandbox
         // Capture Points
         public List<CapturePoint> CapturePoints = new List<CapturePoint>();
 
-        // LemonUI Menus
-        private ObjectPool MenuPool = new ObjectPool();
-
-        private NativeMenu MainMenu;
-        private NativeMenu BattleSetupMenu;
-        private NativeMenu TeamSetupMenu;
-        private NativeMenu SpawnpointMenu;
-        private NativeMenu BattleControlMenu;
-        private List<NativeListItem<string>> TeamFactionItems = new List<NativeListItem<string>>();
-
         // Game State
         private bool IsBattleRunning = false;
 
         // Game Options
-        // Options relating to the battle, e.g. unit counts or vehicles
+            // Options relating to the battle, e.g. unit counts or vehicles
         public float UnitCountMultiplier = 1; // Multiplier for unit count, used to scale the number of soldiers per team based on faction settings
 
         public bool UseVehicles = false;
@@ -86,7 +76,7 @@ namespace GangWarSandbox
         public bool UseHelicopters = false;
 
         public Gamemode CurrentGamemode = new InfiniteBattleGamemode();
-        private List<Gamemode> AvaliableGamemodes = new List<Gamemode>
+        public List<Gamemode> AvaliableGamemodes = new List<Gamemode>
         {
             new InfiniteBattleGamemode(),
             new SkirmishGamemode(),
@@ -94,12 +84,11 @@ namespace GangWarSandbox
             // Future expansion: allow users to make their own gamemodes in a dll?
         }; 
 
+
         // Player Info
         Ped Player = Game.Player.Character;
         bool PlayerDied = false;
         int TimeOfDeath;
-
-        static int StartingMoney;
 
 
         public GangWarSandbox()
@@ -116,8 +105,6 @@ namespace GangWarSandbox
             Tick += OnTick;
             KeyDown += OnKeyDown;
 
-            MenuPool = new ObjectPool();
-
             for (int i = 0; i < NUM_TEAMS; i++)
             {
                 Teams.Add(new Team((i + 1).ToString())); // Initialize teams with default names and groups
@@ -128,157 +115,10 @@ namespace GangWarSandbox
 
 
 
-            SetupMenu();
+            BattleSetupUI.SetupMenu();
         }
 
-
-        // Parts of this was written for debugging and so I will need to rewrite it eventually
-        private void SetupMenu()
-        {
-            // MAIN MENU
-            MainMenu = new NativeMenu("Gang War Sandbox", "MAIN MENU");
-            MenuPool.Add(MainMenu);
-
-            // Submenu: BATTLE SETUP
-            BattleSetupMenu = new NativeMenu("Battle Setup", "Configure Battle");
-            MenuPool.Add(BattleSetupMenu);
-            MainMenu.AddSubMenu(BattleSetupMenu);
-
-            var gamemodeItem = new NativeListItem<string>("Gamemode", AvaliableGamemodes.Select(g => g.Name).ToArray());
-            gamemodeItem.Description = "Select the gamemode for this battle. Each gamemode has different rules and mechanics that can be viewed on the mod page or readme file.";
-
-            gamemodeItem.ItemChanged += (item, args) =>
-            {
-                var selectedGamemode = AvaliableGamemodes.FirstOrDefault(g => g.Name == gamemodeItem.SelectedItem);
-                if (selectedGamemode != null)
-                {
-                    CurrentGamemode.TerminateGamemode();
-
-                    CurrentGamemode = selectedGamemode;
-                    CurrentGamemode.InitializeGamemode();
-                }
-            };
-
-            // A multiplier from the value located in the faction settings, max of 10x
-            var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 100, 10);
-
-            unitCountMultiplier.ValueChanged += (item, args) =>
-            {
-                UnitCountMultiplier = ((float) unitCountMultiplier.Value) / 10;
-                unitCountMultiplier.Description = "Current Multiplier: " + UnitCountMultiplier + "x";
-            };
-
-            var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.");
-            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "Allow weaponized vehicles to be used in the battle.");
-            var allowHelicopters = new NativeCheckboxItem("Helicopters", "Allow helicopters to be used in the battle. ");
-
-            allowVehicles.Checked = true;
-            allowWeaponizedVehicles.Checked = true;
-            allowHelicopters.Checked = true;
-
-            BattleSetupMenu.Add(gamemodeItem);
-            BattleSetupMenu.Add(unitCountMultiplier);
-
-            BattleSetupMenu.Add(allowVehicles);
-            BattleSetupMenu.Add(allowWeaponizedVehicles);
-            BattleSetupMenu.Add(allowHelicopters);
-
-
-            // Submenu: TEAM SETUP
-            TeamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
-            MenuPool.Add(TeamSetupMenu);
-            MainMenu.AddSubMenu(TeamSetupMenu);
-
-            List<String> playerTeamItem_Teams = new List<String> { "Neutral", "Hates Everyone" };
-
-            for (int i = 0; i < NUM_TEAMS; i++)
-                playerTeamItem_Teams.Add("Team " + (i + 1));
-
-            var playerTeamItem = new NativeListItem<string>("Player Team", playerTeamItem_Teams.ToArray());
-            playerTeamItem.Description = "The team of the player character. If selecting 'Neutral' you will still be attacked if you are shooting in the area.";
-
-            playerTeamItem.ItemChanged += (item, args) =>
-            {
-                var sel = playerTeamItem.SelectedItem;
-                if (sel == "Neutral") PlayerTeam = -1;
-                else if (sel == "Hates Everyone") PlayerTeam = -2;
-                else if (sel.StartsWith("Team ")) PlayerTeam = int.Parse(sel.Substring(5)) - 1;
-                else PlayerTeam = -1;
-            };
-
-            TeamFactionItems.Clear();
-            for (int i = 0; i < NUM_TEAMS; i++)
-            {
-                var teamFactionItem = new NativeListItem<string>($"Team {i + 1} Faction", Factions.Keys.ToArray());
-                teamFactionItem.Description = "The faction of team " + (i + 1) + ". This will determine the models, weapons, vehicles, and other attributes of the team.";
-                TeamFactionItems.Add(teamFactionItem);
-                TeamSetupMenu.Add(teamFactionItem);
-            }
-
-            // sets each team faction definition to a random value, for quick plug n' play
-            foreach (var  teamFactionItem in TeamFactionItems)
-            {
-                teamFactionItem.SelectedIndex = rand.Next(0, TeamFactionItems.Count);
-            }
-
-            TeamSetupMenu.Add(playerTeamItem);
-
-            // Submenu: POINT SETUP
-            SpawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
-            MenuPool.Add(SpawnpointMenu);
-            MainMenu.AddSubMenu(SpawnpointMenu);
-
-            var addT1 = new NativeItem("Add Spawnpoint - Team 1");
-            var addT2 = new NativeItem("Add Spawnpoint - Team 2");
-            var addT3 = new NativeItem("Add Spawnpoint - Team 3");
-            var addT4 = new NativeItem("Add Spawnpoint - Team 4");
-            var addCapPt = new NativeItem("Add Capture Point");
-
-            var clearNearest = new NativeItem("Clear Nearest Point");
-            var clear = new NativeItem("Clear All Points");
-
-            addT1.Activated += (item, args) => AddSpawnpoint(1);
-            addT2.Activated += (item, args) => AddSpawnpoint(2);
-            addT3.Activated += (item, args) => AddSpawnpoint(3);
-            addT4.Activated += (item, args) => AddSpawnpoint(4);
-
-            addCapPt.Activated += (item, args) => AddCapturePoint();
-
-            clearNearest.Activated += (item, args) => ClearClosestPoint();
-            clear.Activated += (item, args) => ClearAllPoints();
-
-
-
-            SpawnpointMenu.Add(addT1);
-            SpawnpointMenu.Add(addT2);
-            SpawnpointMenu.Add(addT3);
-            SpawnpointMenu.Add(addT4);
-            SpawnpointMenu.Add(addCapPt);
-
-            SpawnpointMenu.Add(clearNearest);
-            SpawnpointMenu.Add(clear);
-
-            // Submenu: BATTLE CONTROL
-            BattleControlMenu = new NativeMenu("Battle Control", "Start or Stop Battle");
-            MenuPool.Add(BattleControlMenu);
-            MainMenu.AddSubMenu(BattleControlMenu);
-
-            var start = new NativeItem("Start Battle");
-            var stop = new NativeItem("Stop Battle");
-
-            start.Activated += (item, args) =>
-            {
-                for (int i = 0; i < NUM_TEAMS; i++)
-                    ApplyFactionToTeam(Teams[i], TeamFactionItems[i].SelectedItem);
-                StartBattle();
-            };
-            stop.Activated += (item, args) => StopBattle();
-
-            BattleControlMenu.Add(start);
-            BattleControlMenu.Add(stop);
-        }
-
-        private void ApplyFactionToTeam(Team team, string factionName)
+        public void ApplyFactionToTeam(Team team, string factionName)
         {
             if (Factions.TryGetValue(factionName, out var faction))
             {
@@ -300,7 +140,7 @@ namespace GangWarSandbox
 
         private void OnTick(object sender, EventArgs e)
         {
-            MenuPool.Process();
+            BattleSetupUI.MenuPool.Process();
 
             CurrentGamemode.OnTick();
 
@@ -384,19 +224,18 @@ namespace GangWarSandbox
         {
             if (e.KeyCode == Keys.F10)
             {
-                if (!MenuPool.AreAnyVisible)
-                    MainMenu.Visible = true;
+                if (!BattleSetupUI.MenuPool.AreAnyVisible)
+                    BattleSetupUI.Show();
                 else
-                    MenuPool.HideAll();
+                    BattleSetupUI.Hide();
             }
         }
 
-        private void StartBattle()
+        public void StartBattle()
         {
             if (IsBattleRunning) return;
 
             IsBattleRunning = true;
-            StartingMoney = Player.Money; // Save starting money!!
 
             Ped player = Game.Player.Character;
 
@@ -427,10 +266,8 @@ namespace GangWarSandbox
             Game.Player.DispatchsCops = false; // disable cop dispatches
         }
 
-        private void StopBattle()
+        public void StopBattle()
         {
-            Player.Money = StartingMoney;
-
             IsBattleRunning = false;
             CurrentGamemode.OnEnd();
 
@@ -487,7 +324,7 @@ namespace GangWarSandbox
             }
         }
 
-        private void AddCapturePoint()
+        public void AddCapturePoint()
         {
             if (!IsBattleRunning)
             {
@@ -522,7 +359,7 @@ namespace GangWarSandbox
         }
 
 
-        private void AddSpawnpoint(int teamIndex)
+        public void AddSpawnpoint(int teamIndex)
         {
             if (!IsBattleRunning)
             {
@@ -550,58 +387,7 @@ namespace GangWarSandbox
             }
         }
 
-        private void ClearClosestPoint()
-        {
-            Dictionary<Object, Vector3> list = new Dictionary<Object, Vector3>();
-
-            if (IsBattleRunning)
-            {
-                GTA.UI.Screen.ShowSubtitle("Stop the battle to remove spawnpoints.");
-                return;
-            }
-
-            foreach (var team in Teams)
-            {
-                foreach (var blip in team.Blips)
-                {
-                    if (blip.Exists()) list.Add(blip, blip.Position);
-                }
-            }
-
-            foreach (var point in CapturePoints)
-            {
-                if (point.PointBlip.Exists()) list.Add(point, point.Position);
-            }
-
-            if (list.Count == 0)
-            {
-                GTA.UI.Screen.ShowSubtitle("No points to clear.");
-                return;
-            }
-
-            // Find the closest point
-            Vector3 playerPos = Game.Player.Character.Position;
-            Object closestPoint = list.OrderBy(p => Vector3.Distance(playerPos, list[p])).FirstOrDefault().Key;
-
-            if (closestPoint == null) return;
-
-            if (closestPoint is Blip bpt)
-            {
-                bpt.Delete();
-                foreach (var team in Teams)
-                {
-                    if (team.Blips.Contains(bpt))
-                        team.Blips.Remove(bpt); // Remove from team's blips
-                }
-            }
-            else if (closestPoint is CapturePoint cpt)
-            {
-                if (cpt.PointBlip.Exists()) cpt.PointBlip.Delete();
-                CapturePoints.Remove(cpt);
-            }
-        }
-
-        private void ClearAllPoints()
+        public void ClearAllPoints()
         {
             if (IsBattleRunning)
             {
