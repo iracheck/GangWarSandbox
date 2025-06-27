@@ -268,6 +268,8 @@ namespace GangWarSandbox
 
         public void StopBattle()
         {
+            if (IsBattleRunning == false) return;
+
             IsBattleRunning = false;
             CurrentGamemode.OnEnd();
 

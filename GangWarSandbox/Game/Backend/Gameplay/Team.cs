@@ -96,6 +96,9 @@ namespace GangWarSandbox
         public bool ShouldSpawnVehicle()
         {
             int numVehiclePeds = 0;
+            Random rand = new Random();
+
+            
 
             foreach (var squad in VehicleSquads.ToList())
             {
@@ -122,7 +125,14 @@ namespace GangWarSandbox
             }
             else if (numVehiclePeds < (GetMaxNumPeds() * 0.15f))
             {
-                return true;
+                double rnum = rand.NextDouble();
+
+                // On top of strict requirements for vehicle squads (15% of total peds), also only percent chance of them spawning this "spawn tick"
+                if (rnum >= 0.75)
+                {
+                    return true;
+                }
+                else return false;
             }
 
             return false;
