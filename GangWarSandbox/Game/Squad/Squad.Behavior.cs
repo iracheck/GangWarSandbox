@@ -341,39 +341,6 @@ namespace GangWarSandbox.Peds
             return true;
         }
 
-        private int GetDesiredBlipVisibility(Ped ped, Team team)
-        {
-            int maxAlpha = 0;
-
-            //if (ModData.DEBUG == 1) return 255;
-
-            // Absolute conditions
-            if (ped.IsInVehicle() || ped.IsDead) return 0;
-            else if (ped == SquadLeader) maxAlpha = 255;
-            else maxAlpha = 200;
-
-            // Relative conditions
-            float healthPercent = (float) ped.Health / (float)ped.MaxHealth;
-            maxAlpha = (int) (maxAlpha * healthPercent + 10); // health
-
-            if (maxAlpha == 0) return 0;
-
-            float dist = ped.Position.DistanceTo(Game.Player.Character.Position);
-
-
-            if (team.TeamIndex == ModData.PlayerTeam || ModData.PlayerTeam == -1) return maxAlpha;
-
-            // Distance conditions, only happens when player is on a team
-            if (dist > 100f) return 0;
-            else if (dist < 25f) return maxAlpha;
-            else
-            {
-                maxAlpha = (int)(maxAlpha * (1 - (dist / 100)));
-            }
-
-            return maxAlpha;
-
-        }
 
         private Ped FindNearbyEnemy(Vector3 selfPosition, Team team, float distance, bool infiniteSearch = false)
         {

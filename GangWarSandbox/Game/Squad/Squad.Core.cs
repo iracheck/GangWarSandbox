@@ -99,17 +99,25 @@ namespace GangWarSandbox.Peds
             // CRITICAL: Saves the squad in memory to be cleaned up later
             Owner.Squads.Add(this);
 
-            if (vehicle == 3) // helicopter
+            if (vehicle != 1)
+            {
+                if (Owner.TeamVehicles == null || Owner.TeamVehicles.Vehicles.Count == 0)
+                {
+                    vehicle = 0; // no vehicles available, set to regular squad
+                }
+            }
+
+            if (vehicle == 3 && ModData.CurrentGamemode.SpawnHelicopters) // helicopter
             {
                 SpawnVehicle(VehicleSet.Type.Helicopter, SpawnPos);
                 Owner.WeaponizedVehicleSquads.Add(this);
             }
-            else if (vehicle == 2) // wpnzd vehicle
+            else if (vehicle == 2 && ModData.CurrentGamemode.SpawnWeaponizedVehicles) // wpnzd vehicle
             {
                 SpawnVehicle(VehicleSet.Type.WeaponizedVehicle, SpawnPos);
                 Owner.WeaponizedVehicleSquads.Add(this);
             }
-            else if (vehicle == 1) // reg vehicle
+            else if (vehicle == 1 && ModData.CurrentGamemode.SpawnVehicles) // reg vehicle
             {
                 SpawnVehicle(VehicleSet.Type.Vehicle, SpawnPos);
                 Owner.VehicleSquads.Add(this);
@@ -163,6 +171,8 @@ namespace GangWarSandbox.Peds
             Waypoints.Add(Vector3.Zero);
 
             GetTarget(); // get a random target for the squad to attack
+
+
         }
 
 
@@ -207,7 +217,43 @@ namespace GangWarSandbox.Peds
             return points;
         }
 
+        private int GetDesiredBlipVisibility(Ped ped, Team team)
+        {
+            int maxAlpha = 0;
+
+            //if (ModData.DEBUG == 1) return 255;
+
+            // Absolute conditions
+            if (ped.IsInVehicle() || ped.IsDead) return 0;
+            else if (ped == SquadLeader) maxAlpha = 255;
+            else maxAlpha = 200;
+
+            // Relative conditions
+            float healthPercent = (float)ped.Health / (float)ped.MaxHealth;
+            maxAlpha = (int)(maxAlpha * healthPercent + 10); // health
+
+            if (maxAlpha == 0) return 0;
+
+            float dist = ped.Position.DistanceTo(Game.Player.Character.Position);
+
+
+            if (team.TeamIndex == ModData.PlayerTeam || ModData.PlayerTeam == -1) return maxAlpha;
+
+            // Distance conditions, only happens when player is on a team
+            if (dist > 200f) return 0;
+            else if (dist < 50f) return maxAlpha;
+            else
+            {
+                maxAlpha = (int)(maxAlpha * (1 - (dist / 200)));
+            }
+
+            return maxAlpha;
+
+        }
+
     }
+
+
 
 
 }

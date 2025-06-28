@@ -150,6 +150,8 @@ namespace GangWarSandbox.Peds
 
         public void SpawnVehicle(VehicleSet.Type type, Vector3 position)
         {
+            if (Owner.TeamVehicles == null) return;
+
             Model model = Owner.TeamVehicles.ChooseVehicleModel(type);
             if (model == null) return;
 
@@ -201,20 +203,27 @@ namespace GangWarSandbox.Peds
                 {
                     testSpot = World.GetNextPositionOnStreet(newSpawnPoint, true);
 
-                    if (testSpot != Vector3.Zero && testSpot.DistanceTo(spawnpoint) <= 20f)
+                    if (testSpot != Vector3.Zero && testSpot.DistanceTo(spawnpoint) <= 15f)
                         newSpawnPoint = testSpot; // if the point is valid, use it as the spawn point
                 }
 
 
                 if (noPedsNearby && noBuildingsNearby) pointInvalid = false;
+                else continue;
 
                 if (attempts > 10 && pointInvalid)
                 {
                     pointInvalid = false;
-                    newSpawnPoint = spawnpoint; // if we can't find a valid spawn point, send back an invalid point
+                    newSpawnPoint = spawnpoint; // if we can't find a valid spawn point after multiple attempts, spawn at the center point
                 }
 
-                // FINALLY, let's put it at the highest point at that given coordinate, then check if its too far. 
+                // can the old spawnpoint "see" the new one?
+                RaycastResult raycast = World.Raycast(spawnpoint, newSpawnPoint, IntersectFlags.Map);
+
+                if (raycast.DidHit) continue;
+
+                // By seeing that a raycast downward finds something, but a raycast upward doesn't-- we can discover that the ped is being spawned under a map.
+                // Not a foolproof implementation, but it has proven to solve 90% of issues with spawning.
                 Vector3 rayStart = newSpawnPoint + new Vector3(0, 0, 100f);
                 Vector3 rayEnd = newSpawnPoint + new Vector3(0, 0, 0f);
                 RaycastResult downcast = World.Raycast(rayStart, rayEnd, IntersectFlags.Map);
@@ -227,8 +236,8 @@ namespace GangWarSandbox.Peds
                 if (!upcast.DidHit && downcast.DidHit && downcast.HitPosition.DistanceTo(newSpawnPoint) <= 15f)
                 {
                     newSpawnPoint = downcast.HitPosition;
+                    pointInvalid = false;
                 }
-
 
             }
 
@@ -285,6 +294,7 @@ namespace GangWarSandbox.Peds
             {
                 weapon = Helpers.GetRandom(team.Tier1Weapons);
                 ped.Health = team.BaseHealth;
+                ped.MaxHealth = team.BaseHealth;
                 baseAccuracy = 7;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
@@ -296,6 +306,7 @@ namespace GangWarSandbox.Peds
             {
                 weapon = Helpers.GetRandom(team.Tier2Weapons);
                 ped.Health = (int)(team.BaseHealth * 1.2f) ;
+                ped.MaxHealth = (int)(team.BaseHealth * 1.2f);
                 baseAccuracy = 15;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
@@ -307,6 +318,7 @@ namespace GangWarSandbox.Peds
             {
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
                 ped.Health = (int)(team.BaseHealth * 1.5f);
+                ped.MaxHealth = (int)(team.BaseHealth * 1.5f);
                 baseAccuracy = 30;
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.6f;
@@ -321,7 +333,8 @@ namespace GangWarSandbox.Peds
             else if (tier == 4)
             {
                 weapon = Helpers.GetRandom(team.Tier3Weapons);
-                ped.Health = (int)(team.BaseHealth * 2.0);
+                ped.Health = (int)(team.BaseHealth * 1.8f);
+                ped.MaxHealth = (int)(team.BaseHealth * 1.8f);
                 baseAccuracy = 75;
 
                 blip.Sprite = BlipSprite.Juggernaut;

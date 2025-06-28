@@ -1,4 +1,5 @@
-﻿using LemonUI;
+﻿using GangWarSandbox.Gamemodes;
+using LemonUI;
 using LemonUI.Menus;
 using System;
 using System.Collections.Generic;
@@ -49,6 +50,13 @@ namespace GangWarSandbox
             var gamemodeItem = new NativeListItem<string>("Gamemode", Mod.AvaliableGamemodes.Select(g => g.Name).ToArray());
             gamemodeItem.Description = "Select the gamemode for this battle. Each gamemode has different rules and mechanics that can be viewed on the mod page or readme file.";
 
+            // A multiplier from the value located in the faction settings, max of 10x
+            var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 100, 10);
+
+            var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.");
+            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "Allow weaponized vehicles to be used in the battle.");
+            var allowHelicopters = new NativeCheckboxItem("Helicopters", "Allow helicopters to be used in the battle.");
+
             gamemodeItem.ItemChanged += (item, args) =>
             {
                 var selectedGamemode = Mod.AvaliableGamemodes.FirstOrDefault(g => g.Name == gamemodeItem.SelectedItem);
@@ -58,25 +66,28 @@ namespace GangWarSandbox
 
                     Mod.CurrentGamemode = selectedGamemode;
                     Mod.CurrentGamemode.InitializeGamemode();
+
+                    Gamemode gm = Mod.CurrentGamemode;
+
+                    allowVehicles.Checked = gm.ShouldBeTicked(gm.EnableParameter_AllowVehicles);
+                    allowWeaponizedVehicles.Checked = gm.ShouldBeTicked(gm.EnableParameter_AllowWeaponizedVehicles);
+                    allowHelicopters.Checked = gm.ShouldBeTicked(gm.EnableParameter_AllowHelicopters);
+
+                    allowVehicles.Enabled = gm.ShouldBeEnabled(gm.EnableParameter_AllowVehicles);
+                    allowWeaponizedVehicles.Enabled = gm.ShouldBeEnabled(gm.EnableParameter_AllowWeaponizedVehicles);
+                    allowHelicopters.Enabled = gm.ShouldBeEnabled(gm.EnableParameter_AllowHelicopters);
                 }
             };
 
-            // A multiplier from the value located in the faction settings, max of 10x
-            var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 100, 10);
-
             unitCountMultiplier.ValueChanged += (item, args) =>
             {
-                Mod.UnitCountMultiplier = ((float)unitCountMultiplier.Value) / 10;
-                unitCountMultiplier.Description = "Current Multiplier: " + Mod.UnitCountMultiplier + "x";
+                Mod.CurrentGamemode.UnitCountMultiplier = ((float)unitCountMultiplier.Value) / 10;
+                unitCountMultiplier.Description = "Current Multiplier: " + Mod.CurrentGamemode.UnitCountMultiplier + "x";
             };
 
-            var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.");
-            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "Allow weaponized vehicles to be used in the battle.");
-            var allowHelicopters = new NativeCheckboxItem("Helicopters", "Allow helicopters to be used in the battle. ");
-
-            allowVehicles.Checked = true;
-            allowWeaponizedVehicles.Checked = true;
-            allowHelicopters.Checked = true;
+            allowVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnVehicles = allowVehicles.Checked;};
+            allowVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
+            allowVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnHelicopters = allowHelicopters.Checked; };
 
             BattleSetupMenu.Add(gamemodeItem);
             BattleSetupMenu.Add(unitCountMultiplier);

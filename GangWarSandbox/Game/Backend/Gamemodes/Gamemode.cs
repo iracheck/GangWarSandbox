@@ -19,9 +19,24 @@ namespace GangWarSandbox.Gamemodes
         public int MaxFactions { get; private set; }
         public bool SupportCapturePoints { get; set; }
 
+        // Gamemode Settings
+
+        // Treat these ints as a bool --> 0 = false, 1 = true, -1 = player choice
+        public int EnableParameter_AllowVehicles { get; set; } = -1;
+        public int EnableParameter_AllowWeaponizedVehicles { get; set; } = -1;
+        public int EnableParameter_AllowHelicopters { get; set; } = -1;
+
+        // These are the users actual choices
+        public bool SpawnVehicles { get; set; } = true;
+        public bool SpawnWeaponizedVehicles { get; set; } = true;
+        public bool SpawnHelicopters { get; set; } = true;
+
+
         // Gamemode Attributes
         public float CaptureProgressMultiplier { get; set; } = 1.0f;
         public float PedHealthMultiplier { get; set; } = 1.0f;
+        public float UnitCountMultiplier = 1; // Multiplier for unit count, used to scale the number of soldiers per team based on faction settings
+
 
 
         protected Gamemode(string name, string description, int maxFactions, bool supportCapturePoints = true)
@@ -168,6 +183,18 @@ namespace GangWarSandbox.Gamemodes
         /// Listener for when the player dies. Used to determine custom effects during battle when the player dies. Executes *AFTER* the player respawns.
         /// </summary>
         public virtual void OnPlayerDeath() { }
+
+        public bool ShouldBeTicked(int i)
+        {
+            if (i == -1 || i == 1) return true;
+            else return false;
+        }
+
+        public bool ShouldBeEnabled(int i)
+        {
+            if (i == -1) return true;
+            else return false;
+        }
 
         protected int GetMemberCountByType(Team team, List<Squad> list)
         {

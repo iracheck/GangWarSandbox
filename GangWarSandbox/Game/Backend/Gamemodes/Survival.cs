@@ -18,17 +18,15 @@ namespace GangWarSandbox.Gamemodes
 
         // Gamemode States
         int currentLevel = 0; // Current level of the survival gamemode, used for difficulty scaling
- 
-
-
-
 
         int Combo = 1;
         int ComboLastTime = 0;
 
         public SurvivalGamemode() : base("Survival", "Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can!", 0)
         {
-            
+            EnableParameter_AllowWeaponizedVehicles = 1;
+            EnableParameter_AllowVehicles = 1;
+            EnableParameter_AllowHelicopters = 1;
         }
 
         public override void OnStart()
@@ -37,7 +35,7 @@ namespace GangWarSandbox.Gamemodes
             
             PlayerScore = 0;
             Combo = 1;
-            ComboLastTime = Game.GameTime;
+            ComboLastTime = 0;
 
             InitializeUI();
         }

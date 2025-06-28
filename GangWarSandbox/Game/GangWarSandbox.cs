@@ -69,7 +69,6 @@ namespace GangWarSandbox
 
         // Game Options
             // Options relating to the battle, e.g. unit counts or vehicles
-        public float UnitCountMultiplier = 1; // Multiplier for unit count, used to scale the number of soldiers per team based on faction settings
 
         public bool UseVehicles = false;
         public bool UseWeaponizedVehicles = false;
@@ -80,6 +79,7 @@ namespace GangWarSandbox
         {
             new InfiniteBattleGamemode(),
             new SkirmishGamemode(),
+            new SurvivalGamemode(),
             // Add more gamemodes here as needed
             // Future expansion: allow users to make their own gamemodes in a dll?
         }; 

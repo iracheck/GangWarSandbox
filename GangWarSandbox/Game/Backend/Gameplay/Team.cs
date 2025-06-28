@@ -68,7 +68,7 @@ namespace GangWarSandbox
                 return 5; // default
             }
 
-            int squadSize = (int) (Faction.MaxSoldiers * ModData.UnitCountMultiplier) / 5;
+            int squadSize = (int) (Faction.MaxSoldiers * ModData.CurrentGamemode.UnitCountMultiplier) / 5;
 
             if (squadSize > 6) squadSize = 6;
             if (squadSize < 2) squadSize = 2;
@@ -90,7 +90,7 @@ namespace GangWarSandbox
 
         public int GetMaxNumPeds()
         {
-            return (int) (MAX_SOLDIERS * ModData.UnitCountMultiplier);
+            return (int) (MAX_SOLDIERS * ModData.CurrentGamemode.UnitCountMultiplier);
         }
 
         public bool ShouldSpawnVehicle()
@@ -137,6 +137,7 @@ namespace GangWarSandbox
 
             return false;
         }
+
 
         public List<Ped> GetAllPeds()
         {
