@@ -81,11 +81,11 @@ namespace GangWarSandbox.Peds
             {
                 if (Members[i].IsDead)
                 {
+                    ModData.CurrentGamemode.OnPedKilled(Members[i], Owner);
                     deadPeds.Add(Members[i]);
                     if (Members[i].AttachedBlip != null && Members[i].AttachedBlip.Exists())
                         Members[i].AttachedBlip.Delete();
 
-                    ModData.CurrentGamemode.OnPedKilled(Members[i], Owner);
                     Members.RemoveAt(i);
                 }
             }

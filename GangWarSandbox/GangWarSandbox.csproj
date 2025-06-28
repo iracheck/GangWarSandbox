@@ -58,6 +58,7 @@
     <Compile Include="Game\Backend\File System\ModFiles.cs" />
     <Compile Include="Game\Backend\Gamemodes\Gamemode.cs" />
     <Compile Include="Game\Backend\Gamemodes\InfiniteBattle.cs" />
+    <Compile Include="Game\Backend\Gamemodes\Survival.cs" />
     <Compile Include="Game\Backend\Gamemodes\Skirmish.cs" />
     <Compile Include="Game\Backend\Utilities\Logger.cs" />
     <Compile Include="Game\Backend\Utilities\Helpers.cs" />

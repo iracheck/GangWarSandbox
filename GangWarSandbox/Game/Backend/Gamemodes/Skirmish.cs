@@ -33,40 +33,9 @@ namespace GangWarSandbox.Gamemodes
             }
         }
 
-        public override bool ShouldSpawnHelicopterSquad(Team team)
+        public override void OnTickGameRunning()
         {
-            int members = GetMemberCountByType(team, team.HelicopterSquads);
-
-            if (members >= (team.GetMaxNumPeds() * 0.1f)) // 10%
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public override bool ShouldSpawnWeaponizedVehicleSquad(Team team)
-        {
-            int members = GetMemberCountByType(team, team.HelicopterSquads);
-
-            if (members >= (team.GetMaxNumPeds() * 0.1f)) // 10%
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public override bool ShouldSpawnVehicleSquad(Team team)
-        {
-            int members = GetMemberCountByType(team, team.HelicopterSquads);
-
-            if (members >= (team.GetMaxNumPeds() * 0.2f)) // 20%
-            {
-                return false;
-            }
-
-            return true;
+            base.OnTickGameRunning();
         }
 
 

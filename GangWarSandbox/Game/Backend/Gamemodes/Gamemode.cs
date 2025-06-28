@@ -66,6 +66,12 @@ namespace GangWarSandbox.Gamemodes
         public virtual void OnStart() { }
 
         /// <summary>
+        /// Runs immediately after a squad is spawned.
+        /// </summary>
+        /// <param name="squad">The squad that spawned</param>
+        public virtual void OnSquadSpawn(Squad squad) { }
+
+        /// <summary>
         /// Runs every time a squad is updated (default: 200ms), or when it first spawns. Grants access to all squad data. Example usage: Applying new weapons to squad based on gamemode state
         /// </summary>
         /// <param name="squad">The squad that was updated.</param>
@@ -77,7 +83,7 @@ namespace GangWarSandbox.Gamemodes
         public virtual void OnEnd() { }
 
         /// <summary>
-        ///  Runs whenever a ped is killed, and that ped is cleaned up by the script.
+        ///  Runs whenever a ped is killed, and immediately before that ped is cleaned up by the script.
         /// </summary>
         /// <param name="ped">The ped that died</param>
         /// <param name="teamOfPed">The team of the ped that died</param>
@@ -97,9 +103,12 @@ namespace GangWarSandbox.Gamemodes
         /// For example, teams will not go over their unit caps even with this method overriden. 
         /// Return true to allow squad spawning, return false to prevent it. Returns true by default.
         /// </summary>
-        public virtual bool ShouldSpawnSquad(Team team)
+        public virtual bool ShouldSpawnSquad(Team team, int numAlive, int squadSize)
         {
-            return true;
+            if (numAlive + squadSize <= team.GetMaxNumPeds() &&
+                team.SpawnPoints != null && team.SpawnPoints.Count > 0 &&
+                team.Models != null && team.Models.Length > 0) return true;
+            else return false;
         }
 
         /// <summary>
@@ -109,6 +118,13 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual bool ShouldSpawnVehicleSquad(Team team)
         {
+            int members = GetMemberCountByType(team, team.VehicleSquads);
+
+            if (members >= (team.GetMaxNumPeds() * 0.10f)) // 10%
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -119,7 +135,16 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual bool ShouldSpawnWeaponizedVehicleSquad(Team team)
         {
-            return true;
+            {
+                int members = GetMemberCountByType(team, team.WeaponizedVehicleSquads);
+
+                if (members >= (team.GetMaxNumPeds() * 0.10f)) // 10%
+                {
+                    return false;
+                }
+
+                return true;
+            }
         }
 
         /// <summary>
@@ -129,6 +154,13 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual bool ShouldSpawnHelicopterSquad(Team team)
         {
+            int members = GetMemberCountByType(team, team.HelicopterSquads);
+
+            if (members >= (team.GetMaxNumPeds() * 0.10f)) // 10%
+            {
+                return false;
+            }
+
             return true;
         }
 

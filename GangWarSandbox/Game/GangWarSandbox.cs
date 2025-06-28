@@ -287,9 +287,7 @@ namespace GangWarSandbox
 
             foreach (var team in Teams)
             {
-                if (!CurrentGamemode.ShouldSpawnSquad(team)) continue;
-
-                // SAFETY CHECKS: Prevent crashes
+                // SAFETY CHECKS: Prevent crashes and ensure team is even capable of spawning squads
                 if (team.SpawnPoints.Count == 0 || team.Models.Length == 0)
                 {
                     continue;
@@ -301,6 +299,13 @@ namespace GangWarSandbox
                 {
                     numAlive += team.Squads[i].Members.Count;
                 }
+
+
+
+                if (!CurrentGamemode.ShouldSpawnSquad(team, numAlive, team.GetSquadSize())) continue;
+
+
+
 
                 int squadSize = team.GetSquadSize();
 
@@ -320,6 +325,8 @@ namespace GangWarSandbox
                     {
                         new Squad(team, 0);
                     }
+
+                    if (squad != null) CurrentGamemode.OnSquadSpawn(squad);
                 }
 
 
