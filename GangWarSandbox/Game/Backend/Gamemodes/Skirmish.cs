@@ -25,11 +25,11 @@ namespace GangWarSandbox.Gamemodes
         public override void OnStart()
         {
             // Calculate the reserves of each team!
-            for (int i = 0; i < ModData.Teams.Count; i++)
+            for (int i = 0; i < Mod.Teams.Count; i++)
             {
-                Team team = ModData.Teams[i];
+                Team team = Mod.Teams[i];
                 int reserve = (int)Helpers.RoundToNearestTen(team.GetSquadSize() * numReinforcementsMultiplier);
-                teamPedReserve.Add(ModData.Teams[i], reserve);
+                teamPedReserve.Add(Mod.Teams[i], reserve);
             }
         }
 

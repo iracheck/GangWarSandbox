@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LemonUI.Menus;
 
 namespace GangWarSandbox.Gamemodes
 {
@@ -27,6 +28,9 @@ namespace GangWarSandbox.Gamemodes
             EnableParameter_AllowWeaponizedVehicles = GamemodeBool.True;
             EnableParameter_AllowVehicles = GamemodeBool.True;
             EnableParameter_AllowHelicopters = GamemodeBool.True;
+
+            EnableParameter_CapturePoints = GamemodeBool.False;
+            EnableParameter_Spawnpoints = GamemodeBool.False;
         }
 
         public override void OnStart()
@@ -39,6 +43,31 @@ namespace GangWarSandbox.Gamemodes
 
             InitializeUI();
         }
+
+        public override NativeMenu ConstructGamemodeMenu()
+        {
+            Mod = GangWarSandbox.Instance; // prevent a fatal crash
+
+            if (Mod == null) return null;
+
+            NativeMenu gamemodeMenu = new NativeMenu("Gamemode Settings", "Gamemode Settings", "A list of gamemode settings unique to your current gamemode.");
+            BattleSetupUI.MenuPool.Add(gamemodeMenu);
+            var enemyTeam = new NativeListItem<string>($"Hunter Faction", Mod.Factions.Keys.ToArray());
+            enemyTeam.Description = "The team that will be your enemy in this gamemode. This will determine the models, weapons, vehicles, and other attributes of the enemy team.";
+
+            enemyTeam.ItemChanged += (item, args) =>
+            {
+                var selectedFaction = enemyTeam.SelectedItem;
+                if (selectedFaction != null && Mod.Factions.ContainsKey(selectedFaction))
+                {
+                    Mod.ApplyFactionToTeam(Mod.Teams[0], selectedFaction);
+                }
+            };
+
+
+            gamemodeMenu.Add(enemyTeam);
+            return gamemodeMenu;
+        } 
 
         public override void OnTickGameRunning()
         {

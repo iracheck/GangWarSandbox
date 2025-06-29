@@ -46,6 +46,7 @@ namespace GangWarSandbox
         public List<Team> Teams = new List<Team>();
         public Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
         public Dictionary<Team, float> LastSquadSpawnTime = new Dictionary<Team, float>(); // Track last spawn time for each team to prevent spamming or crowding
+
         public List<BlipSprite> BlipSprites = new List<BlipSprite>
         {
             BlipSprite.Number1,
@@ -55,6 +56,15 @@ namespace GangWarSandbox
             BlipSprite.Number5,
             BlipSprite.Number6
         };
+        public static readonly BlipColor[] TeamColors = {
+            BlipColor.Green,
+            BlipColor.Red,
+            BlipColor.Blue,
+            BlipColor.Yellow,
+            BlipColor.Purple,
+            BlipColor.Orange,
+        };
+
 
 
         // Tracked Peds
@@ -65,7 +75,7 @@ namespace GangWarSandbox
         public List<CapturePoint> CapturePoints = new List<CapturePoint>();
 
         // Game State
-        private bool IsBattleRunning = false;
+        public bool IsBattleRunning = false;
 
         // Game Options
             // Options relating to the battle, e.g. unit counts or vehicles
@@ -78,7 +88,6 @@ namespace GangWarSandbox
         public List<Gamemode> AvaliableGamemodes = new List<Gamemode>
         {
             new InfiniteBattleGamemode(),
-            new SkirmishGamemode(),
             new SurvivalGamemode(),
             // Add more gamemodes here as needed
             // Future expansion: allow users to make their own gamemodes in a dll?

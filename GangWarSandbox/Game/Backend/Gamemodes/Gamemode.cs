@@ -1,5 +1,6 @@
 ﻿using GangWarSandbox.Peds;
 using GTA;
+using LemonUI.Menus;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,14 +13,13 @@ namespace GangWarSandbox.Gamemodes
     {
         // Last updated: 6/5/2025
 
-        protected GangWarSandbox ModData { get; }
+        protected static GangWarSandbox Mod { get; set; }
 
         public enum GamemodeBool { PlayerChoice = -1, False = 0, True = 1 }
 
-        public string Name { get; private set; }
-        public string Description { get; private set; }
-        public int MaxFactions { get; private set; }
-        public bool SupportCapturePoints { get; set; }
+        public string Name { get; private set; } = "no_name";
+        public string Description { get; private set; } = "no_desc";
+        public int MaxTeams { get; private set; } = GangWarSandbox.NUM_TEAMS;
 
         // Gamemode Settings
 
@@ -29,6 +29,7 @@ namespace GangWarSandbox.Gamemodes
         public GamemodeBool EnableParameter_AllowHelicopters { get; set; } = GamemodeBool.PlayerChoice;
 
         public GamemodeBool EnableParameter_Spawnpoints { get; set; } = GamemodeBool.PlayerChoice;
+        public GamemodeBool EnableParameter_CapturePoints { get; set; } = GamemodeBool.PlayerChoice;
 
         // These are the users actual choices
         public bool SpawnVehicles { get; set; } = true;
@@ -42,16 +43,22 @@ namespace GangWarSandbox.Gamemodes
 
 
 
-        protected Gamemode(string name, string description, int maxFactions, bool supportCapturePoints = true)
+        protected Gamemode(string name, string description, int maxFactions)
         {
-            ModData = GangWarSandbox.Instance;
             Name = name;
             Description = description;
-            MaxFactions = maxFactions;
-            SupportCapturePoints = supportCapturePoints;
+            MaxTeams = maxFactions;
         }
 
         // For anyone looking to add new gamemodes-- these are all the methods avaliable to be implemented in adding your own logic.
+
+        /// <summary>
+        /// This allows you to construct a LemonUI menu for the gamemode, which appears as the second option in the list below the "Gamemode." It will appear as "Gamemode Options." See LemonUI documentation for more help.
+        /// </summary>
+        public virtual NativeMenu ConstructGamemodeMenu()
+        {
+            return null;
+        }
 
         /// <summary>
         /// Executes when the game mode is first selected by the player. This is the best place to initialize certain Gamemode attributes, such as CaptureProgressMultiplier or PedHealthMultiplier. Of course, you can still modify them later.
@@ -187,19 +194,19 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual void OnPlayerDeath() { }
 
-        public bool ShouldBeTicked(GamemodeBool b)
+        public static bool ShouldBeTicked(GamemodeBool b)
         {
             if (b == GamemodeBool.PlayerChoice || b == GamemodeBool.True) return true;
             else return false;
         }
 
-        public bool ShouldBeEnabled(GamemodeBool b)
+        public static bool ShouldBeEnabled(GamemodeBool b)
         {
             if (b == GamemodeBool.PlayerChoice) return true;
             else return false;
         }
 
-        protected int GetMemberCountByType(Team team, List<Squad> list)
+        protected static int GetMemberCountByType(Team team, List<Squad> list)
         {
             int count = 0;
 

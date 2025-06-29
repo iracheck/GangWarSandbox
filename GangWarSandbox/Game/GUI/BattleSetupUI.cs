@@ -16,10 +16,10 @@ namespace GangWarSandbox
         public static ObjectPool MenuPool = new ObjectPool();
 
         private static NativeMenu MainMenu;
-        private static NativeMenu BattleSetupMenu;
         private static NativeMenu TeamSetupMenu;
         private static NativeMenu SpawnpointMenu;
-        private static NativeMenu BattleControlMenu;
+        private static NativeMenu BattleOptionsMenu;
+        private static NativeMenu GamemodeMenu;
         private static List<NativeListItem<string>> TeamFactionItems = new List<NativeListItem<string>>();
 
         // Used to access the main mod instance
@@ -28,6 +28,7 @@ namespace GangWarSandbox
 
         public static void Show()
         {
+            RebuildMenu();
             MainMenu.Visible = true;
         }
 
@@ -36,26 +37,19 @@ namespace GangWarSandbox
             MenuPool.HideAll();
         }
 
+        // MENU V2
         public static void SetupMenu()
         {
             // MAIN MENU
             MainMenu = new NativeMenu("Gang War Sandbox", "MAIN MENU");
             MenuPool.Add(MainMenu);
+            MainMenu.Description = "Welcome to Gang War Sandbox! This menu allows you to set up and manage battles between factions. Use the options below to configure your battle settings.";
 
-            // Submenu: BATTLE SETUP
-            BattleSetupMenu = new NativeMenu("Battle Setup", "Configure Battle");
-            MenuPool.Add(BattleSetupMenu);
-            MainMenu.AddSubMenu(BattleSetupMenu);
 
+            // GAMEMODE SELECTOR
             var gamemodeItem = new NativeListItem<string>("Gamemode", Mod.AvaliableGamemodes.Select(g => g.Name).ToArray());
             gamemodeItem.Description = "Select the gamemode for this battle. Each gamemode has different rules and mechanics that can be viewed on the mod page or readme file.";
-
-            // A multiplier from the value located in the faction settings, max of 10x
-            var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 100, 10);
-
-            var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.", true);
-            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "[EXPERIMENTAL] Allow weaponized vehicles to be used in the battle.", false);
-            var allowHelicopters = new NativeCheckboxItem("Helicopters", "[EXPERIMENTAL] Allow helicopters to be used in the battle.", false);
+            gamemodeItem.Enabled = Mod.IsBattleRunning == false;
 
             gamemodeItem.ItemChanged += (item, args) =>
             {
@@ -67,48 +61,114 @@ namespace GangWarSandbox
                     Mod.CurrentGamemode = selectedGamemode;
                     Mod.CurrentGamemode.InitializeGamemode();
 
-                    Gamemode gm = Mod.CurrentGamemode;
-
-                    allowVehicles.Checked = gm.ShouldBeTicked(gm.EnableParameter_AllowVehicles);
-                    allowWeaponizedVehicles.Checked = gm.ShouldBeTicked(gm.EnableParameter_AllowWeaponizedVehicles);
-                    allowHelicopters.Checked = gm.ShouldBeTicked(gm.EnableParameter_AllowHelicopters);
-
-                    allowVehicles.Enabled = gm.ShouldBeEnabled(gm.EnableParameter_AllowVehicles);
-                    allowWeaponizedVehicles.Enabled = gm.ShouldBeEnabled(gm.EnableParameter_AllowWeaponizedVehicles);
-                    allowHelicopters.Enabled = gm.ShouldBeEnabled(gm.EnableParameter_AllowHelicopters);
+                    RebuildMenu();
                 }
             };
 
-            unitCountMultiplier.ValueChanged += (item, args) =>
+            MainMenu.Add(gamemodeItem);
+
+            RebuildMenu();
+        }
+
+        public static void RebuildMenu()
+        {
+            while (MainMenu.Items.Count > 1)
             {
-                Mod.CurrentGamemode.UnitCountMultiplier = ((float)unitCountMultiplier.Value) / 10;
-                unitCountMultiplier.Description = "Current Multiplier: " + Mod.CurrentGamemode.UnitCountMultiplier + "x";
+                MainMenu.Remove(MainMenu.Items.Last());
+            }
+
+            var gm = Mod.CurrentGamemode;
+
+            var gmMenu = gm.ConstructGamemodeMenu();
+
+            if (gmMenu != null)
+            {
+                MainMenu.AddSubMenu(gmMenu);
+            }
+
+            if (gm.MaxTeams > 1)
+            {
+                MainMenu.AddSubMenu(CreateTeamSetupSubmenu(gm));
+            }
+
+            if (Gamemode.ShouldBeEnabled(gm.EnableParameter_Spawnpoints) || Gamemode.ShouldBeEnabled(gm.EnableParameter_CapturePoints))
+            {
+                MainMenu.AddSubMenu(CreatePointSetupMenu(gm));
+            }
+
+            if (true) // temporary condition
+            {
+                MainMenu.AddSubMenu(CreateBattleOptionsMenu(gm));
+            }
+
+
+            // End of Menu: BATTLE CONTROL
+            var start = new NativeItem("Start Battle");
+            var stop = new NativeItem("Stop Battle");
+
+            start.Enabled = Mod.IsBattleRunning == false;
+            stop.Enabled = Mod.IsBattleRunning == true;
+
+            start.Activated += (item, args) =>
+            {
+                for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
+                    Mod.ApplyFactionToTeam(Mod.Teams[i], TeamFactionItems[i].SelectedItem);
+                Mod.StartBattle();
+                RebuildMenu();
+                MenuPool.HideAll(); // Hide the menu after starting the battle
+            };
+            stop.Activated += (item, args) =>
+            {
+                RebuildMenu();
+                Mod.StopBattle();
             };
 
-            allowVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnVehicles = allowVehicles.Checked;};
-            allowWeaponizedVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
-            allowHelicopters.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnHelicopters = allowHelicopters.Checked; };
+            MainMenu.Add(start);
+            MainMenu.Add(stop);
 
-            BattleSetupMenu.Add(gamemodeItem);
-            BattleSetupMenu.Add(unitCountMultiplier);
+            MenuPool.RefreshAll();
+        }
 
-            BattleSetupMenu.Add(allowVehicles);
-            BattleSetupMenu.Add(allowWeaponizedVehicles);
-            BattleSetupMenu.Add(allowHelicopters);
-
-
+        public static NativeMenu CreateTeamSetupSubmenu(Gamemode gm)
+        {
             // Submenu: TEAM SETUP
             TeamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
             MenuPool.Add(TeamSetupMenu);
-            MainMenu.AddSubMenu(TeamSetupMenu);
 
+            // AI FACTIONS
+            TeamFactionItems.Clear();
+            for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
+            {
+                int teamIndex = i; // ← ✅ Capture the loop variable correctly
+
+                var teamFactionItem = new NativeListItem<string>($"Team {teamIndex + 1} Faction", Mod.Factions.Keys.ToArray());
+                teamFactionItem.Description = "The faction of team " + (teamIndex + 1) + ".";
+
+                teamFactionItem.ItemChanged += (item, args) =>
+                {
+                    Mod.ApplyFactionToTeam(Mod.Teams[teamIndex], teamFactionItem.SelectedItem);
+                };
+
+                TeamFactionItems.Add(teamFactionItem);
+                TeamSetupMenu.Add(teamFactionItem);
+            }
+
+            // sets each team faction definition to a random value on mod startup, for quick plug n' play
+            foreach (var teamFactionItem in TeamFactionItems)
+            {
+                teamFactionItem.SelectedIndex = rand.Next(0, Mod.Factions.Count);
+            }
+
+            // PLAYER ALLEGIANCE SETUP
             List<String> playerTeamItem_Teams = new List<String> { "Neutral", "Hates Everyone" };
 
-            for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
+            for (int i = 0; i < gm.MaxTeams; i++)
                 playerTeamItem_Teams.Add("Team " + (i + 1));
 
+
+
             var playerTeamItem = new NativeListItem<string>("Player Team", playerTeamItem_Teams.ToArray());
-            playerTeamItem.Description = "The team of the player character. If selecting 'Neutral' you will still be attacked if you are shooting in the area.";
+            playerTeamItem.Description = "The team of the player character. If selecting 'Neutral' you will still be attacked if acting hostile toward the NPCs.";
 
             playerTeamItem.ItemChanged += (item, args) =>
             {
@@ -119,27 +179,48 @@ namespace GangWarSandbox
                 else Mod.PlayerTeam = -1;
             };
 
-            TeamFactionItems.Clear();
-            for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
-            {
-                var teamFactionItem = new NativeListItem<string>($"Team {i + 1} Faction", Mod.Factions.Keys.ToArray());
-                teamFactionItem.Description = "The faction of team " + (i + 1) + ". This will determine the models, weapons, vehicles, and other attributes of the team.";
-                TeamFactionItems.Add(teamFactionItem);
-                TeamSetupMenu.Add(teamFactionItem);
-            }
-
-            // sets each team faction definition to a random value, for quick plug n' play
-            foreach (var teamFactionItem in TeamFactionItems)
-            {
-                teamFactionItem.SelectedIndex = rand.Next(0, TeamFactionItems.Count);
-            }
-
             TeamSetupMenu.Add(playerTeamItem);
 
+            return TeamSetupMenu;
+        }
+
+        public static NativeMenu CreateBattleOptionsMenu(Gamemode gm)
+        {
+            BattleOptionsMenu = new NativeMenu("Battle Options", "Configure Battle Options");
+            MenuPool.Add(BattleOptionsMenu);
+
+            // A multiplier from the value located in the faction settings, max of 10x
+            var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 100, 10);
+
+            // Values letting the user decide if they want to allow vehicles, weaponized vehicles, and helicopters in the battle
+            var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.", true);
+            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "[EXPERIMENTAL] Allow weaponized vehicles to be used in the battle.", false);
+            var allowHelicopters = new NativeCheckboxItem("Helicopters", "[EXPERIMENTAL] Allow helicopters to be used in the battle.", false);
+
+            unitCountMultiplier.ValueChanged += (item, args) =>
+            {
+                Mod.CurrentGamemode.UnitCountMultiplier = ((float)unitCountMultiplier.Value) / 10;
+                unitCountMultiplier.Description = "Current Multiplier: " + Mod.CurrentGamemode.UnitCountMultiplier + "x";
+            };
+
+            allowVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnVehicles = allowVehicles.Checked; };
+            allowWeaponizedVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
+            allowHelicopters.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnHelicopters = allowHelicopters.Checked; };
+
+            BattleOptionsMenu.Add(unitCountMultiplier);
+
+            BattleOptionsMenu.Add(allowVehicles);
+            BattleOptionsMenu.Add(allowWeaponizedVehicles);
+            BattleOptionsMenu.Add(allowHelicopters);
+
+            return BattleOptionsMenu;
+        }
+
+        public static NativeMenu CreatePointSetupMenu(Gamemode gm)
+        {
             // Submenu: POINT SETUP
             SpawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
             MenuPool.Add(SpawnpointMenu);
-            MainMenu.AddSubMenu(SpawnpointMenu);
 
             var addT1 = new NativeItem("Add Spawnpoint - Team 1");
             var addT2 = new NativeItem("Add Spawnpoint - Team 2");
@@ -158,7 +239,10 @@ namespace GangWarSandbox
 
             clear.Activated += (item, args) => Mod.ClearAllPoints();
 
-
+            addT1.Enabled = gm.MaxTeams > 0;
+            addT2.Enabled = gm.MaxTeams > 1;
+            addT3.Enabled = gm.MaxTeams > 2;
+            addT4.Enabled = gm.MaxTeams > 3;
 
             SpawnpointMenu.Add(addT1);
             SpawnpointMenu.Add(addT2);
@@ -168,24 +252,9 @@ namespace GangWarSandbox
 
             SpawnpointMenu.Add(clear);
 
-            // Submenu: BATTLE CONTROL
-            BattleControlMenu = new NativeMenu("Battle Control", "Start or Stop Battle");
-            MenuPool.Add(BattleControlMenu);
-            MainMenu.AddSubMenu(BattleControlMenu);
-
-            var start = new NativeItem("Start Battle");
-            var stop = new NativeItem("Stop Battle");
-
-            start.Activated += (item, args) =>
-            {
-                for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
-                    Mod.ApplyFactionToTeam(Mod.Teams[i], TeamFactionItems[i].SelectedItem);
-                Mod.StartBattle();
-            };
-            stop.Activated += (item, args) => Mod.StopBattle();
-
-            BattleControlMenu.Add(start);
-            BattleControlMenu.Add(stop);
+            return SpawnpointMenu;
         }
+
+
     }
 }

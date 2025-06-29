@@ -28,7 +28,7 @@ namespace GangWarSandbox.Core
 
                 foreach (var file in files)
                 {
-                    Logger.Log("Trying to parse new vehicle set file: " + file);
+                    Logger.ParserError("Trying to parse new vehicle set file: " + file);
 
                     var lines = File.ReadAllLines(file);
                     if (lines.Length == 0) continue; // skip empty files
@@ -131,7 +131,7 @@ namespace GangWarSandbox.Core
 
                 foreach (var file in files)
                 {
-                    Logger.Log("Trying to parse new faction file: " + file);
+                    Logger.ParserError("Trying to parse new faction file: " + file);
                     string currentFaction = null;
                     Faction faction = null;
 
