@@ -24,9 +24,9 @@ namespace GangWarSandbox.Gamemodes
 
         public SurvivalGamemode() : base("Survival", "Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can!", 0)
         {
-            EnableParameter_AllowWeaponizedVehicles = 1;
-            EnableParameter_AllowVehicles = 1;
-            EnableParameter_AllowHelicopters = 1;
+            EnableParameter_AllowWeaponizedVehicles = GamemodeBool.True;
+            EnableParameter_AllowVehicles = GamemodeBool.True;
+            EnableParameter_AllowHelicopters = GamemodeBool.True;
         }
 
         public override void OnStart()

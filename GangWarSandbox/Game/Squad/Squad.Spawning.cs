@@ -191,7 +191,11 @@ namespace GangWarSandbox.Peds
 
                 newSpawnPoint += randXOffset + randYOffset;
 
-                int safetyRadius = SquadVehicle == null ? 1 : 6;
+                int safetyRadius;
+
+                if (SquadVehicle != null && SquadVehicle.IsHelicopter) safetyRadius = 11;
+                else if (SquadVehicle != null) safetyRadius = 8;
+                                          else safetyRadius = 3;
 
                 bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, safetyRadius).Length == 0;
                 bool noBuildingsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length == 0;
@@ -218,7 +222,7 @@ namespace GangWarSandbox.Peds
                 }
 
                 // can the old spawnpoint "see" the new one?
-                RaycastResult raycast = World.Raycast(spawnpoint, newSpawnPoint, IntersectFlags.Map);
+                RaycastResult raycast = World.Raycast(spawnpoint, newSpawnPoint, IntersectFlags.Map | IntersectFlags.Objects);
 
                 if (raycast.DidHit) continue;
 

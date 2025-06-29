@@ -14,6 +14,8 @@ namespace GangWarSandbox.Gamemodes
 
         protected GangWarSandbox ModData { get; }
 
+        public enum GamemodeBool { PlayerChoice = -1, False = 0, True = 1 }
+
         public string Name { get; private set; }
         public string Description { get; private set; }
         public int MaxFactions { get; private set; }
@@ -22,15 +24,16 @@ namespace GangWarSandbox.Gamemodes
         // Gamemode Settings
 
         // Treat these ints as a bool --> 0 = false, 1 = true, -1 = player choice
-        public int EnableParameter_AllowVehicles { get; set; } = -1;
-        public int EnableParameter_AllowWeaponizedVehicles { get; set; } = -1;
-        public int EnableParameter_AllowHelicopters { get; set; } = -1;
+        public GamemodeBool EnableParameter_AllowVehicles { get; set; } = GamemodeBool.PlayerChoice;
+        public GamemodeBool EnableParameter_AllowWeaponizedVehicles { get; set; } = GamemodeBool.PlayerChoice;
+        public GamemodeBool EnableParameter_AllowHelicopters { get; set; } = GamemodeBool.PlayerChoice;
+
+        public GamemodeBool EnableParameter_Spawnpoints { get; set; } = GamemodeBool.PlayerChoice;
 
         // These are the users actual choices
         public bool SpawnVehicles { get; set; } = true;
         public bool SpawnWeaponizedVehicles { get; set; } = true;
         public bool SpawnHelicopters { get; set; } = true;
-
 
         // Gamemode Attributes
         public float CaptureProgressMultiplier { get; set; } = 1.0f;
@@ -184,15 +187,15 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual void OnPlayerDeath() { }
 
-        public bool ShouldBeTicked(int i)
+        public bool ShouldBeTicked(GamemodeBool b)
         {
-            if (i == -1 || i == 1) return true;
+            if (b == GamemodeBool.PlayerChoice || b == GamemodeBool.True) return true;
             else return false;
         }
 
-        public bool ShouldBeEnabled(int i)
+        public bool ShouldBeEnabled(GamemodeBool b)
         {
-            if (i == -1) return true;
+            if (b == GamemodeBool.PlayerChoice) return true;
             else return false;
         }
 

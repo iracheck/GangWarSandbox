@@ -83,6 +83,14 @@ namespace GangWarSandbox.Peds
             Aggressive = 1, // the squad may not wait for combat to end to push its target
         }
 
+        /// <summary>
+        /// Creates a new squad belonging to a given team at one of its spawnpoints
+        /// </summary>
+        /// <param name="owner">The team that the squad spawns for</param>
+        /// <param name="vehicle">0=infantry,1=vehicle,2=wep. vehicle,3=helicopter</param>
+        /// <param name="role"></param>
+        /// <param name="type"></param>
+        /// <param name="personality"></param>
         public Squad(Team owner, int vehicle = 0, SquadRole role = 0, SquadType type = 0, SquadPersonality personality = 0)
         {
             Owner = owner;
@@ -96,9 +104,6 @@ namespace GangWarSandbox.Peds
             // Find a random point around the spawn position to actually spawn in
             SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
-            // CRITICAL: Saves the squad in memory to be cleaned up later
-            Owner.Squads.Add(this);
-
             if (vehicle != 1)
             {
                 if (Owner.TeamVehicles == null || Owner.TeamVehicles.Vehicles.Count == 0)
@@ -109,8 +114,10 @@ namespace GangWarSandbox.Peds
 
             if (vehicle == 3 && ModData.CurrentGamemode.SpawnHelicopters) // helicopter
             {
+                SpawnPos.Z += 60;
+
                 SpawnVehicle(VehicleSet.Type.Helicopter, SpawnPos);
-                Owner.WeaponizedVehicleSquads.Add(this);
+                Owner.HelicopterSquads.Add(this);
             }
             else if (vehicle == 2 && ModData.CurrentGamemode.SpawnWeaponizedVehicles) // wpnzd vehicle
             {
@@ -122,7 +129,10 @@ namespace GangWarSandbox.Peds
                 SpawnVehicle(VehicleSet.Type.Vehicle, SpawnPos);
                 Owner.VehicleSquads.Add(this);
             }
-            // if vehicle == 0, it's a regular squad
+            else
+            {
+                Owner.Squads.Add(this);
+            }
 
             if (role == 0)
             {

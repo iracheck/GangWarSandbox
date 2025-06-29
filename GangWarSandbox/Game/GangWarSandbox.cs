@@ -114,9 +114,9 @@ namespace GangWarSandbox
             }
 
 
-
             BattleSetupUI.SetupMenu();
         }
+
 
         public void ApplyFactionToTeam(Team team, string factionName)
         {
@@ -317,9 +317,17 @@ namespace GangWarSandbox
 
                     Squad squad = null;
 
-                    if (team.ShouldSpawnVehicle())
+                    if (CurrentGamemode.ShouldSpawnVehicleSquad(team))
                     {
                         new Squad(team, 1);
+                    }
+                    else if (CurrentGamemode.ShouldSpawnWeaponizedVehicleSquad(team))
+                    {
+                        new Squad(team, 2);
+                    }
+                    if (CurrentGamemode.ShouldSpawnHelicopterSquad(team))
+                    {
+                        new Squad(team, 3);
                     }
                     else
                     {
@@ -385,6 +393,7 @@ namespace GangWarSandbox
                 else
                 {
                     Vector3 charPos = Game.Player.Character.Position;
+                    charPos.Z -= 1;
                     Teams[teamIndex - 1].AddSpawnpoint(charPos);
                     GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at player location.");
 
