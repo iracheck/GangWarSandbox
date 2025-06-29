@@ -1,8 +1,12 @@
 # Gang War Sandbox
-A mod for Grand Theft Auto V that allows players to immerse themselves into a battlefield.
+
+A multi-gamemode combat utility for Grand Theft Auto V.<br>
+Simulate massive AI battles with 100+ peds, survive waves of enemies, or build your own custom battlefield.
 
 # Installation
+
 A copy of these dependencies are included with the mod file. Only use them if you don't already have those installed.
+
 ### Dependencies:
 - LemonUI 2.2+
 - ScriptHookVDotNet-Nightly 3.7+
@@ -18,9 +22,13 @@ A copy of these dependencies are included with the mod file. Only use them if yo
 
 ## Customization Instructions
 Currently, you can customize Factions and their VehicleSets. The mod checks everything within the given folder (e.g. ...scripts/GangWarSandbox/Factions), and then parses out any .ini files inside of it. To create a new Faction or VehicleSet, create a new .ini file and follow the instructions given in the Creation Guide given in each folder.
+> scripts/GangWarSandbox/Factions  
+> scripts/GangWarSandbox/VehicleSets
 
 You can use the following links to find ped or vehicle models:
-https://docs.fivem.net/docs/game-references/vehicle-references/vehicle-models/
+https://docs.fivem.net/docs/game-references/vehicle-references/vehicle-models/  
+https://wiki.rage.mp/wiki/Peds
+
 
 __Note__ Use the name of the model, e.g. "hc_driver" or "issi2"
 
@@ -57,18 +65,15 @@ Features that may not fit into Version 1, but I want to include.
 
 
 ## Known Bugs / Issues to Squash
+- [ ] Placing victory points/spawn points in an unloaded area causes them to be placed underneath the map
 - [x] NPCs don't spawn in spawnpoints near the player --> two options: simulate battle, or find a workaround
 - [x] NPCs take cover when engaging the enemy, but aren't capable of shooting them
 - [x] Peds are far apart when fighting
 - [x] Ped limits per faction is ~25 default, but only 13-16 peds spawn (why?)
 - [x] NPCs far from the player don't have their AI update
-- [ ] Placing victory points/spawn points in an unloaded area causes them to be placed underneath the map
-- [ ] Not providing all the information for a faction may result in a mod crash (trying to access or compare a null value)
+- [x] Incomplete .ini files cause a crash
 
-
-
-
-
-
-#### Regarding the Codebase
+## Dev Notes
 Much of this mod will be rewritten over time. I started it just for fun, until it became something more substantial, so much of the early code is written poorly. As a result, some of the first things I worked on will be rewritten, in some cases to be more modular/customizable by the end user (you!).
+
+This mod is still in active development, so things are due to change, and VehicleSet/Faction definitions may break in future versions. They're not difficult to create, but you have been warned.
