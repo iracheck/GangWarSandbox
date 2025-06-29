@@ -26,7 +26,9 @@ Currently, you can customize Factions and their VehicleSets. The mod checks ever
 > scripts/GangWarSandbox/VehicleSets
 
 You can use the following links to find ped or vehicle models:
-https://docs.fivem.net/docs/game-references/vehicle-references/vehicle-models/
+https://docs.fivem.net/docs/game-references/vehicle-references/vehicle-models/  
+https://wiki.rage.mp/wiki/Peds
+
 
 __Note__ Use the name of the model, e.g. "hc_driver" or "issi2"
 
