@@ -1,4 +1,5 @@
-﻿using GangWarSandbox.Gamemodes;
+﻿using GangWarSandbox.Core;
+using GangWarSandbox.Gamemodes;
 using LemonUI;
 using LemonUI.Menus;
 using System;
@@ -108,6 +109,7 @@ namespace GangWarSandbox
             // End of Menu: BATTLE CONTROL
             var start = new NativeItem("Start Battle");
             var stop = new NativeItem("Stop Battle");
+            var reload = new NativeItem("Reload Config", "Reload all configuration files. Note that some of your chosen settings will be lost.");
 
             start.Enabled = Mod.IsBattleRunning == false;
             stop.Enabled = Mod.IsBattleRunning == true;
@@ -123,6 +125,14 @@ namespace GangWarSandbox
             stop.Activated += (item, args) =>
             {
                 Mod.StopBattle();
+                RebuildMenu();
+            };
+
+            reload.Activated += (item, args) =>
+            {
+                Mod.StopBattle(); // just in case
+                ConfigParser.ReloadAll();
+
                 RebuildMenu();
             };
 

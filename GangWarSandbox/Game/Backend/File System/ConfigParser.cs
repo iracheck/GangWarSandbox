@@ -275,6 +275,14 @@ namespace GangWarSandbox.Core
             }
         }
 
+        public static void ReloadAll()
+        {
+            Logger.ParserError("Reloading all files...");
+            LoadFactions();
+            LoadConfiguration();
+            Logger.ParserError("Reload complete");
+
+        }
         // Below are parser methods used to parse the INI files for vehicle sets and factions that are not directly linked to a specific dataset. E.g. removing comments is a universal requirement
 
 
