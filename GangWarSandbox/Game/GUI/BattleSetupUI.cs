@@ -22,6 +22,8 @@ namespace GangWarSandbox
         private static NativeMenu GamemodeMenu;
         private static List<NativeListItem<string>> TeamFactionItems = new List<NativeListItem<string>>();
 
+        private static string[] SavedFactions = new string[GangWarSandbox.NUM_TEAMS];
+
         // Used to access the main mod instance
         static GangWarSandbox Mod = GangWarSandbox.Instance;
         static Random rand = new Random();
@@ -45,11 +47,10 @@ namespace GangWarSandbox
             MenuPool.Add(MainMenu);
             MainMenu.Description = "Welcome to Gang War Sandbox! This menu allows you to set up and manage battles between factions. Use the options below to configure your battle settings.";
 
-
             // GAMEMODE SELECTOR
             var gamemodeItem = new NativeListItem<string>("Gamemode", Mod.AvaliableGamemodes.Select(g => g.Name).ToArray());
             gamemodeItem.Description = "Select the gamemode for this battle. Each gamemode has different rules and mechanics that can be viewed on the mod page or readme file.";
-            gamemodeItem.Enabled = Mod.IsBattleRunning == false;
+            gamemodeItem.Enabled = !Mod.IsBattleRunning;
 
             gamemodeItem.ItemChanged += (item, args) =>
             {
@@ -78,6 +79,8 @@ namespace GangWarSandbox
             }
 
             var gm = Mod.CurrentGamemode;
+
+            MainMenu.ElementAt(0).Enabled = !Mod.IsBattleRunning;
 
             var gmMenu = gm.ConstructGamemodeMenu();
 
@@ -119,8 +122,8 @@ namespace GangWarSandbox
             };
             stop.Activated += (item, args) =>
             {
-                RebuildMenu();
                 Mod.StopBattle();
+                RebuildMenu();
             };
 
             MainMenu.Add(start);
@@ -131,44 +134,50 @@ namespace GangWarSandbox
 
         public static NativeMenu CreateTeamSetupSubmenu(Gamemode gm)
         {
-            // Submenu: TEAM SETUP
             TeamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
             MenuPool.Add(TeamSetupMenu);
 
-            // AI FACTIONS
             TeamFactionItems.Clear();
             for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
             {
-                int teamIndex = i; // ← ✅ Capture the loop variable correctly
-
-                var teamFactionItem = new NativeListItem<string>($"Team {teamIndex + 1} Faction", Mod.Factions.Keys.ToArray());
+                int teamIndex = i;
+                var factionNames = Mod.Factions.Keys.ToArray();
+                var teamFactionItem = new NativeListItem<string>($"Team {teamIndex + 1} Faction", factionNames);
                 teamFactionItem.Description = "The faction of team " + (teamIndex + 1) + ".";
 
+                // Use saved faction name if available
+                string savedFaction = SavedFactions[teamIndex];
+                if (!string.IsNullOrEmpty(savedFaction) && Mod.Factions.ContainsKey(savedFaction))
+                {
+                    teamFactionItem.SelectedItem = savedFaction;
+                }
+                else
+                {
+                    teamFactionItem.SelectedIndex = rand.Next(0, factionNames.Length);
+                    SavedFactions[teamIndex] = teamFactionItem.SelectedItem; // Save random selection
+                }
+
+                // Apply on change
                 teamFactionItem.ItemChanged += (item, args) =>
                 {
-                    Mod.ApplyFactionToTeam(Mod.Teams[teamIndex], teamFactionItem.SelectedItem);
+                    string selected = teamFactionItem.SelectedItem;
+                    SavedFactions[teamIndex] = selected;
+                    Mod.ApplyFactionToTeam(Mod.Teams[teamIndex], selected);
                 };
 
                 TeamFactionItems.Add(teamFactionItem);
                 TeamSetupMenu.Add(teamFactionItem);
             }
 
-            // sets each team faction definition to a random value on mod startup, for quick plug n' play
-            foreach (var teamFactionItem in TeamFactionItems)
-            {
-                teamFactionItem.SelectedIndex = rand.Next(0, Mod.Factions.Count);
-            }
-
-            // PLAYER ALLEGIANCE SETUP
-            List<String> playerTeamItem_Teams = new List<String> { "Neutral", "Hates Everyone" };
-
+            // PLAYER TEAM SETUP
+            List<string> playerTeamOptions = new List<string>() { "Neutral", "Hates Everyone" };
             for (int i = 0; i < gm.MaxTeams; i++)
-                playerTeamItem_Teams.Add("Team " + (i + 1));
+                playerTeamOptions.Add("Team " + (i + 1));
 
+            var playerTeamItem = new NativeListItem<string>("Player Team", playerTeamOptions.ToArray());
+            playerTeamItem.Description = "The team of the player character.";
 
-
-            var playerTeamItem = new NativeListItem<string>("Player Team", playerTeamItem_Teams.ToArray());
-            playerTeamItem.Description = "The team of the player character. If selecting 'Neutral' you will still be attacked if acting hostile toward the NPCs.";
+            playerTeamItem.SelectedIndex = LoadPlayerTeamChoice();
 
             playerTeamItem.ItemChanged += (item, args) =>
             {
@@ -206,6 +215,10 @@ namespace GangWarSandbox
             allowVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnVehicles = allowVehicles.Checked; };
             allowWeaponizedVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
             allowHelicopters.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnHelicopters = allowHelicopters.Checked; };
+
+            allowVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowVehicles);
+            allowWeaponizedVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowWeaponizedVehicles);
+            allowHelicopters.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowHelicopters);
 
             BattleOptionsMenu.Add(unitCountMultiplier);
 
@@ -255,6 +268,16 @@ namespace GangWarSandbox
             return SpawnpointMenu;
         }
 
+
+        public static int LoadPlayerTeamChoice()
+        {
+            if (Mod.PlayerTeam == -2) return 1;
+            if (Mod.PlayerTeam == -1) return 0; // Neutral
+            else
+            {
+                return Mod.PlayerTeam + 2;
+            }
+        }
 
     }
 }
