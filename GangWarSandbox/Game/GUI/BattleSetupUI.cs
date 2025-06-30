@@ -138,6 +138,7 @@ namespace GangWarSandbox
 
             MainMenu.Add(start);
             MainMenu.Add(stop);
+            MainMenu.Add(reload);
 
             MenuPool.RefreshAll();
         }

@@ -277,8 +277,10 @@ namespace GangWarSandbox.Core
 
         public static void ReloadAll()
         {
+            VehicleSets.Clear();
+
             Logger.ParserError("Reloading all files...");
-            LoadFactions();
+            GangWarSandbox.Instance.Factions = LoadFactions();
             LoadConfiguration();
             Logger.ParserError("Reload complete");
 
