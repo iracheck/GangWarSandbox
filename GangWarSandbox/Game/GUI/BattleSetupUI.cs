@@ -87,37 +87,45 @@ namespace GangWarSandbox
 
             if (gmMenu != null)
             {
-                MainMenu.AddSubMenu(gmMenu);
+                var menu = MainMenu.AddSubMenu(gmMenu);
+                menu.Enabled = !Mod.IsBattleRunning;
             }
 
             if (gm.MaxTeams > 1)
             {
-                MainMenu.AddSubMenu(CreateTeamSetupSubmenu(gm));
+                var menu = MainMenu.AddSubMenu(CreateTeamSetupSubmenu(gm));
+                menu.Enabled = !Mod.IsBattleRunning;
             }
 
             if (Gamemode.ShouldBeEnabled(gm.EnableParameter_Spawnpoints) || Gamemode.ShouldBeEnabled(gm.EnableParameter_CapturePoints))
             {
-                MainMenu.AddSubMenu(CreatePointSetupMenu(gm));
+                var menu = MainMenu.AddSubMenu(CreatePointSetupMenu(gm));
+                menu.Enabled = !Mod.IsBattleRunning;
             }
 
             if (true) // temporary condition
             {
-                MainMenu.AddSubMenu(CreateBattleOptionsMenu(gm));
+                var menu = MainMenu.AddSubMenu(CreateBattleOptionsMenu(gm));
+                menu.Enabled = !Mod.IsBattleRunning;
             }
 
 
             // End of Menu: BATTLE CONTROL
-            var start = new NativeItem("Start Battle");
-            var stop = new NativeItem("Stop Battle");
+            var start = new NativeItem("Start Battle", "Start the battle with the specified settings.");
+
+            var stop = new NativeItem("Stop Battle", "Stop the battle and automatically clean up all peds and vehicles.");
+
             var reload = new NativeItem("Reload Config", "Reload all configuration files. Note that some of your chosen settings will be lost.");
 
             start.Enabled = Mod.IsBattleRunning == false;
             stop.Enabled = Mod.IsBattleRunning == true;
+            reload.Enabled = Mod.IsBattleRunning == false;
 
             start.Activated += (item, args) =>
             {
                 for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
                     Mod.ApplyFactionToTeam(Mod.Teams[i], TeamFactionItems[i].SelectedItem);
+
                 Mod.StartBattle();
                 RebuildMenu();
                 MenuPool.HideAll(); // Hide the menu after starting the battle
@@ -168,6 +176,7 @@ namespace GangWarSandbox
                     SavedFactions[teamIndex] = teamFactionItem.SelectedItem; // Save random selection
                 }
 
+
                 // Apply on change
                 teamFactionItem.ItemChanged += (item, args) =>
                 {
@@ -179,6 +188,7 @@ namespace GangWarSandbox
                 TeamFactionItems.Add(teamFactionItem);
                 TeamSetupMenu.Add(teamFactionItem);
             }
+
 
             // PLAYER TEAM SETUP
             List<string> playerTeamOptions = new List<string>() { "Neutral", "Hates Everyone" };
@@ -201,6 +211,7 @@ namespace GangWarSandbox
 
             TeamSetupMenu.Add(playerTeamItem);
 
+
             return TeamSetupMenu;
         }
 
@@ -213,9 +224,10 @@ namespace GangWarSandbox
             var unitCountMultiplier = new NativeSliderItem("Unit Count Multiplier", "Current Multiplier: 1.0x", 100, 10);
 
             // Values letting the user decide if they want to allow vehicles, weaponized vehicles, and helicopters in the battle
-            var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.", true);
-            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "[EXPERIMENTAL] Allow weaponized vehicles to be used in the battle.", false);
-            var allowHelicopters = new NativeCheckboxItem("Helicopters", "[EXPERIMENTAL] Allow helicopters to be used in the battle.", false);
+            var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.", gm.SpawnVehicles);
+            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "[EXPERIMENTAL] Allow weaponized vehicles to be used in the battle.", gm.SpawnWeaponizedVehicles);
+            var allowHelicopters = new NativeCheckboxItem("Helicopters", "[EXPERIMENTAL] Allow helicopters to be used in the battle.\nWarning: Helicopters are experimental. " +
+                "Due to early access, their behavior has not been rewritten yet and thus act how vanilla AI handles them.", gm.SpawnHelicopters);
 
             unitCountMultiplier.ValueChanged += (item, args) =>
             {
@@ -246,32 +258,23 @@ namespace GangWarSandbox
             SpawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
             MenuPool.Add(SpawnpointMenu);
 
-            var addT1 = new NativeItem("Add Spawnpoint - Team 1");
-            var addT2 = new NativeItem("Add Spawnpoint - Team 2");
-            var addT3 = new NativeItem("Add Spawnpoint - Team 3");
-            var addT4 = new NativeItem("Add Spawnpoint - Team 4");
-            var addCapPt = new NativeItem("Add Capture Point");
 
-            var clear = new NativeItem("Clear All Points");
+            for (int i = 0; i < gm.MaxTeams; i++)
+            {
+                int index = i;
+                var addSpawnpoint = new NativeItem($"Add Spawnpoint - Team {i + 1}", $"Adds a spawnpoint for team {i + 1} at your current location, or at your waypoint if you have one.");
+                addSpawnpoint.Activated += (item, args) => Mod.AddSpawnpoint(index);
+                SpawnpointMenu.Add(addSpawnpoint);
+            }
 
-            addT1.Activated += (item, args) => Mod.AddSpawnpoint(1);
-            addT2.Activated += (item, args) => Mod.AddSpawnpoint(2);
-            addT3.Activated += (item, args) => Mod.AddSpawnpoint(3);
-            addT4.Activated += (item, args) => Mod.AddSpawnpoint(4);
+            var addCapPt = new NativeItem("Add Capture Point", "Adds a capture point at your current location, or at your waypoint if you have one.");
+
+            var clear = new NativeItem("Clear All Points", "Clears all spawnpoints on the map. There is no undo button for this action.");
 
             addCapPt.Activated += (item, args) => Mod.AddCapturePoint();
 
             clear.Activated += (item, args) => Mod.ClearAllPoints();
 
-            addT1.Enabled = gm.MaxTeams > 0;
-            addT2.Enabled = gm.MaxTeams > 1;
-            addT3.Enabled = gm.MaxTeams > 2;
-            addT4.Enabled = gm.MaxTeams > 3;
-
-            SpawnpointMenu.Add(addT1);
-            SpawnpointMenu.Add(addT2);
-            SpawnpointMenu.Add(addT3);
-            SpawnpointMenu.Add(addT4);
             SpawnpointMenu.Add(addCapPt);
 
             SpawnpointMenu.Add(clear);

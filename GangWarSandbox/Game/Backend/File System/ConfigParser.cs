@@ -20,7 +20,7 @@ namespace GangWarSandbox.Core
         /// </summary>
         private static Dictionary<string, VehicleSet> LoadVehicleSets()
         {
-            Logger.Log("Parsing VehicleSets from INI files...");
+            Logger.Parser("Parsing VehicleSets from INI files...");
             try
             {
                 string path = "scripts/GangWarSandbox/VehicleSets";
@@ -28,7 +28,7 @@ namespace GangWarSandbox.Core
 
                 foreach (var file in files)
                 {
-                    Logger.ParserError("Trying to parse new vehicle set file: " + file);
+                    Logger.Parser("Trying to parse new vehicle set file: " + file);
 
                     var lines = File.ReadAllLines(file);
                     if (lines.Length == 0) continue; // skip empty files
@@ -86,7 +86,7 @@ namespace GangWarSandbox.Core
                                 helicopters = true;
                                 break;
                             default:
-                                Logger.ParserError($"Unknown key '{key}' in vehicle set file {file}.");
+                                Logger.Parser($"Unknown key '{key}' in vehicle set file {file}.");
                                 break;
                         }
 
@@ -119,7 +119,7 @@ namespace GangWarSandbox.Core
         {
             LoadVehicleSets(); // vehicle sets should be loaded first, to be applied to factions
 
-            Logger.Log("Parsing Factions from INI files...");
+            Logger.Parser("Parsing Factions from INI files...");
             Dictionary<string, Faction> Factions = new Dictionary<string, Faction>();
 
             try
@@ -131,7 +131,7 @@ namespace GangWarSandbox.Core
 
                 foreach (var file in files)
                 {
-                    Logger.ParserError("Trying to parse new faction file: " + file);
+                    Logger.Parser("Trying to parse new faction file: " + file);
                     string currentFaction = null;
                     Faction faction = null;
 
@@ -226,7 +226,7 @@ namespace GangWarSandbox.Core
                                 blpClr = true;
                                 break;
                             default:
-                                Logger.Log($"Unknown key '{key}' in faction file '{file}'.");
+                                Logger.Parser($"Unknown key '{key}' in faction file '{file}'.");
                                 break;
                         }
 
@@ -257,7 +257,7 @@ namespace GangWarSandbox.Core
 
         public static void LoadConfiguration()
         {
-            Logger.LogDebug("Loading mod config file...");
+            Logger.Parser("Loading mod config file...");
             try
             {
                 string path = ModFiles.ConfigPath;
@@ -266,7 +266,7 @@ namespace GangWarSandbox.Core
 
                 foreach (var line in file)
                 {
-                    Logger.Log("");
+                    Logger.Parser("");
                 }
             }
             catch (Exception e)
@@ -279,10 +279,10 @@ namespace GangWarSandbox.Core
         {
             VehicleSets.Clear();
 
-            Logger.ParserError("Reloading all files...");
+            Logger.Parser("Reloading all files...");
             GangWarSandbox.Instance.Factions = LoadFactions();
             LoadConfiguration();
-            Logger.ParserError("Reload complete");
+            Logger.Parser("Reload complete");
 
         }
         // Below are parser methods used to parse the INI files for vehicle sets and factions that are not directly linked to a specific dataset. E.g. removing comments is a universal requirement
@@ -316,7 +316,7 @@ namespace GangWarSandbox.Core
                 Model model = new Model(list[i]);
                 if (!model.IsValid || !model.IsVehicle)
                 {
-                    Logger.ParserError($"Invalid vehicle model '{list[i]}' in vehicle set from file '{file}'. Skipping this model to prevent errors.");
+                    Logger.Parser($"Invalid vehicle model '{list[i]}' in vehicle set from file '{file}'. Skipping this model to prevent errors.");
                     continue;
                 }
 
@@ -338,7 +338,7 @@ namespace GangWarSandbox.Core
 
             if (counter > 0)
             {
-                Logger.ParserError($"Missing " + counter + " required field(s) in {fileType} file '{fileName}'. Please ensure all required fields are set.");
+                Logger.Parser($"Missing " + counter + " required field(s) in {fileType} file '{fileName}'. Please ensure all required fields are set.");
             }
             else
             {

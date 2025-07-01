@@ -161,10 +161,12 @@ namespace GangWarSandbox.Peds
 
             SquadVehicle.AddBlip();
 
-            if (type == VehicleSet.Type.Vehicle)
+            if (type == VehicleSet.Type.Vehicle && (SquadVehicle.IsBicycle || SquadVehicle.IsMotorcycle) ) 
+                SquadVehicle.AttachedBlip.Sprite = BlipSprite.Motorcycle;
+            else if (type == VehicleSet.Type.Vehicle)
                 SquadVehicle.AttachedBlip.Sprite = BlipSprite.GangVehiclePolice;
             else if (type == VehicleSet.Type.WeaponizedVehicle)
-                SquadVehicle.AttachedBlip.Sprite = BlipSprite.WeaponizedTampa;
+                SquadVehicle.AttachedBlip.Sprite = BlipSprite.TechnicalAqua;
             else if (type == VehicleSet.Type.Helicopter)
                 SquadVehicle.AttachedBlip.Sprite = BlipSprite.HelicopterAnimated;
 
@@ -207,7 +209,7 @@ namespace GangWarSandbox.Peds
                 {
                     testSpot = World.GetNextPositionOnStreet(newSpawnPoint, true);
 
-                    if (testSpot != Vector3.Zero && testSpot.DistanceTo(spawnpoint) <= 15f)
+                    if (testSpot != Vector3.Zero && testSpot.DistanceTo(spawnpoint) <= 30f)
                         newSpawnPoint = testSpot; // if the point is valid, use it as the spawn point
                 }
 
@@ -224,7 +226,7 @@ namespace GangWarSandbox.Peds
                 // can the old spawnpoint "see" the new one?
                 RaycastResult raycast = World.Raycast(spawnpoint, newSpawnPoint, IntersectFlags.Map | IntersectFlags.Objects);
 
-                if (raycast.DidHit) continue;
+                if (raycast.DidHit && SquadVehicle == null) continue;
 
                 // By seeing that a raycast downward finds something, but a raycast upward doesn't-- we can discover that the ped is being spawned under a map.
                 // Not a foolproof implementation, but it has proven to solve 90% of issues with spawning.

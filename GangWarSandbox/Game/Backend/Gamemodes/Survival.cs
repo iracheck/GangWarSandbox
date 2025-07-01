@@ -50,7 +50,7 @@ namespace GangWarSandbox.Gamemodes
 
             if (Mod == null) return null;
 
-            NativeMenu gamemodeMenu = new NativeMenu("Gamemode Settings", "Gamemode Settings", "A list of gamemode settings unique to your current gamemode.");
+            NativeMenu gamemodeMenu = new NativeMenu("Gamemode Settings", "Gamemode Settings", "Modify the settings of your Survival gamemode, such as the factions hunting you.");
             BattleSetupUI.MenuPool.Add(gamemodeMenu);
             var enemyTeam = new NativeListItem<string>($"Hunter Faction", Mod.Factions.Keys.ToArray());
             enemyTeam.Description = "The team that will be your enemy in this gamemode. This will determine the models, weapons, vehicles, and other attributes of the enemy team.";

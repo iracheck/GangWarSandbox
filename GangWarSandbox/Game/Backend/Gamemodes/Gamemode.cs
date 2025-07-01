@@ -33,8 +33,8 @@ namespace GangWarSandbox.Gamemodes
 
         // These are the users actual choices
         public bool SpawnVehicles { get; set; } = true;
-        public bool SpawnWeaponizedVehicles { get; set; } = true;
-        public bool SpawnHelicopters { get; set; } = true;
+        public bool SpawnWeaponizedVehicles { get; set; } = false;
+        public bool SpawnHelicopters { get; set; } = false;
 
         // Gamemode Attributes
         public float CaptureProgressMultiplier { get; set; } = 1.0f;
@@ -45,6 +45,8 @@ namespace GangWarSandbox.Gamemodes
 
         protected Gamemode(string name, string description, int maxFactions)
         {
+            Mod = GangWarSandbox.Instance;
+
             Name = name;
             Description = description;
             MaxTeams = maxFactions;
@@ -58,6 +60,33 @@ namespace GangWarSandbox.Gamemodes
         public virtual NativeMenu ConstructGamemodeMenu()
         {
             return null;
+        }
+
+        /// <summary>
+        /// Conditions for when the gamemode can be started. This is helpful for enforcing a specified number of spawnpoints, etc. The unoverriden version of this function ensures two valid teams with two valid spawnpoints. 
+        /// Also consider adding an error message. Return true to start the battle.
+        /// </summary>
+        public virtual bool CanStartBattle()
+        {
+            int validTeams = 0;
+            Mod = GangWarSandbox.Instance;
+
+            for (int i = 0; i < MaxTeams; i++)
+            {
+                var team = Mod.Teams[i];
+
+                if (team != null && team.SpawnPoints != null && team.SpawnPoints.Count != 0)
+                {
+                    validTeams++;
+                }
+            }
+
+            if (validTeams >= 2) return true;
+            else
+            {
+                GTA.UI.Screen.ShowSubtitle("You must have atleast two factions with a spawnpoint to start the battle.", 2500);
+                return false;
+            }
         }
 
         /// <summary>
@@ -138,9 +167,15 @@ namespace GangWarSandbox.Gamemodes
 
             int numAlive = 0;
 
-            for (int i = 0; i < team.Squads.Count; i++)
+            var allTeamSquads = team.Squads
+                .Concat(team.VehicleSquads)
+                .Concat(team.WeaponizedVehicleSquads)
+                .Concat(team.HelicopterSquads)
+                .ToList();
+
+            for (int i = 0; i < allTeamSquads.Count(); i++)
             {
-                numAlive += team.Squads[i].Members.Count;
+                numAlive += allTeamSquads[i].Members.Count;
             }
 
             if (numAlive + squadSize <= team.GetMaxNumPeds() &&

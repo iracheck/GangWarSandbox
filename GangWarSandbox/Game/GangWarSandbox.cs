@@ -242,7 +242,7 @@ namespace GangWarSandbox
 
         public void StartBattle()
         {
-            if (IsBattleRunning) return;
+            if (IsBattleRunning || !CurrentGamemode.CanStartBattle()) return;
 
             IsBattleRunning = true;
 
@@ -267,9 +267,9 @@ namespace GangWarSandbox
             // Spawn squads for each team
             SpawnSquads();
 
-            DEBUG_active_ai_zone_blip = World.CreateBlip(Game.Player.Character.Position, 500f);
-            DEBUG_active_ai_zone_blip.Color = BlipColor.Red;
-            DEBUG_active_ai_zone_blip.Alpha = 60;
+            //DEBUG_active_ai_zone_blip = World.CreateBlip(Game.Player.Character.Position, 500f);
+            //DEBUG_active_ai_zone_blip.Color = BlipColor.Red;
+            //DEBUG_active_ai_zone_blip.Alpha = 60;
 
             Game.Player.WantedLevel = 0; // Reset wanted level
             Game.Player.DispatchsCops = false; // disable cop dispatches
@@ -285,9 +285,6 @@ namespace GangWarSandbox
             GTA.UI.Screen.ShowSubtitle("Battle Ended!");
             CleanupAll();
 
-            DEBUG_active_ai_zone_blip.Delete();
-
-
             Game.Player.DispatchsCops = true; // Re-enable cop dispatches
         }
 
@@ -296,6 +293,8 @@ namespace GangWarSandbox
 
             foreach (var team in Teams)
             {
+                Logger.Log(team.GetMaxNumPeds() + " peds in team " + team.Name, "DEBUG");
+
                 int squadSize = team.GetSquadSize();
 
                 if (squadSize <= 0) continue;
@@ -372,9 +371,9 @@ namespace GangWarSandbox
                 if (Game.IsWaypointActive)
                 {
                     Vector3 waypointPos = World.WaypointPosition;
-                    Teams[teamIndex - 1].AddSpawnpoint(waypointPos);
+                    Teams[teamIndex].AddSpawnpoint(waypointPos);
 
-                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at waypoint.");
+                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex + 1} at waypoint.");
                     World.RemoveWaypoint();
 
                     
@@ -383,8 +382,8 @@ namespace GangWarSandbox
                 {
                     Vector3 charPos = Game.Player.Character.Position;
                     charPos.Z -= 1;
-                    Teams[teamIndex - 1].AddSpawnpoint(charPos);
-                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex} at player location.");
+                    Teams[teamIndex].AddSpawnpoint(charPos);
+                    GTA.UI.Screen.ShowSubtitle($"Spawnpoint added for Team {teamIndex + 1} at player location.");
 
                 }
             }
@@ -519,12 +518,6 @@ namespace GangWarSandbox
             {
                 World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(CapturePoint.Radius, CapturePoint.Radius, 1f), Color.White);
             }
-
-            if (DEBUG_active_ai_zone_blip != null)
-            {
-                DEBUG_active_ai_zone_blip.Position = Game.Player.Character.Position;
-            }
-
 
             if (DEBUG == 1 && Teams != null)
             {
