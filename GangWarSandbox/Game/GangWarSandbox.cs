@@ -56,13 +56,15 @@ namespace GangWarSandbox
             BlipSprite.Number5,
             BlipSprite.Number6
         };
-        public static readonly BlipColor[] TeamColors = {
-            BlipColor.Green,
-            BlipColor.Red,
-            BlipColor.Blue,
-            BlipColor.Yellow,
-            BlipColor.Purple,
-            BlipColor.Orange,
+
+        public static readonly Dictionary<Color, BlipColor> TeamColors = new Dictionary<Color, BlipColor>
+        {
+            { Color.Green, BlipColor.Green },
+            { Color.Red, BlipColor.Red },
+            { Color.Blue, BlipColor.Blue },
+            { Color.Yellow, BlipColor.Yellow },
+            { Color.Purple, BlipColor.Purple },
+            { Color.Orange, BlipColor.Orange }
         };
 
 
@@ -124,27 +126,6 @@ namespace GangWarSandbox
 
 
             BattleSetupUI.SetupMenu();
-        }
-
-
-        public void ApplyFactionToTeam(Team team, string factionName)
-        {
-            if (Factions.TryGetValue(factionName, out var faction))
-            {
-                team.Models = faction.Models;
-                team.Faction = faction;
-                team.Tier1Weapons = faction.Tier1Weapons;
-                team.Tier2Weapons = faction.Tier2Weapons;
-                team.Tier3Weapons = faction.Tier3Weapons;
-                team.MAX_SOLDIERS = faction.MaxSoldiers;
-                team.BaseHealth = faction.BaseHealth;
-                team.Accuracy = faction.Accuracy;
-                team.TierUpgradeMultiplier = faction.TierUpgradeMultiplier;
-                team.BlipColor = faction.Color;
-                team.TeamIndex = Teams.IndexOf(team);
-                
-                team.TeamVehicles = faction.VehicleSet;
-            }
         }
 
         private void OnTick(object sender, EventArgs e)
@@ -488,6 +469,47 @@ namespace GangWarSandbox
             }
         }
 
+        public void ApplyFactionToTeam(Team team, string factionName)
+        {
+            if (Factions.TryGetValue(factionName, out var faction))
+            {
+                team.Models = faction.Models;
+                team.Faction = faction;
+                team.Tier1Weapons = faction.Tier1Weapons;
+                team.Tier2Weapons = faction.Tier2Weapons;
+                team.Tier3Weapons = faction.Tier3Weapons;
+                team.MAX_SOLDIERS = faction.MaxSoldiers;
+                team.BaseHealth = faction.BaseHealth;
+                team.Accuracy = faction.Accuracy;
+                team.TierUpgradeMultiplier = faction.TierUpgradeMultiplier;
+                team.TeamIndex = Teams.IndexOf(team);
+
+                team.TeamVehicles = faction.VehicleSet;
+
+                SetColors(team);
+            }
+        }
+
+        public void SetColors(Team team)
+        {
+            if (team == null || team.TeamIndex < 0) return;
+
+            int teamIndex = team.TeamIndex;
+
+            List<BlipColor> blipColors = TeamColors.Values.ToList();
+            List<Color> colors = TeamColors.Keys.ToList();
+
+            if (teamIndex >= blipColors.Count)
+            {
+                return;
+            }
+            else
+            {
+                team.BlipColor = blipColors[teamIndex];
+                team.GenericColor = colors[teamIndex];
+            }
+        }
+
         private void ResetPlayerRelations()
         {
             // Assign player to team
@@ -516,7 +538,8 @@ namespace GangWarSandbox
         {
             foreach (var point in CapturePoints)
             {
-                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(CapturePoint.Radius, CapturePoint.Radius, 1f), Color.White);
+                Color color = point.Owner?.GenericColor ?? Color.White;
+                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(CapturePoint.Radius, CapturePoint.Radius, 1f), color);
             }
 
             if (DEBUG == 1 && Teams != null)

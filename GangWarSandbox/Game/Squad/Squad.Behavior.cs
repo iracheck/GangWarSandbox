@@ -242,16 +242,14 @@ namespace GangWarSandbox.Peds
                 {
                     // if the ped is in a vehicle with its squadleader and they are close to their destination, attack
                     if (ped.IsInVehicle() && SquadLeader.IsInVehicle() && CheckVehicle(ped)
-                        && PedAssignments[ped] != PedAssignment.DriveByInVehicle
-                        && (TargetPoint != null && TargetPoint.Position != Vector3.Zero &&
-                        ped.Position.DistanceTo(TargetPoint.Position) < 25f))
+                        && PedAssignments[ped] != PedAssignment.DriveByInVehicle)
                     {
                         PedAI.DriveBy(ped, nearbyEnemy);
                         PedAssignments[ped] = PedAssignment.DriveByInVehicle; // set the ped to drive by the enemy
 
                         return true;
                     }
-                    else if (PedAssignments[ped] != PedAssignment.AttackNearby)
+                    else if (PedAssignments[ped] != PedAssignment.AttackNearby && PedAssignments[ped] != PedAssignment.DriveByInVehicle)
                     {
                         PedAI.AttackEnemy(ped, nearbyEnemy);
                         PedAssignments[ped] = PedAssignment.AttackNearby;

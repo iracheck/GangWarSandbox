@@ -225,9 +225,10 @@ namespace GangWarSandbox
 
             // Values letting the user decide if they want to allow vehicles, weaponized vehicles, and helicopters in the battle
             var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.", gm.SpawnVehicles);
-            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "[EXPERIMENTAL] Allow weaponized vehicles to be used in the battle.", gm.SpawnWeaponizedVehicles);
-            var allowHelicopters = new NativeCheckboxItem("Helicopters", "[EXPERIMENTAL] Allow helicopters to be used in the battle.\nWarning: Helicopters are experimental. " +
-                "Due to early access, their behavior has not been rewritten yet and thus act how vanilla AI handles them.", gm.SpawnHelicopters);
+            var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "[EXPERIMENTAL] Allow weaponized vehicles to be used in the battle.\n\n" +
+                "Due to early access, Weaponized Vehicles has not been fully completed. Specifically, peds in the weapon will get out. Do not expect fluid results.", gm.SpawnWeaponizedVehicles);
+            var allowHelicopters = new NativeCheckboxItem("Helicopters", "[EXPERIMENTAL] Allow helicopters to be used in the battle.\n\n" +
+                "Due to early access, their behavior has not been fully completed. Helicopters harm the flow of the battle, so do not expect fluid results.", gm.SpawnHelicopters);
 
             unitCountMultiplier.ValueChanged += (item, args) =>
             {

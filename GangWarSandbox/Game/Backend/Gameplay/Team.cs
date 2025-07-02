@@ -10,6 +10,7 @@ using LemonUI;
 using LemonUI.Menus;
 using GangWarSandbox.Core;
 using GangWarSandbox.Peds;
+using System.Drawing;
 
 namespace GangWarSandbox
 {
@@ -47,6 +48,7 @@ namespace GangWarSandbox
         public string[] Tier3Weapons { get; set; } = Array.Empty<string>();
         public float TierUpgradeMultiplier;
 
+        public Color GenericColor { get; set; } = Color.White;
         public BlipColor BlipColor { get; set; } = BlipColor.White;
         public BlipSprite BlipSprite { get; set; } = BlipSprite.Standard;
 

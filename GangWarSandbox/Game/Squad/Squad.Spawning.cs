@@ -195,12 +195,9 @@ namespace GangWarSandbox.Peds
 
                 int safetyRadius;
 
-                if (SquadVehicle != null && SquadVehicle.IsHelicopter) safetyRadius = 11;
-                else if (SquadVehicle != null) safetyRadius = 8;
+                if (SquadVehicle != null && SquadVehicle.IsHelicopter) safetyRadius = 13;
+                else if (SquadVehicle != null) safetyRadius = 10;
                                           else safetyRadius = 3;
-
-                bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, safetyRadius).Length == 0;
-                bool noBuildingsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length == 0;
 
                 // Testing spots for safety
                 Vector3 testSpot = Vector3.Zero;
@@ -213,8 +210,12 @@ namespace GangWarSandbox.Peds
                         newSpawnPoint = testSpot; // if the point is valid, use it as the spawn point
                 }
 
+                bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, safetyRadius).Length == 0;
+                bool noBuildingsNearby = World.GetNearbyBuildings(newSpawnPoint, safetyRadius).Length == 0;
+                bool noObjectsNearby = World.GetNearbyProps(newSpawnPoint, safetyRadius).Length == 0;
+                bool noEntitiesNearby = World.GetNearbyEntities(newSpawnPoint, safetyRadius).Length == 0;
 
-                if (noPedsNearby && noBuildingsNearby) pointInvalid = false;
+                if (noPedsNearby && noBuildingsNearby && noObjectsNearby && noEntitiesNearby) pointInvalid = false;
                 else continue;
 
                 if (attempts > 10 && pointInvalid)
@@ -394,10 +395,15 @@ namespace GangWarSandbox.Peds
 
             // Combat Flags
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 0, true);  // Always fight
-            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 1, true);  // Can use cover
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 1, true);  // Use vehicles
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 2, true);  // Drive by hooting
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 3, true);  // can leave vehicle in combat
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 5, true);  // Can fight armed when unarmed
-            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 21, false); // Can drag friends to safety
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 12, true);  // Can blind fire
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 14, true);  // Can investigate gunshots/sounds
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 21, false); // Can chase target
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 22, true); // Can drag friends to safety
+            //Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 44, true); // Switch to defensive when in cover
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 50, true); // Can charge
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 58, true); // Don't flee from combat
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 53, true); // Advance if no cover avaliable

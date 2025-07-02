@@ -101,12 +101,16 @@ namespace GangWarSandbox.Peds
 
         public static void DriveToReckless(Ped ped, Vector3 target)
         {
-            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 60f, VehicleDrivingFlags.SteerAroundObjects | VehicleDrivingFlags.SteerAroundPeds | VehicleDrivingFlags.SteerAroundStationaryVehicles | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights, 20f, 15f, false);
+            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 60f, VehicleDrivingFlags.SteerAroundObjects | VehicleDrivingFlags.SteerAroundPeds | 
+                VehicleDrivingFlags.SteerAroundStationaryVehicles | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights,
+                40f, 15f, false);
         }
 
         public static void DriveToRecklessFast(Ped ped, Vector3 target)
         {
-            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 80f, VehicleDrivingFlags.SteerAroundObjects | VehicleDrivingFlags.SteerAroundPeds | VehicleDrivingFlags.SteerAroundStationaryVehicles | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights, 20f, 15f, true);
+            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 80f, VehicleDrivingFlags.SteerAroundObjects | VehicleDrivingFlags.SteerAroundPeds
+                | VehicleDrivingFlags.SteerAroundStationaryVehicles | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights,
+                40f, 15f, true);
         }
 
         public static void DriveToSafely(Ped ped, Vector3 target)
@@ -116,10 +120,7 @@ namespace GangWarSandbox.Peds
 
         public static void DriveBy(Ped ped, Ped target)
         {
-            if (ped.IsInVehicle())
-            {
-                ped.Task.VehicleShootAtPed(target);
-            }
+            Function.Call(Hash.TASK_VEHICLE_SHOOT_AT_PED, ped.Handle, target.Handle, -1, 5f);
         }
 
 

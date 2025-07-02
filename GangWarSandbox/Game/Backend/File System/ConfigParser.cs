@@ -220,11 +220,6 @@ namespace GangWarSandbox.Core
                                 if (float.TryParse(value, out float mult))
                                     faction.TierUpgradeMultiplier = mult;
                                 break;
-                            case "BlipColor":
-                                if (Enum.TryParse(value, out BlipColor blipColor))
-                                    faction.Color = blipColor;
-                                blpClr = true;
-                                break;
                             default:
                                 Logger.Parser($"Unknown key '{key}' in faction file '{file}'.");
                                 break;
