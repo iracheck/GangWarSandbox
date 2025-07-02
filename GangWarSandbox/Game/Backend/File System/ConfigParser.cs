@@ -97,7 +97,9 @@ namespace GangWarSandbox.Core
                         // Check if all required fields were set
                         if (currentSet != null)
                         {
-                            CheckRequirements(file, "VehicleSet", vehicles || weaponizedVehicles || helicopters);
+                            bool result = CheckRequirements(file, "VehicleSet", vehicles || weaponizedVehicles || helicopters);
+
+                            if (!result) VehicleSets.Remove(Name);
                         }
                         else
                         {
@@ -231,7 +233,9 @@ namespace GangWarSandbox.Core
                     // Check if all required fields were set
                     if (faction != null)
                     {
-                        CheckRequirements(file, "FACTION", models, t1wp, t2wp, t3wp, maxPeds, bsHP, accBonus, blpClr);
+                        bool result = CheckRequirements(file, "FACTION", models, t1wp, t2wp, t3wp, maxPeds, bsHP, accBonus);
+
+                        if (!result) Factions.Remove(currentFaction);
                     }
                     else
                     {
@@ -266,7 +270,7 @@ namespace GangWarSandbox.Core
             }
             catch (Exception e)
             {
-                Logger.ParserError("Failed to parse mod configuration file. Using defaults instead...");
+                Logger.ParserError("Failed to parse mod configuration file. Error: " + e.ToString());
             }
         }
 
@@ -319,7 +323,7 @@ namespace GangWarSandbox.Core
             }
         }
 
-        private static void CheckRequirements(string fileName, string fileType, params bool[] checkedValues)
+        private static bool CheckRequirements(string fileName, string fileType, params bool[] checkedValues)
         {
             int counter = 0;
 
@@ -333,13 +337,17 @@ namespace GangWarSandbox.Core
 
             if (counter > 0)
             {
-                Logger.Parser($"Missing " + counter + " required field(s) in {fileType} file '{fileName}'. Please ensure all required fields are set.");
+                Logger.Parser($"Missing " + counter + " required field(s) in " + fileType + " file " + fileName + ". Please ensure all required fields are set.");
+                return false;
             }
             else
             {
                 Logger.Log($"Successfully parsed {fileType} file {fileName}.");
+                return true;
             }
+
         }
+
 
 
     }

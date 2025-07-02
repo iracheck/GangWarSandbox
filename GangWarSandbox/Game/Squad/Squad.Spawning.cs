@@ -140,6 +140,7 @@ namespace GangWarSandbox.Peds
             {
                 if (SquadVehicle.IsSeatFree((VehicleSeat)SpawnIndex))
                 {
+                    Logger.Log((VehicleSeat)SpawnIndex + "");
                     ped = SquadVehicle.CreatePedOnSeat((VehicleSeat)SpawnIndex, model);
                 }
                 else ped = null;
@@ -173,6 +174,18 @@ namespace GangWarSandbox.Peds
             SquadVehicle.AttachedBlip.Name = $"Team {Owner.Name} Vehicle";
             SquadVehicle.AttachedBlip.Color = Owner.BlipColor;
 
+        }
+
+        public bool IsSpawnPositionCrowded(Vector3 pos, float minDistance = 20f)
+        {
+            var nearbyPeds = World.GetAllPeds().Where(p => p.Exists() && p.Position.DistanceTo(pos) < minDistance);
+
+            if (nearbyPeds.Count() > 10)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public Vector3 FindRandomPositionAroundSpawnpoint(Vector3 spawnpoint)
@@ -258,8 +271,10 @@ namespace GangWarSandbox.Peds
             int pedValue = 0;
             int baseAccuracy = 15;
 
-            if (team.SpawnPoints.Count == 0 || team.Models.Length == 0 || team.Tier1Weapons.Length == 0 || team.Tier2Weapons.Length == 0 || team.Tier3Weapons.Length == 0)
+            if (team.SpawnPoints.Count == 0 || team.Models.Length == 0)
                 return null;
+
+            bool hasAnyWeapons = team.Tier1Weapons.Length > 0 || team.Tier2Weapons.Length > 0 || team.Tier3Weapons.Length > 0;
 
             // Tier 4 peds only spawn when there is no tier 4 living tier 4 ped of that team AND when the player is on an opposing team
             bool playerHasNoTeam = ModData.PlayerTeam == -1 || ModData.PlayerTeam == -2 || ModData.PlayerTeam < 0 || ModData.PlayerTeam >= ModData.Teams.Count || ModData.Teams[ModData.PlayerTeam] == null;
@@ -293,13 +308,24 @@ namespace GangWarSandbox.Peds
 
             ped.RelationshipGroup = team.Group;
 
-            String weapon = "";
+            string weapon = "";
+
+            if (hasAnyWeapons)
+            {
+                if (tier == 1 && team.Tier1Weapons.Length > 0)
+                    weapon = Helpers.GetRandom(team.Tier1Weapons);
+                else if (tier == 2 && team.Tier2Weapons.Length > 0)
+                    weapon = Helpers.GetRandom(team.Tier2Weapons);
+                else if (tier == 3 && team.Tier3Weapons.Length > 0)
+                    weapon = Helpers.GetRandom(team.Tier3Weapons);
+                else if (tier == 4 && team.Tier3Weapons.Length > 0)
+                    weapon = Helpers.GetRandom(team.Tier3Weapons);
+            }
 
             Blip blip = ped.AddBlip();
 
             if (tier == 1)
             {
-                weapon = Helpers.GetRandom(team.Tier1Weapons);
                 ped.Health = team.BaseHealth;
                 ped.MaxHealth = team.BaseHealth;
                 baseAccuracy = 7;
@@ -311,7 +337,6 @@ namespace GangWarSandbox.Peds
             }
             else if (tier == 2)
             {
-                weapon = Helpers.GetRandom(team.Tier2Weapons);
                 ped.Health = (int)(team.BaseHealth * 1.2f) ;
                 ped.MaxHealth = (int)(team.BaseHealth * 1.2f);
                 baseAccuracy = 15;
@@ -323,7 +348,6 @@ namespace GangWarSandbox.Peds
             }
             else if (tier == 3)
             {
-                weapon = Helpers.GetRandom(team.Tier3Weapons);
                 ped.Health = (int)(team.BaseHealth * 1.5f);
                 ped.MaxHealth = (int)(team.BaseHealth * 1.5f);
                 baseAccuracy = 30;
@@ -339,7 +363,6 @@ namespace GangWarSandbox.Peds
             }
             else if (tier == 4)
             {
-                weapon = Helpers.GetRandom(team.Tier3Weapons);
                 ped.Health = (int)(team.BaseHealth * 1.8f);
                 ped.MaxHealth = (int)(team.BaseHealth * 1.8f);
                 baseAccuracy = 75;
@@ -362,7 +385,6 @@ namespace GangWarSandbox.Peds
             {
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.5f;
-                weapon = "WEAPON_PISTOL";
             }
 
             // Calculate an accuracy bonus
@@ -371,14 +393,13 @@ namespace GangWarSandbox.Peds
             if (!string.IsNullOrEmpty(weapon))
             {
                 ped.Weapons.Give((WeaponHash)Game.GenerateHash(weapon), 999, true, true);
-            }
-            else
-            {
-                ped.Weapons.Give(WeaponHash.Pistol, 999, true, true);
+                ped.Weapons.Give(WeaponHash.Pistol, 999, false, true);
+
+                // Force equip weapon
+                Function.Call(Hash.SET_CURRENT_PED_WEAPON, ped, Game.GenerateHash(weapon), true);
             }
 
-            // Force equip weapon
-            Function.Call(Hash.SET_CURRENT_PED_WEAPON, ped, Game.GenerateHash(weapon), true);
+
 
             blip.IsShortRange = true;
             blip.Name = $"Team {team.Name} Infantry";
@@ -396,8 +417,8 @@ namespace GangWarSandbox.Peds
             // Combat Flags
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 0, true);  // Always fight
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 1, true);  // Use vehicles
-            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 2, true);  // Drive by hooting
-            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 3, true);  // can leave vehicle in combat
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 2, true);  // Drive by shooting
+            if (IsWeaponizedVehicle) Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 3, false);  // can leave vehicle in combat ONLY if its not a weaponized vehicle <-----
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 5, true);  // Can fight armed when unarmed
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 12, true);  // Can blind fire
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 14, true);  // Can investigate gunshots/sounds

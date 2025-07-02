@@ -35,5 +35,15 @@ namespace GangWarSandbox
         {
             return Math.Round(num / 10) * 10;
         }
+
+        /// <summary>
+        /// Generates a random number from 0 to 100. If the value is less than parameter "chance," returns false, otherwise true.
+        /// </summary>
+        /// <param name="chance"></param>
+        /// <returns></returns>
+        public static bool RandomChance(int chance)
+        {
+            return rand.Next(0, 100) > chance;
+        }
     }
 }

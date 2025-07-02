@@ -99,28 +99,14 @@ namespace GangWarSandbox.Peds
             ped.Task.EnterVehicle(target);
         }
 
-        public static void DriveToReckless(Ped ped, Vector3 target)
+        public static void DriveTo(Ped ped, Vehicle vehicle, Vector3 target)
         {
-            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 60f, VehicleDrivingFlags.SteerAroundObjects | VehicleDrivingFlags.SteerAroundPeds | 
-                VehicleDrivingFlags.SteerAroundStationaryVehicles | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights,
-                40f, 15f, false);
-        }
-
-        public static void DriveToRecklessFast(Ped ped, Vector3 target)
-        {
-            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.Attack, 80f, VehicleDrivingFlags.SteerAroundObjects | VehicleDrivingFlags.SteerAroundPeds
-                | VehicleDrivingFlags.SteerAroundStationaryVehicles | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.DrivingModeStopForVehiclesIgnoreLights,
-                40f, 15f, true);
-        }
-
-        public static void DriveToSafely(Ped ped, Vector3 target)
-        {
-            ped.Task.StartVehicleMission(ped.CurrentVehicle, target, VehicleMissionType.GoTo, 40f, VehicleDrivingFlags.None, 10f, 15f, true);
+            ped.Task.DriveTo(vehicle, target, 20f, 60f, DrivingStyle.AvoidTrafficExtremely);
         }
 
         public static void DriveBy(Ped ped, Ped target)
         {
-            Function.Call(Hash.TASK_VEHICLE_SHOOT_AT_PED, ped.Handle, target.Handle, -1, 5f);
+            Function.Call(Hash.TASK_VEHICLE_SHOOT_AT_PED, ped.Handle, target.Handle, 10000, 180f);
         }
 
 

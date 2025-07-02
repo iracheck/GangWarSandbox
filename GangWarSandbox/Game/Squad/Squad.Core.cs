@@ -55,6 +55,7 @@ namespace GangWarSandbox.Peds
         CapturePoint TargetPoint; // the location that the squad's role will be applied to-- variable
 
         public Vehicle SquadVehicle = null;
+        public bool IsWeaponizedVehicle;
 
         // Squad roles are the command to the squad from AI overseer
 
@@ -104,6 +105,8 @@ namespace GangWarSandbox.Peds
             // Find a random point around the spawn position to actually spawn in
             SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
+            if (IsSpawnPositionCrowded(SpawnPos)) return;
+
             if (vehicle != 1)
             {
                 if (Owner.TeamVehicles == null || Owner.TeamVehicles.Vehicles.Count == 0)
@@ -121,6 +124,7 @@ namespace GangWarSandbox.Peds
             }
             else if (vehicle == 2 && ModData.CurrentGamemode.SpawnWeaponizedVehicles) // wpnzd vehicle
             {
+                IsWeaponizedVehicle = true;
                 SpawnVehicle(VehicleSet.Type.WeaponizedVehicle, SpawnPos);
                 Owner.WeaponizedVehicleSquads.Add(this);
             }

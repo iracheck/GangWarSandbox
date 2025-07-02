@@ -274,8 +274,6 @@ namespace GangWarSandbox
 
             foreach (var team in Teams)
             {
-                Logger.Log(team.GetMaxNumPeds() + " peds in team " + team.Name, "DEBUG");
-
                 int squadSize = team.GetSquadSize();
 
                 if (squadSize <= 0) continue;
@@ -294,7 +292,7 @@ namespace GangWarSandbox
                     {
                         new Squad(team, 2);
                     }
-                    if (CurrentGamemode.ShouldSpawnHelicopterSquad(team))
+                    else if (CurrentGamemode.ShouldSpawnHelicopterSquad(team))
                     {
                         new Squad(team, 3);
                     }

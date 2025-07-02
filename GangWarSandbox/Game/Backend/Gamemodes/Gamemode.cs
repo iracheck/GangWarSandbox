@@ -191,6 +191,8 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual bool ShouldSpawnVehicleSquad(Team team)
         {
+            if (Helpers.RandomChance(70)) return false;
+
             if (!ShouldSpawnSquad(team, team.GetSquadSize())) return false;
 
             int members = GetMemberCountByType(team, team.VehicleSquads);
@@ -210,16 +212,19 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual bool ShouldSpawnWeaponizedVehicleSquad(Team team)
         {
+            if (Helpers.RandomChance(30)) return false;
+
             if (!ShouldSpawnSquad(team, team.GetSquadSize())) return false;
+
 
             int members = GetMemberCountByType(team, team.WeaponizedVehicleSquads);
 
-                if (members >= (team.GetMaxNumPeds() * 0.10f)) // 10%
-                {
-                    return false;
-                }
+            if (members >= (team.GetMaxNumPeds() * 0.10f)) // 10%
+            {
+                return false;
+            }
 
-                return true;
+            return true;
         }
 
         /// <summary>
@@ -229,6 +234,8 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual bool ShouldSpawnHelicopterSquad(Team team)
         {
+            if (Helpers.RandomChance(20)) return false;
+
             if (!ShouldSpawnSquad(team, team.GetSquadSize())) return false;
 
             int members = GetMemberCountByType(team, team.HelicopterSquads);

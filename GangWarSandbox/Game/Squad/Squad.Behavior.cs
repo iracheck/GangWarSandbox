@@ -238,11 +238,10 @@ namespace GangWarSandbox.Peds
             if (nearbyEnemy != null)
             {
                 // First, let's make sure the ped attacks any enemies that are nearby that he can see
-                if (PedAI.HasLineOfSight(ped, nearbyEnemy) || (nearbyEnemy.IsInVehicle() && nearbyEnemy.Position.DistanceTo(ped.Position) < 40f))
+                if (PedAI.HasLineOfSight(ped, nearbyEnemy))
                 {
                     // if the ped is in a vehicle with its squadleader and they are close to their destination, attack
-                    if (ped.IsInVehicle() && SquadLeader.IsInVehicle() && CheckVehicle(ped)
-                        && PedAssignments[ped] != PedAssignment.DriveByInVehicle)
+                    if (ped.IsInVehicle() && PedAssignments[ped] != PedAssignment.DriveByInVehicle)
                     {
                         PedAI.DriveBy(ped, nearbyEnemy);
                         PedAssignments[ped] = PedAssignment.DriveByInVehicle; // set the ped to drive by the enemy
@@ -322,7 +321,7 @@ namespace GangWarSandbox.Peds
 
                         if (squadInside && Waypoints.Count > 0)
                         {
-                            PedAI.DriveToReckless(ped, Waypoints[0]);
+                            PedAI.DriveTo(ped, SquadVehicle, Waypoints[0]);
                         }
 
                         PedAssignments[ped] = PedAssignment.DriveToPosition; // set the ped to drive to the target position
