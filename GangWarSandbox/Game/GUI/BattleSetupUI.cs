@@ -203,6 +203,7 @@ namespace GangWarSandbox
             playerTeamItem.ItemChanged += (item, args) =>
             {
                 var sel = playerTeamItem.SelectedItem;
+
                 if (sel == "Neutral") Mod.PlayerTeam = -1;
                 else if (sel == "Hates Everyone") Mod.PlayerTeam = -2;
                 else if (sel.StartsWith("Team ")) Mod.PlayerTeam = int.Parse(sel.Substring(5)) - 1;

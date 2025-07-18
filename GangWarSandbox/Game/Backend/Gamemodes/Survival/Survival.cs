@@ -18,7 +18,7 @@ namespace GangWarSandbox.Gamemodes
         double TimeElapsed;
 
         // Gamemode States
-        int currentLevel = 0; // Current level of the survival gamemode, used for difficulty scaling
+        int CurrentWave = 0; // Current level of the survival gamemode, used for difficulty scaling
 
         int Combo = 1;
         int ComboLastTime = 0;
@@ -52,20 +52,37 @@ namespace GangWarSandbox.Gamemodes
 
             NativeMenu gamemodeMenu = new NativeMenu("Gamemode Settings", "Gamemode Settings", "Modify the settings of your Survival gamemode, such as the factions hunting you.");
             BattleSetupUI.MenuPool.Add(gamemodeMenu);
-            var enemyTeam = new NativeListItem<string>($"Hunter Faction", Mod.Factions.Keys.ToArray());
-            enemyTeam.Description = "The team that will be your enemy in this gamemode. This will determine the models, weapons, vehicles, and other attributes of the enemy team.";
 
-            enemyTeam.ItemChanged += (item, args) =>
+            var level1Enemy = new NativeListItem<string>($"Tier 1 Hunter Faction", Mod.Factions.Keys.ToArray());
+            level1Enemy.Description = "The primary team that appears to hunt you. These will always appear.";
+
+            level1Enemy.ItemChanged += (item, args) =>
             {
-                var selectedFaction = enemyTeam.SelectedItem;
+                var selectedFaction = level1Enemy.SelectedItem;
                 if (selectedFaction != null && Mod.Factions.ContainsKey(selectedFaction))
                 {
                     Mod.ApplyFactionToTeam(Mod.Teams[0], selectedFaction);
                 }
             };
 
+            var level2Enemy = new NativeListItem<string>($"Tier 2 Hunter Faction", Mod.Factions.Keys.ToArray());
+            level2Enemy.Description = "The second team that appears to hunt you. These will only appear starting in later rounds.";
 
-            gamemodeMenu.Add(enemyTeam);
+            level2Enemy.ItemChanged += (item, args) =>
+            {
+                var selectedFaction = level1Enemy.SelectedItem;
+                if (selectedFaction != null && Mod.Factions.ContainsKey(selectedFaction))
+                {
+                    Mod.ApplyFactionToTeam(Mod.Teams[0], selectedFaction);
+                }
+            };
+
+            var missions = new NativeCheckboxItem("Missions", "Missions are a set of objectives that can be completed to earn extra points, or weapons/ammo/vehicles.", false);
+            missions.Enabled = false; // Missions are not implemented yet
+
+            gamemodeMenu.Add(level1Enemy);
+            gamemodeMenu.Add(level2Enemy);
+            gamemodeMenu.Add(missions);
             return gamemodeMenu;
         } 
 
@@ -80,7 +97,7 @@ namespace GangWarSandbox.Gamemodes
 
             if (killer != Game.Player.Character) return;
 
-            PlayerScore += 0.02 * ped.MaxHealth * Combo;
+            PlayerScore += 0.02 * ped.MaxHealth * Combo * Math.Pow(CurrentWave, 1.2); ;
 
             // Increase combo if the player has killed another ped within 2 seconds
             if (ComboLastTime > Game.GameTime - 2000)

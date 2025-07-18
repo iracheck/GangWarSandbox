@@ -140,7 +140,6 @@ namespace GangWarSandbox.Peds
             {
                 if (SquadVehicle.IsSeatFree((VehicleSeat)SpawnIndex))
                 {
-                    Logger.Log((VehicleSeat)SpawnIndex + "");
                     ped = SquadVehicle.CreatePedOnSeat((VehicleSeat)SpawnIndex, model);
                 }
                 else ped = null;
@@ -393,7 +392,7 @@ namespace GangWarSandbox.Peds
             if (!string.IsNullOrEmpty(weapon))
             {
                 ped.Weapons.Give((WeaponHash)Game.GenerateHash(weapon), 999, true, true);
-                ped.Weapons.Give(WeaponHash.Pistol, 999, false, true);
+                if (SquadVehicle != null) ped.Weapons.Give(WeaponHash.Pistol, 999, false, true);
 
                 // Force equip weapon
                 Function.Call(Hash.SET_CURRENT_PED_WEAPON, ped, Game.GenerateHash(weapon), true);
@@ -425,6 +424,7 @@ namespace GangWarSandbox.Peds
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 21, false); // Can chase target
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 22, true); // Can drag friends to safety
             //Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 44, true); // Switch to defensive when in cover
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 46, true); // Can fight armed peds when unarmed
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 50, true); // Can charge
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 58, true); // Don't flee from combat
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 53, true); // Advance if no cover avaliable

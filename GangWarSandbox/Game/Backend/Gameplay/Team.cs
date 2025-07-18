@@ -38,6 +38,7 @@ namespace GangWarSandbox
         public Ped Tier4Ped = null;
 
         public int TeamIndex;
+        public bool IsPlayerTeam;
 
 
         public List<Blip> Blips { get; } = new List<Blip>();

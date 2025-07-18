@@ -31,7 +31,6 @@ namespace GangWarSandbox
 
         // Debug Utilities
         public int DEBUG = 1;
-        private Blip DEBUG_active_ai_zone_blip;
 
         // Constants
         private const int AI_UPDATE_FREQUENCY = 250; // How often squad AI will be updated, in milliseconds
@@ -510,6 +509,11 @@ namespace GangWarSandbox
 
         private void ResetPlayerRelations()
         {
+            foreach (var team in Teams)
+            {
+                team.IsPlayerTeam = false;
+            }
+
             // Assign player to team
             if (PlayerTeam < 0)
             {
@@ -519,6 +523,7 @@ namespace GangWarSandbox
             {
                 Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
                 Teams[PlayerTeam].Tier4Ped = Player; // Assign player to be their team's "strong npc"
+                Teams[PlayerTeam].IsPlayerTeam = true;
 
                 // move the player to the first spawn point of their team
                 if (Teams[PlayerTeam].SpawnPoints.Count > 0)

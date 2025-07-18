@@ -176,7 +176,7 @@ namespace GangWarSandbox.Peds
 
                 // Handle logic with ped moving to and from its target
                 bool movementChecked = PedAI_Driving(ped);
-                if (!movementChecked) movementChecked = PedAI_Movement(ped);
+                if (!movementChecked) PedAI_Movement(ped);
             }
 
             return true;
@@ -216,7 +216,7 @@ namespace GangWarSandbox.Peds
 
         private bool PedAI_Combat(Ped ped)
         {
-            if (!PedTargetCache.ContainsKey(ped)) PedTargetCache.Add(ped, (null, 0));
+            if (!PedTargetCache.ContainsKey(ped)) PedTargetCache.Add(ped, (null, 0)); // ped target cache: (current ped, (cached target, timestamp))
 
             Ped cachedEnemy = PedTargetCache[ped].enemy;
             int lastCheckedTime = PedTargetCache[ped].timestamp;
@@ -261,9 +261,15 @@ namespace GangWarSandbox.Peds
                     PedAI.RunToFarAway(ped, nearbyEnemy.Position);
                     PedAssignments[ped] = PedAssignment.RunToPosition;
                 }
+                else if (ped.IsInVehicle() && nearbyEnemy.Position.DistanceTo(ped.Position) < 60f) // alternatively, if the ped is in a vehicle and there are enemies nearby, try to fight them even if they can't be "seen"
+                {
+                    ped.Task.FightAgainstHatedTargets(80f);
+                    PedAssignments[ped] = PedAssignment.AttackNearby;
+                }
 
                 return true;
             }
+
             else if (nearbyEnemy == null && PedAssignments[ped] == PedAssignment.AttackNearby)
             {
                 PedAssignments[ped] = PedAssignment.None;
@@ -299,6 +305,8 @@ namespace GangWarSandbox.Peds
         private bool PedAI_Driving(Ped ped)
         {
             if (SquadVehicle == null || !SquadVehicle.Exists() || !SquadVehicle.IsAlive) return false;
+
+            if (CanGetOutVehicle()) Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 3, true); // if a ped is the last ped in a weaponized vehicle, ensure they are allowed to get out
 
             if (ped == SquadLeader)
             {
@@ -363,28 +371,12 @@ namespace GangWarSandbox.Peds
             return foundEnemy;
         }
 
-        // Check vehicle for damage, fire, etc. by ped
-        public bool CheckVehicle(Ped ped)
+        public bool CanGetOutVehicle()
         {
-            if (ped == null) return false;
-            if (ped.IsInVehicle() == false) return false;
-
-            Vehicle vehicle = ped.CurrentVehicle;
-
-            if (vehicle == null || !vehicle.Exists() || vehicle.IsDead ||
-                vehicle.IsOnFire || vehicle.Health < 5) return false; // if the vehicle is dead, return true
-            else return true;
+            if (IsWeaponizedVehicle && Members.Count == 1 && !Members[0].IsInCombat) return true;
+            else return false;
         }
 
-        // Check vehicle for damage, fire, etc.  by direct reference
-        public bool CheckVehicle(Vehicle vehicle)
-        {
-            if (vehicle == null) return false;
-
-            if (vehicle == null || !vehicle.Exists() || vehicle.IsDead ||
-                vehicle.IsOnFire || vehicle.Health < 5) return false; // if the vehicle is dead, return true
-            else return true;
-        }
     }
 
 }
