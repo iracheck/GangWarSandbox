@@ -12,6 +12,9 @@ namespace GangWarSandbox.Gamemodes
 {
     internal class SurvivalGamemode : Gamemode
     {
+        public Team enemyTeam1;
+        public Team enemyTeam2;
+
         double PlayerScore = 0;
 
         double TimeStart;
@@ -25,9 +28,12 @@ namespace GangWarSandbox.Gamemodes
 
         public SurvivalGamemode() : base("Survival", "Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can!", 0)
         {
+            GMSpawnMethod = SpawnMethod.Random;
+
             EnableParameter_AllowWeaponizedVehicles = GamemodeBool.True;
             EnableParameter_AllowVehicles = GamemodeBool.True;
             EnableParameter_AllowHelicopters = GamemodeBool.True;
+            EnableParameter_FogOfWar = GamemodeBool.PlayerChoice;
 
             EnableParameter_CapturePoints = GamemodeBool.False;
             EnableParameter_Spawnpoints = GamemodeBool.False;
@@ -107,6 +113,11 @@ namespace GangWarSandbox.Gamemodes
             else Combo = 0;
 
             ComboLastTime = Game.GameTime;
+        }
+
+        public override bool CanStartBattle()
+        {
+            return true;
         }
 
     }

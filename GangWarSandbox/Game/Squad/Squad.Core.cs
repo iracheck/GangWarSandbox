@@ -16,6 +16,7 @@ using System.Runtime.Serialization;
 using System.ComponentModel;
 using GangWarSandbox.Core.StrategyAI;
 using GangWarSandbox.Core;
+using GangWarSandbox.Gamemodes;
 
 namespace GangWarSandbox.Peds
 {
@@ -25,6 +26,7 @@ namespace GangWarSandbox.Peds
         PedAI pedAI = new PedAI();
 
         GangWarSandbox ModData = GangWarSandbox.Instance;
+        Gamemode CurrentGamemode;
 
         // Squad Logic begins here
 
@@ -99,13 +101,37 @@ namespace GangWarSandbox.Peds
             Personality = personality;
             Type = type;
 
-            // First, determine a spawnpoint
-            Vector3 spawnpoint = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
+            CurrentGamemode = ModData.CurrentGamemode;
 
+            // First, determine a spawnpoint
+            Vector3 spawnpoint = Vector3.Zero;
+            Logger.LogError("Trying to spawn squad...");
+            Logger.LogError($"CurrentGamemode null? {CurrentGamemode == null}");
+            Logger.LogError($"Owner null? {owner == null}");
+
+            if (CurrentGamemode.GMSpawnMethod == Gamemode.SpawnMethod.Spawnpoint && owner.SpawnPoints.Count > 0)
+            {
+                spawnpoint = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
+            }
+            else if (CurrentGamemode.GMSpawnMethod == Gamemode.SpawnMethod.Random)
+            {
+                spawnpoint = FindRandomPositionAroundPlayer(200);
+            }
+
+            if (spawnpoint == Vector3.Zero)
+            {
+                Logger.LogError("Trouble finding a squad spawnpoint. Aborted");
+                return;
+            }
+
+            Logger.LogError("Ensuring Spawn Position Valid");
             // Find a random point around the spawn position to actually spawn in
             SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
             if (IsSpawnPositionCrowded(SpawnPos)) return;
+
+            Logger.LogError("Spawned Squad");
+
 
             if (vehicle != 1)
             {
@@ -233,14 +259,14 @@ namespace GangWarSandbox.Peds
 
         private int GetDesiredBlipVisibility(Ped ped, Team team)
         {
-            int maxAlpha = 0;
-
-            //if (ModData.DEBUG == 1) return 255;
+            int maxAlpha;
 
             // Absolute conditions
             if (ped.IsInVehicle() || ped.IsDead) return 0;
             else if (ped == SquadLeader) maxAlpha = 255;
             else maxAlpha = 200;
+
+            if (ModData.DEBUG == 1 || !CurrentGamemode.FogOfWar) return 255;
 
             // Relative conditions
             float healthPercent = (float)ped.Health / (float)ped.MaxHealth;

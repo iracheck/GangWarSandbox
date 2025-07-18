@@ -16,17 +16,21 @@ namespace GangWarSandbox.Gamemodes
         protected static GangWarSandbox Mod { get; set; }
 
         public enum GamemodeBool { PlayerChoice = -1, False = 0, True = 1 }
+        public enum SpawnMethod { Spawnpoint, Random }
 
         public string Name { get; private set; } = "no_name";
         public string Description { get; private set; } = "no_desc";
         public int MaxTeams { get; private set; } = GangWarSandbox.NUM_TEAMS;
 
         // Gamemode Settings
+        public SpawnMethod GMSpawnMethod = SpawnMethod.Spawnpoint; // options: "Spawnpoint", "Random"
 
         // Treat these ints as a bool --> 0 = false, 1 = true, -1 = player choice
         public GamemodeBool EnableParameter_AllowVehicles { get; set; } = GamemodeBool.PlayerChoice;
         public GamemodeBool EnableParameter_AllowWeaponizedVehicles { get; set; } = GamemodeBool.PlayerChoice;
         public GamemodeBool EnableParameter_AllowHelicopters { get; set; } = GamemodeBool.PlayerChoice;
+        public GamemodeBool EnableParameter_FogOfWar { get; set; } = GamemodeBool.PlayerChoice;
+
 
         public GamemodeBool EnableParameter_Spawnpoints { get; set; } = GamemodeBool.PlayerChoice;
         public GamemodeBool EnableParameter_CapturePoints { get; set; } = GamemodeBool.PlayerChoice;
@@ -35,6 +39,7 @@ namespace GangWarSandbox.Gamemodes
         public bool SpawnVehicles { get; set; } = true;
         public bool SpawnWeaponizedVehicles { get; set; } = false;
         public bool SpawnHelicopters { get; set; } = false;
+        public bool FogOfWar { get; set; } = false;
 
         // Gamemode Attributes
         public float CaptureProgressMultiplier { get; set; } = 1.0f;

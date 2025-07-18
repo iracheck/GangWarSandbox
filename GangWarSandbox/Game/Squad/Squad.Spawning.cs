@@ -187,6 +187,59 @@ namespace GangWarSandbox.Peds
             return false;
         }
 
+        public Vector3 FindRandomPositionAroundPlayer(int radius = 200, int minRadius = 100)
+        {
+            Vector3 playerPos = Game.Player.Character.Position;
+            Vector3 newSpawnPoint = playerPos;
+            int attempts = 0;
+
+            while (true)
+            {
+                attempts++;
+
+                // Get random angle and distance
+                float angle = (float)(rand.NextDouble() * Math.PI * 2);
+                float distance = (float)(minRadius + rand.NextDouble() * (radius - minRadius));
+
+                Vector3 offset = new Vector3(
+                    (float)(Math.Cos(angle) * distance),
+                    (float)(Math.Sin(angle) * distance),
+                    0f
+                );
+
+                newSpawnPoint = playerPos + offset;
+
+                // Snap to street (or keep raw offset if not found)
+                Vector3 testSpot = World.GetNextPositionOnStreet(newSpawnPoint, true);
+                if (testSpot != Vector3.Zero)
+                    newSpawnPoint = testSpot;
+
+                // Avoid crowded or blocked areas
+                bool noEntitiesNearby = World.GetNearbyEntities(newSpawnPoint, 5f).Length == 0;
+                bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, 5f).Length == 0;
+
+                if (!noEntitiesNearby || !noPedsNearby)
+                {
+                    if (attempts >= 10)
+                        return playerPos + Game.Player.Character.ForwardVector * 10f; // fallback
+                    continue;
+                }
+
+                // Check if under the map
+                Vector3 rayStart = newSpawnPoint + new Vector3(0, 0, 100f);
+                Vector3 rayEnd = newSpawnPoint;
+                RaycastResult downcast = World.Raycast(rayStart, rayEnd, IntersectFlags.Map);
+                RaycastResult upcast = World.Raycast(newSpawnPoint, newSpawnPoint + new Vector3(0, 0, 15f), IntersectFlags.Map);
+
+                if (!upcast.DidHit && downcast.DidHit && downcast.HitPosition.DistanceTo(newSpawnPoint) <= 15f)
+                {
+                    newSpawnPoint = downcast.HitPosition;
+                }
+
+                return newSpawnPoint;
+            }
+        }
+
         public Vector3 FindRandomPositionAroundSpawnpoint(Vector3 spawnpoint)
         {
             Vector3 newSpawnPoint = spawnpoint;

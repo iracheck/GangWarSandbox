@@ -226,8 +226,6 @@ namespace GangWarSandbox
 
             IsBattleRunning = true;
 
-            Ped player = Game.Player.Character;
-
             ResetPlayerRelations();
 
             for (int i = 0; i < CapturePoints.Count; i++)
@@ -246,10 +244,6 @@ namespace GangWarSandbox
 
             // Spawn squads for each team
             SpawnSquads();
-
-            //DEBUG_active_ai_zone_blip = World.CreateBlip(Game.Player.Character.Position, 500f);
-            //DEBUG_active_ai_zone_blip.Color = BlipColor.Red;
-            //DEBUG_active_ai_zone_blip.Alpha = 60;
 
             Game.Player.WantedLevel = 0; // Reset wanted level
             Game.Player.DispatchsCops = false; // disable cop dispatches

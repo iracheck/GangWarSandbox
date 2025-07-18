@@ -31,7 +31,7 @@ namespace GangWarSandbox
 
         public static void Show()
         {
-            RebuildMenu();
+            RebuildMenu(null);
             MainMenu.Visible = true;
         }
 
@@ -72,8 +72,10 @@ namespace GangWarSandbox
             RebuildMenu();
         }
 
-        public static void RebuildMenu()
+        public static void RebuildMenu(Gamemode oldGM = null)
         {
+            if (oldGM == null) oldGM = Mod.CurrentGamemode;
+
             while (MainMenu.Items.Count > 1)
             {
                 MainMenu.Remove(MainMenu.Items.Last());
@@ -93,19 +95,19 @@ namespace GangWarSandbox
 
             if (gm.MaxTeams > 1)
             {
-                var menu = MainMenu.AddSubMenu(CreateTeamSetupSubmenu(gm));
+                var menu = MainMenu.AddSubMenu(CreateTeamSetupSubmenu(gm, oldGM));
                 menu.Enabled = !Mod.IsBattleRunning;
             }
 
             if (Gamemode.ShouldBeEnabled(gm.EnableParameter_Spawnpoints) || Gamemode.ShouldBeEnabled(gm.EnableParameter_CapturePoints))
             {
-                var menu = MainMenu.AddSubMenu(CreatePointSetupMenu(gm));
+                var menu = MainMenu.AddSubMenu(CreatePointSetupMenu(gm, oldGM));
                 menu.Enabled = !Mod.IsBattleRunning;
             }
 
             if (true) // temporary condition
             {
-                var menu = MainMenu.AddSubMenu(CreateBattleOptionsMenu(gm));
+                var menu = MainMenu.AddSubMenu(CreateBattleOptionsMenu(gm, oldGM));
                 menu.Enabled = !Mod.IsBattleRunning;
             }
 
@@ -151,8 +153,10 @@ namespace GangWarSandbox
             MenuPool.RefreshAll();
         }
 
-        public static NativeMenu CreateTeamSetupSubmenu(Gamemode gm)
+        public static NativeMenu CreateTeamSetupSubmenu(Gamemode gm, Gamemode oldGM = null)
         {
+            if (oldGM == null) oldGM = Mod.CurrentGamemode;
+
             TeamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
             MenuPool.Add(TeamSetupMenu);
 
@@ -216,7 +220,7 @@ namespace GangWarSandbox
             return TeamSetupMenu;
         }
 
-        public static NativeMenu CreateBattleOptionsMenu(Gamemode gm)
+        public static NativeMenu CreateBattleOptionsMenu(Gamemode gm, Gamemode oldGM)
         {
             BattleOptionsMenu = new NativeMenu("Battle Options", "Configure Battle Options");
             MenuPool.Add(BattleOptionsMenu);
@@ -227,9 +231,10 @@ namespace GangWarSandbox
             // Values letting the user decide if they want to allow vehicles, weaponized vehicles, and helicopters in the battle
             var allowVehicles = new NativeCheckboxItem("Vehicles", "Allow non-weaponized vehicles to be used in the battle.", gm.SpawnVehicles);
             var allowWeaponizedVehicles = new NativeCheckboxItem("Weaponized Vehicles", "[EXPERIMENTAL] Allow weaponized vehicles to be used in the battle.\n\n" +
-                "Due to early access, Weaponized Vehicles has not been fully completed. Specifically, peds in the weapon will get out. Do not expect fluid results.", gm.SpawnWeaponizedVehicles);
+                "WARNING: Weaponized Vehicles has not been fully completed. They are absolutely playable (unlike helicopters), but needs work.", gm.SpawnWeaponizedVehicles);
             var allowHelicopters = new NativeCheckboxItem("Helicopters", "[EXPERIMENTAL] Allow helicopters to be used in the battle.\n\n" +
-                "Due to early access, their behavior has not been fully completed. Helicopters harm the flow of the battle, so do not expect fluid results.", gm.SpawnHelicopters);
+                "Due to early access, their modified AI has not been fully completed. Helicopters harm the flow of the battle, so do not expect fluid results.", gm.SpawnHelicopters);
+            var fogOfWar = new NativeCheckboxItem("Fog of War", "Fog of war adds an area in which you cannot see enemies on the minimap. Note that fog of war does not disable fading blips from dying npcs.");
 
             unitCountMultiplier.ValueChanged += (item, args) =>
             {
@@ -237,16 +242,19 @@ namespace GangWarSandbox
                 unitCountMultiplier.Description = "Current Multiplier: " + Mod.CurrentGamemode.UnitCountMultiplier + "x";
             };
 
+            fogOfWar.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.FogOfWar = fogOfWar.Checked; };
             allowVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnVehicles = allowVehicles.Checked; };
             allowWeaponizedVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
             allowHelicopters.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnHelicopters = allowHelicopters.Checked; };
 
+            fogOfWar.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_FogOfWar);
             allowVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowVehicles);
             allowWeaponizedVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowWeaponizedVehicles);
             allowHelicopters.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowHelicopters);
 
             BattleOptionsMenu.Add(unitCountMultiplier);
 
+            BattleOptionsMenu.Add(fogOfWar);
             BattleOptionsMenu.Add(allowVehicles);
             BattleOptionsMenu.Add(allowWeaponizedVehicles);
             BattleOptionsMenu.Add(allowHelicopters);
@@ -254,7 +262,7 @@ namespace GangWarSandbox
             return BattleOptionsMenu;
         }
 
-        public static NativeMenu CreatePointSetupMenu(Gamemode gm)
+        public static NativeMenu CreatePointSetupMenu(Gamemode gm, Gamemode oldGM)
         {
             // Submenu: POINT SETUP
             SpawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
@@ -266,15 +274,15 @@ namespace GangWarSandbox
                 int index = i;
                 var addSpawnpoint = new NativeItem($"Add Spawnpoint - Team {i + 1}", $"Adds a spawnpoint for team {i + 1} at your current location, or at your waypoint if you have one.");
                 addSpawnpoint.Activated += (item, args) => Mod.AddSpawnpoint(index);
+                addSpawnpoint.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_Spawnpoints);
                 SpawnpointMenu.Add(addSpawnpoint);
             }
 
             var addCapPt = new NativeItem("Add Capture Point", "Adds a capture point at your current location, or at your waypoint if you have one.");
-
-            var clear = new NativeItem("Clear All Points", "Clears all spawnpoints on the map. There is no undo button for this action.");
-
+            addCapPt.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_CapturePoints);
             addCapPt.Activated += (item, args) => Mod.AddCapturePoint();
 
+            var clear = new NativeItem("Clear All Points", "Clears all spawnpoints on the map. There is no undo button for this action.");
             clear.Activated += (item, args) => Mod.ClearAllPoints();
 
             SpawnpointMenu.Add(addCapPt);
