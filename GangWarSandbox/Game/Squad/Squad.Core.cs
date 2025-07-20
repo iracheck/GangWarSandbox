@@ -83,11 +83,11 @@ namespace GangWarSandbox.Peds
         public enum SquadPersonality
         {
             Normal = 0, // the squad will not act in any particular way. the majority of squads
-            Aggressive = 1, // the squad may not wait for combat to end to push its target
+            Aggressive = 1, // the squad will act more aggressively, and move more quickly
         }
 
         /// <summary>
-        /// Creates a new squad belonging to a given team at one of its spawnpoints
+        /// Creates a new squad belonging to a given team, with spawn location depending on the current gamemode.
         /// </summary>
         /// <param name="owner">The team that the squad spawns for</param>
         /// <param name="vehicle">0=infantry,1=vehicle,2=wep. vehicle,3=helicopter</param>
@@ -105,9 +105,6 @@ namespace GangWarSandbox.Peds
 
             // First, determine a spawnpoint
             Vector3 spawnpoint = Vector3.Zero;
-            Logger.LogError("Trying to spawn squad...");
-            Logger.LogError($"CurrentGamemode null? {CurrentGamemode == null}");
-            Logger.LogError($"Owner null? {owner == null}");
 
             if (CurrentGamemode.GMSpawnMethod == Gamemode.SpawnMethod.Spawnpoint && owner.SpawnPoints.Count > 0)
             {
@@ -120,18 +117,12 @@ namespace GangWarSandbox.Peds
 
             if (spawnpoint == Vector3.Zero)
             {
-                Logger.LogError("Trouble finding a squad spawnpoint. Aborted");
                 return;
             }
-
-            Logger.LogError("Ensuring Spawn Position Valid");
             // Find a random point around the spawn position to actually spawn in
             SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
             if (IsSpawnPositionCrowded(SpawnPos)) return;
-
-            Logger.LogError("Spawned Squad");
-
 
             if (vehicle != 1)
             {
@@ -266,7 +257,9 @@ namespace GangWarSandbox.Peds
             else if (ped == SquadLeader) maxAlpha = 255;
             else maxAlpha = 200;
 
-            if (ModData.DEBUG == 1 || !CurrentGamemode.FogOfWar) return 255;
+            if (team.TeamIndex == ModData.PlayerTeam || ModData.PlayerTeam == -1) return maxAlpha;
+
+            if (ModData.DEBUG == 1 || CurrentGamemode.FogOfWar == false) return 255;
 
             // Relative conditions
             float healthPercent = (float)ped.Health / (float)ped.MaxHealth;
@@ -276,11 +269,8 @@ namespace GangWarSandbox.Peds
 
             float dist = ped.Position.DistanceTo(Game.Player.Character.Position);
 
-
-            if (team.TeamIndex == ModData.PlayerTeam || ModData.PlayerTeam == -1) return maxAlpha;
-
             // Distance conditions, only happens when player is on a team
-            if (dist > 200f) return 0;
+            if (dist > 125f) return 0;
             else if (dist < 50f) return maxAlpha;
             else
             {

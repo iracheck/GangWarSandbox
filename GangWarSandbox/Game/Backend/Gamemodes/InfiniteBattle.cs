@@ -15,7 +15,7 @@ namespace GangWarSandbox.Gamemodes
     {
         // Summary:
         // 
-        public InfiniteBattleGamemode() : base("Infinite Battle", "Peds will spawn forever, putting you in a battle that never ends!", 4)
+        public InfiniteBattleGamemode() : base("Infinite Battle", "DESCRIPTION: Peds will spawn forever, putting you in a battle that never ends!", 4)
         { }
 
     }

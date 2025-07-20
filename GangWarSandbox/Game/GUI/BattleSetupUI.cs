@@ -40,7 +40,7 @@ namespace GangWarSandbox
             MenuPool.HideAll();
         }
 
-        // MENU V2
+        // MENU V2.0
         public static void SetupMenu()
         {
             // MAIN MENU
@@ -50,7 +50,7 @@ namespace GangWarSandbox
 
             // GAMEMODE SELECTOR
             var gamemodeItem = new NativeListItem<string>("Gamemode", Mod.AvaliableGamemodes.Select(g => g.Name).ToArray());
-            gamemodeItem.Description = "Select the gamemode for this battle. Each gamemode has different rules and mechanics that can be viewed on the mod page or readme file.";
+            gamemodeItem.Description = Mod.CurrentGamemode.Description;
             gamemodeItem.Enabled = !Mod.IsBattleRunning;
 
             gamemodeItem.ItemChanged += (item, args) =>
@@ -62,6 +62,7 @@ namespace GangWarSandbox
 
                     Mod.CurrentGamemode = selectedGamemode;
                     Mod.CurrentGamemode.InitializeGamemode();
+                    gamemodeItem.Description = Mod.CurrentGamemode.Description;
 
                     RebuildMenu();
                 }
@@ -234,7 +235,7 @@ namespace GangWarSandbox
                 "WARNING: Weaponized Vehicles has not been fully completed. They are absolutely playable (unlike helicopters), but needs work.", gm.SpawnWeaponizedVehicles);
             var allowHelicopters = new NativeCheckboxItem("Helicopters", "[EXPERIMENTAL] Allow helicopters to be used in the battle.\n\n" +
                 "Due to early access, their modified AI has not been fully completed. Helicopters harm the flow of the battle, so do not expect fluid results.", gm.SpawnHelicopters);
-            var fogOfWar = new NativeCheckboxItem("Fog of War", "Fog of war adds an area in which you cannot see enemies on the minimap. Note that fog of war does not disable fading blips from dying npcs.");
+            var fogOfWar = new NativeCheckboxItem("Fog of War", "Fog of war adds an area in which you cannot see enemies on the minimap. Note that fog of war does not disable fading blips from dying npcs.", gm.FogOfWar);
 
             unitCountMultiplier.ValueChanged += (item, args) =>
             {
@@ -242,12 +243,12 @@ namespace GangWarSandbox
                 unitCountMultiplier.Description = "Current Multiplier: " + Mod.CurrentGamemode.UnitCountMultiplier + "x";
             };
 
-            fogOfWar.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.FogOfWar = fogOfWar.Checked; };
-            allowVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnVehicles = allowVehicles.Checked; };
-            allowWeaponizedVehicles.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
-            allowHelicopters.CheckboxChanged += (item, args) => { Mod.CurrentGamemode.SpawnHelicopters = allowHelicopters.Checked; };
+            fogOfWar.CheckboxChanged += (item, args) => { gm.FogOfWar = fogOfWar.Checked; };
+            allowVehicles.CheckboxChanged += (item, args) => { gm.SpawnVehicles = allowVehicles.Checked; };
+            allowWeaponizedVehicles.CheckboxChanged += (item, args) => { gm.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
+            allowHelicopters.CheckboxChanged += (item, args) => { gm.SpawnHelicopters = allowHelicopters.Checked; };
 
-            fogOfWar.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_FogOfWar);
+            fogOfWar.Enabled = gm.EnableParameter_FogOfWar == Gamemode.GamemodeBool.PlayerChoice;
             allowVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowVehicles);
             allowWeaponizedVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowWeaponizedVehicles);
             allowHelicopters.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowHelicopters);

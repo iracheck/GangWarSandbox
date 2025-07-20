@@ -384,8 +384,6 @@ namespace GangWarSandbox.Peds
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
                 pedValue = 40;
-
-                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2);
             }
             else if (tier == 2)
             {
@@ -395,8 +393,6 @@ namespace GangWarSandbox.Peds
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.4f;
                 pedValue = 100;
-
-                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2); // offensive
             }
             else if (tier == 3)
             {
@@ -411,7 +407,6 @@ namespace GangWarSandbox.Peds
 
 
                 Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 60, true); // Throws smoke grenades
-                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2); // offensive
             }
             else if (tier == 4)
             {
@@ -429,15 +424,24 @@ namespace GangWarSandbox.Peds
                 ped.IsFireProof = true;
                 ped.IsInvincible = false;
                 ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)
-
-                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 3); // suicidal
-
             }
             else
             {
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.5f;
             }
+
+            if (Personality == SquadPersonality.Aggressive)
+            {
+                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 3);
+                Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 43, true); // Advance if can't find cover
+
+            }
+            else
+            {
+                Function.Call(Hash.SET_PED_COMBAT_MOVEMENT, ped, 2);
+            }
+
 
             // Calculate an accuracy bonus
             ped.Accuracy = baseAccuracy + team.Accuracy; // adds the accuracy bonus
@@ -483,7 +487,13 @@ namespace GangWarSandbox.Peds
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 53, true); // Advance if no cover avaliable
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 42, true); // Can flank
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 28, true); // Advance if frustrated (can't see the enemy?)
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 87, true); // prefer ground targets
+
             Function.Call(Hash.SET_PED_CONFIG_FLAG, ped, 77, true); // Disable threat broadcast
+            Function.Call(Hash.SET_PED_CONFIG_FLAG, ped, 106, true); // Disable ragdoll from bullets
+
+
+
 
             Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 70f);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium

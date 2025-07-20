@@ -30,7 +30,7 @@ namespace GangWarSandbox
         private readonly Random rand = new Random();
 
         // Debug Utilities
-        public int DEBUG = 1;
+        public int DEBUG = 0;
 
         // Constants
         private const int AI_UPDATE_FREQUENCY = 250; // How often squad AI will be updated, in milliseconds
@@ -390,7 +390,7 @@ namespace GangWarSandbox
             CapturePoints.Clear();
         }
 
-        private void CleanupAll()
+        public void CleanupAll()
         {
             foreach (var team in Teams)
             {

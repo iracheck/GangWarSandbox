@@ -26,7 +26,7 @@ namespace GangWarSandbox.Gamemodes
         int Combo = 1;
         int ComboLastTime = 0;
 
-        public SurvivalGamemode() : base("Survival", "Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can!", 0)
+        public SurvivalGamemode() : base("Survival", "DESCRIPTION: Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can! Just like trying to get five stars.", 0)
         {
             GMSpawnMethod = SpawnMethod.Random;
 
@@ -52,7 +52,7 @@ namespace GangWarSandbox.Gamemodes
 
         public override NativeMenu ConstructGamemodeMenu()
         {
-            Mod = GangWarSandbox.Instance; // prevent a fatal crash
+            Mod = GangWarSandbox.Instance;
 
             if (Mod == null) return null;
 
@@ -83,11 +83,24 @@ namespace GangWarSandbox.Gamemodes
                 }
             };
 
+            var level3Enemy = new NativeListItem<string>($"Tier 3 Hunter Faction", Mod.Factions.Keys.ToArray());
+            level3Enemy.Description = "The last team that appears to hunt you. These will only appear after you have survived for a long time.";
+
+            level3Enemy.ItemChanged += (item, args) =>
+            {
+                var selectedFaction = level1Enemy.SelectedItem;
+                if (selectedFaction != null && Mod.Factions.ContainsKey(selectedFaction))
+                {
+                    Mod.ApplyFactionToTeam(Mod.Teams[0], selectedFaction);
+                }
+            };
+
             var missions = new NativeCheckboxItem("Missions", "Missions are a set of objectives that can be completed to earn extra points, or weapons/ammo/vehicles.", false);
             missions.Enabled = false; // Missions are not implemented yet
 
             gamemodeMenu.Add(level1Enemy);
             gamemodeMenu.Add(level2Enemy);
+            gamemodeMenu.Add(level3Enemy);
             gamemodeMenu.Add(missions);
             return gamemodeMenu;
         } 

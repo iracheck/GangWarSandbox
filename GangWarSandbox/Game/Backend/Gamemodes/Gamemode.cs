@@ -3,6 +3,7 @@ using GTA;
 using LemonUI.Menus;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,11 +41,25 @@ namespace GangWarSandbox.Gamemodes
         public bool SpawnWeaponizedVehicles { get; set; } = false;
         public bool SpawnHelicopters { get; set; } = false;
         public bool FogOfWar { get; set; } = false;
+        
 
         // Gamemode Attributes
+        /// <summary>
+        /// Higher values decrease the time it takes to capture a capture point. Default: 1.0f. 
+        /// </summary>
         public float CaptureProgressMultiplier { get; set; } = 1.0f;
+
+        /// <summary>
+        /// A direct multiple of the maximum ped health. Generally suggested to remain quite low (or around the default) Default: 1.0f.
+        /// </summary>
         public float PedHealthMultiplier { get; set; } = 1.0f;
+
+        /// <summary>
+        /// This value directly multiplies the maximum number of units for each faction on the battlefield. It can be modified by the user in the gamemode menu, or by the gamemode itself.
+        /// </summary>
         public float UnitCountMultiplier = 1; // Multiplier for unit count, used to scale the number of soldiers per team based on faction settings
+
+        public bool HasTier4Ped = true;
 
 
 
@@ -154,6 +169,15 @@ namespace GangWarSandbox.Gamemodes
         /// <param name="squad">The squad that was wiped out</param>
         /// <param name="teamOfSquad">The team of the squad that was destroyed</param>
         public virtual void OnSquadDestroyed(Squad squad, Team teamOfSquad) { }
+
+        /// <summary>
+        /// Cleans up all data from mod based on what the allowed settings of the new gamemode are. At the moment, this is not implemented fully and clears out everything for safety.
+        /// </summary>
+        public void ClearPreviousGamemode()
+        {
+            Mod.ClearAllPoints();
+            Mod.CleanupAll();
+        }
 
         /// <summary>
         /// Allows you to determine new conditions for when a squad should spawn. 
