@@ -126,9 +126,6 @@ namespace GangWarSandbox
 
             start.Activated += (item, args) =>
             {
-                for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
-                    Mod.ApplyFactionToTeam(Mod.Teams[i], TeamFactionItems[i].SelectedItem);
-
                 Mod.StartBattle();
                 RebuildMenu();
                 MenuPool.HideAll(); // Hide the menu after starting the battle
@@ -161,44 +158,8 @@ namespace GangWarSandbox
             TeamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
             MenuPool.Add(TeamSetupMenu);
 
-            TeamFactionItems.Clear();
-            for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
-            {
-                int teamIndex = i;
-                var factionNames = Mod.Factions.Keys.ToArray();
-                var teamFactionItem = new NativeListItem<string>($"Team {teamIndex + 1} Faction", factionNames);
-                teamFactionItem.Description = "The faction of team " + (teamIndex + 1) + ".";
-
-                // Use saved faction name if available
-                string savedFaction = SavedFactions[teamIndex];
-                if (!string.IsNullOrEmpty(savedFaction) && Mod.Factions.ContainsKey(savedFaction))
-                {
-                    teamFactionItem.SelectedItem = savedFaction;
-                }
-                else
-                {
-                    teamFactionItem.SelectedIndex = rand.Next(0, factionNames.Length);
-                    SavedFactions[teamIndex] = teamFactionItem.SelectedItem; // Save random selection
-                }
-
-
-                // Apply on change
-                teamFactionItem.ItemChanged += (item, args) =>
-                {
-                    string selected = teamFactionItem.SelectedItem;
-                    SavedFactions[teamIndex] = selected;
-                    Mod.ApplyFactionToTeam(Mod.Teams[teamIndex], selected);
-                };
-
-                TeamFactionItems.Add(teamFactionItem);
-                TeamSetupMenu.Add(teamFactionItem);
-            }
-
-
             // PLAYER TEAM SETUP
-            List<string> playerTeamOptions = new List<string>() { "Neutral", "Hates Everyone" };
-            for (int i = 0; i < gm.MaxTeams; i++)
-                playerTeamOptions.Add("Team " + (i + 1));
+            List<string> playerTeamOptions = new List<string>() { "Neutral", "Hates Everyone", "Team 1" };
 
             var playerTeamItem = new NativeListItem<string>("Player Team", playerTeamOptions.ToArray());
             playerTeamItem.Description = "The team of the player character.";
@@ -217,6 +178,39 @@ namespace GangWarSandbox
 
             TeamSetupMenu.Add(playerTeamItem);
 
+            TeamFactionItems.Clear();
+            for (int i = 0; i < GangWarSandbox.NUM_TEAMS; i++)
+            {
+                int teamIndex = i;
+                var factionNames = Mod.Factions.Keys.ToArray();
+                var teamFactionItem = new NativeListItem<string>($"Team {teamIndex + 1} Faction", factionNames);
+                teamFactionItem.Description = "The faction of team " + (teamIndex + 1) + ".";
+
+                // Use saved faction name if available
+                string savedFaction = SavedFactions[teamIndex];
+                if (!string.IsNullOrEmpty(savedFaction) && Mod.Factions.ContainsKey(savedFaction))
+                {
+                    teamFactionItem.SelectedItem = savedFaction;
+                }
+                else
+                {
+                    teamFactionItem.SelectedIndex = teamIndex;
+                    Mod.ApplyFactionToTeam(Mod.Teams[teamIndex], teamFactionItem.SelectedItem); // Apply default faction
+                    SavedFactions[teamIndex] = teamFactionItem.SelectedItem; // Save random selection
+                }
+
+
+                // Apply on change
+                teamFactionItem.ItemChanged += (item, args) =>
+                {
+                    string selected = teamFactionItem.SelectedItem;
+                    SavedFactions[teamIndex] = selected;
+                    Mod.ApplyFactionToTeam(Mod.Teams[teamIndex], selected);
+                };
+
+                TeamFactionItems.Add(teamFactionItem);
+                TeamSetupMenu.Add(teamFactionItem);
+            }
 
             return TeamSetupMenu;
         }
@@ -248,7 +242,7 @@ namespace GangWarSandbox
             allowWeaponizedVehicles.CheckboxChanged += (item, args) => { gm.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
             allowHelicopters.CheckboxChanged += (item, args) => { gm.SpawnHelicopters = allowHelicopters.Checked; };
 
-            fogOfWar.Enabled = gm.EnableParameter_FogOfWar == Gamemode.GamemodeBool.PlayerChoice;
+            fogOfWar.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_FogOfWar);
             allowVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowVehicles);
             allowWeaponizedVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowWeaponizedVehicles);
             allowHelicopters.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowHelicopters);

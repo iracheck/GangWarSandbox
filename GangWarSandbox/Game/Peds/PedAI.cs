@@ -101,7 +101,7 @@ namespace GangWarSandbox.Peds
 
         public static void DriveTo(Ped ped, Vehicle vehicle, Vector3 target)
         {
-            ped.Task.DriveTo(vehicle, target, 20f, 60f, DrivingStyle.AvoidTrafficExtremely);
+            ped.Task.DriveTo(vehicle, target, 20f, 40f);
         }
 
         public static void DriveBy(Ped ped, Ped target)
@@ -113,7 +113,7 @@ namespace GangWarSandbox.Peds
         public static bool HasLineOfSight(Ped source, Ped target)
         {
             // Use bone positions instead of just position + offset
-            Vector3 sourcePos = source.Bones[Bone.SkelHead].Position;
+            Vector3 sourcePos = source.Bones[Bone.SkelHead].Position + new Vector3(0,0,1);
             Vector3 targetPos = target.Bones[Bone.SkelHead].Position;
 
             RaycastResult result = World.Raycast(

@@ -175,7 +175,7 @@ namespace GangWarSandbox.Peds
 
         }
 
-        public bool IsSpawnPositionCrowded(Vector3 pos, float minDistance = 20f)
+        public bool IsSpawnPositionCrowded(Vector3 pos, float minDistance = 5f)
         {
             var nearbyPeds = World.GetAllPeds().Where(p => p.Exists() && p.Position.DistanceTo(pos) < minDistance);
 
@@ -478,6 +478,7 @@ namespace GangWarSandbox.Peds
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 5, true);  // Can fight armed when unarmed
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 12, true);  // Can blind fire
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 14, true);  // Can investigate gunshots/sounds
+            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 20, false);  // cant taunt
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 21, false); // Can chase target
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 22, true); // Can drag friends to safety
             //Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 44, true); // Switch to defensive when in cover
@@ -486,8 +487,12 @@ namespace GangWarSandbox.Peds
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 58, true); // Don't flee from combat
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 53, true); // Advance if no cover avaliable
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 42, true); // Can flank
-            Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 28, true); // Advance if frustrated (can't see the enemy?)
             Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 87, true); // prefer ground targets
+
+            if (Personality == SquadPersonality.Aggressive)
+            {
+                Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 28, true); // Advance if frustrated (can't see the enemy?)
+            }
 
             Function.Call(Hash.SET_PED_CONFIG_FLAG, ped, 77, true); // Disable threat broadcast
             Function.Call(Hash.SET_PED_CONFIG_FLAG, ped, 106, true); // Disable ragdoll from bullets

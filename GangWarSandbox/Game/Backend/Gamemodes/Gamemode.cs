@@ -1,12 +1,15 @@
 ﻿using GangWarSandbox.Peds;
 using GTA;
+using GTA.Math;
 using LemonUI.Menus;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static GangWarSandbox.Peds.Squad;
 
 namespace GangWarSandbox.Gamemodes
 {
@@ -40,7 +43,7 @@ namespace GangWarSandbox.Gamemodes
         public bool SpawnVehicles { get; set; } = true;
         public bool SpawnWeaponizedVehicles { get; set; } = false;
         public bool SpawnHelicopters { get; set; } = false;
-        public bool FogOfWar { get; set; } = false;
+        public bool FogOfWar { get; set; } = true;
         
 
         // Gamemode Attributes
@@ -164,6 +167,80 @@ namespace GangWarSandbox.Gamemodes
         public virtual void OnPedKilled(Ped ped, Team teamOfPed) { }
 
         /// <summary>
+        /// Handles squad target finding. Waypoints are automatically generated based upon this 
+        /// </summary>
+        /// <param name="squad">The squad that was wiped out</param>
+        public virtual Vector3 GetTarget(Squad s)
+        {
+            Random rand = new Random();
+            List<CapturePoint> capturePoints = Mod.CapturePoints;
+            Vector3 target = Vector3.Zero;
+
+            if (s.Role == SquadRole.AssaultCapturePoint)
+            {
+                List<CapturePoint> unownedPoints = new List<CapturePoint>();
+
+                for (int i = 0; i < capturePoints.Count; i++)
+                {
+                    if (capturePoints[i].Owner == null || capturePoints[i].Owner != s.Owner)
+                    {
+                        unownedPoints.Add(capturePoints[i]); // add the capture point to the list of unowned points
+                    }
+                }
+
+                if (unownedPoints.Count > 0)
+                {
+                    s.TargetPoint = unownedPoints[rand.Next(unownedPoints.Count)]; // randomly select a capture point that is not owned by the squad's team
+                    target = s.TargetPoint.Position; // set the target to the capture point's position
+                }
+                else
+                {
+                    s.TargetPoint = null;
+                    target = Vector3.Zero;
+                }
+            }
+            else if (s.Role == SquadRole.DefendCapturePoint)
+            {
+                for (int i = 0; i < capturePoints.Count; i++)
+                {
+                    if (capturePoints[i] != null && capturePoints[i].Owner == s.Owner)
+                    {
+                        s.TargetPoint = capturePoints[i]; // set the target point to the capture point owned by the squad's team
+                        target = s.TargetPoint.Position;
+                    }
+                }
+            }
+            else if (s.Role == SquadRole.SeekAndDestroy || s.Role == SquadRole.VehicleSupport)
+            {
+                {
+                    target = PedAI.FindRandomEnemySpawnpoint(s.Owner);
+                }
+            }
+
+            Logger.Log("Target: " + target.ToString());
+
+            // Final failsafe: ensure a non-zero target is returned
+            if (target == Vector3.Zero)
+            {
+                target = PedAI.FindRandomEnemySpawnpoint(s.Owner);
+
+                // Still can't find one? Fallback solution
+                if (target == Vector3.Zero)
+                {
+                    Logger.LogError("A squad failed to find a valid target.");
+                    GTA.UI.Screen.ShowSubtitle("A squad failed to find a valid target. This is a bug, please report it to the developer.");
+                }
+            }
+
+            return target;
+        }
+
+        public virtual bool ShouldGetNewTarget(Squad s)
+        {
+            return false;
+        }
+
+        /// <summary>
         /// Runs whenever a squad is destroyed and subsequently cleaned up by the script.
         /// </summary>
         /// <param name="squad">The squad that was wiped out</param>
@@ -220,7 +297,7 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         public virtual bool ShouldSpawnVehicleSquad(Team team)
         {
-            if (Helpers.RandomChance(70)) return false;
+            if (Helpers.RandomChance(50)) return false;
 
             if (!ShouldSpawnSquad(team, team.GetSquadSize())) return false;
 

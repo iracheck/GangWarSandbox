@@ -14,6 +14,7 @@ namespace GangWarSandbox.Gamemodes
     {
         public Team enemyTeam1;
         public Team enemyTeam2;
+        public Team enemyTeam3;
 
         double PlayerScore = 0;
 
@@ -33,7 +34,7 @@ namespace GangWarSandbox.Gamemodes
             EnableParameter_AllowWeaponizedVehicles = GamemodeBool.True;
             EnableParameter_AllowVehicles = GamemodeBool.True;
             EnableParameter_AllowHelicopters = GamemodeBool.True;
-            EnableParameter_FogOfWar = GamemodeBool.PlayerChoice;
+            EnableParameter_FogOfWar = GamemodeBool.False;
 
             EnableParameter_CapturePoints = GamemodeBool.False;
             EnableParameter_Spawnpoints = GamemodeBool.False;
@@ -76,10 +77,10 @@ namespace GangWarSandbox.Gamemodes
 
             level2Enemy.ItemChanged += (item, args) =>
             {
-                var selectedFaction = level1Enemy.SelectedItem;
+                var selectedFaction = level2Enemy.SelectedItem;
                 if (selectedFaction != null && Mod.Factions.ContainsKey(selectedFaction))
                 {
-                    Mod.ApplyFactionToTeam(Mod.Teams[0], selectedFaction);
+                    Mod.ApplyFactionToTeam(Mod.Teams[1], selectedFaction);
                 }
             };
 
@@ -88,10 +89,10 @@ namespace GangWarSandbox.Gamemodes
 
             level3Enemy.ItemChanged += (item, args) =>
             {
-                var selectedFaction = level1Enemy.SelectedItem;
+                var selectedFaction = level3Enemy.SelectedItem;
                 if (selectedFaction != null && Mod.Factions.ContainsKey(selectedFaction))
                 {
-                    Mod.ApplyFactionToTeam(Mod.Teams[0], selectedFaction);
+                    Mod.ApplyFactionToTeam(Mod.Teams[2], selectedFaction);
                 }
             };
 

@@ -38,7 +38,7 @@ namespace GangWarSandbox.Peds
         public Team Owner;
 
         public int squadValue; // lower value squads may be assigned to less important tasks
-        public float squadAttackRange = 60f;
+        public float squadAttackRange = 55f;
 
 
         public List<Vector3> Waypoints = new List<Vector3>();
@@ -54,7 +54,7 @@ namespace GangWarSandbox.Peds
 
         // Abstract Orders
         // these are orders that come from the "Strategy AI" of each team
-        CapturePoint TargetPoint; // the location that the squad's role will be applied to-- variable
+        public CapturePoint TargetPoint; // the location that the squad's role will be applied to-- variable
 
         public Vehicle SquadVehicle = null;
         public bool IsWeaponizedVehicle;
@@ -134,12 +134,12 @@ namespace GangWarSandbox.Peds
 
             if (vehicle == 3 && ModData.CurrentGamemode.SpawnHelicopters) // helicopter
             {
-                SpawnPos.Z += 60;
+                SpawnPos.Z += 95;
 
                 SpawnVehicle(VehicleSet.Type.Helicopter, SpawnPos);
                 Owner.HelicopterSquads.Add(this);
             }
-            else if (vehicle == 2 && ModData.CurrentGamemode.SpawnWeaponizedVehicles) // wpnzd vehicle
+            else if (vehicle == 2 && ModData.CurrentGamemode.SpawnWeaponizedVehicles) // weaponized vehicle
             {
                 IsWeaponizedVehicle = true;
                 SpawnVehicle(VehicleSet.Type.WeaponizedVehicle, SpawnPos);
@@ -199,11 +199,70 @@ namespace GangWarSandbox.Peds
             PedTargetCache = new Dictionary<Ped, (Ped enemy, int timestamp)>();
             SpawnSquadPeds(GetSquadSizeByType(Type));
 
-            Waypoints.Add(Vector3.Zero);
+            Vector3 target = CurrentGamemode.GetTarget(this); // get a random target for the squad to attack
+            SetTarget(target);
+        }
 
-            GetTarget(); // get a random target for the squad to attack
+        // Runs every 200ms (default) and updates all AI, squad states, etc.
+        public bool Update()
+        {
+            if (IsEmpty())
+            {
+                Destroy();
+                return false;
+            }
 
+            if (Waypoints.Count == 0) Waypoints.Add(Vector3.Zero);
 
+            if (JustSpawned) JustSpawned = false;
+
+            if (SquadLeader == null || SquadLeader.IsDead || !SquadLeader.Exists())
+                PromoteLeader();
+
+            bool isCloseEnough = (SquadLeader.Position.DistanceTo(Waypoints[0]) < 15f) || (SquadVehicle != null && SquadVehicle.Position.DistanceTo(Waypoints[0]) < 40f);
+            bool waypointSkipped = Waypoints.Count > 1 && Waypoints[1] != null && Waypoints[1] != Vector3.Zero && SquadLeader.Position.DistanceTo(Waypoints[1]) < 50f &&
+                Waypoints[0].DistanceTo(SquadLeader.Position) > Waypoints[1].DistanceTo(SquadLeader.Position);
+
+            // Clear nearby waypoints
+            if (isCloseEnough || waypointSkipped)
+            {
+                Waypoints.RemoveAt(0);
+                foreach (var ped in Members)
+                {
+                    if (PedAssignments[ped] == PedAssignment.RunToPosition || PedAssignments[ped] == PedAssignment.DriveToPosition)
+                    {
+                        PedAssignments[ped] = PedAssignment.None;
+                    }
+                }
+            }
+
+            // Gamemode: should try to get a new target?
+            if (CurrentGamemode.ShouldGetNewTarget(this))
+            {
+                CurrentGamemode.GetTarget(this);
+            }
+
+            for (int i = 0; i < Members.Count; i++)
+            {
+                Ped ped = Members[i];
+                ped.AttachedBlip.Alpha = GetDesiredBlipVisibility(ped, Owner);
+
+                if (ped == null || !ped.Exists() || !ped.IsAlive || ped.IsRagdoll) continue; // skip to the next ped
+
+                // Handle logic with enemy detection, combat, etc.
+                bool combat = PedAI_Combat(ped);
+
+                // Handle logic on defending or assaulting capture points
+                PedAI_CapturePoint(ped);
+
+                if (ped.IsShooting && ped.IsInCombat|| PedAssignments[ped] == PedAssignment.AttackNearby || combat) continue;
+
+                // Handle logic with ped moving to and from its target
+                bool movementChecked = PedAI_Driving(ped);
+                if (!movementChecked) PedAI_Movement(ped);
+            }
+
+            return true;
         }
 
 

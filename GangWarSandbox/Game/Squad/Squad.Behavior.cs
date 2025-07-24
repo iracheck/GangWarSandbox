@@ -48,8 +48,8 @@ namespace GangWarSandbox.Peds
 
 
             GetIntoVehicle,
+            ExitVehicle,
             DriveToPosition,
-            DriveByInVehicle,
         }
 
 
@@ -59,127 +59,6 @@ namespace GangWarSandbox.Peds
 
             bool hasVehicle = SquadVehicle != null && SquadVehicle.Exists() && SquadVehicle.IsAlive;
             Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target, hasVehicle); // set the waypoints to the target position
-        }
-
-        // In cases where Strategy AI does not exist or cannot provide the squad with a target, we can auto generate one
-        public Vector3 GetTarget()
-        {
-            List<CapturePoint> capturePoints = ModData.CapturePoints;
-            Vector3 target = Vector3.Zero;
-
-            if (Role == SquadRole.AssaultCapturePoint)
-            {
-                List<CapturePoint> unownedPoints = new List<CapturePoint>();
-
-                for (int i = 0; i < capturePoints.Count; i++)
-                {
-                    if (capturePoints[i].Owner == null || capturePoints[i].Owner != Owner)
-                    {
-                        unownedPoints.Add(capturePoints[i]); // add the capture point to the list of unowned points
-                    }
-                }
-
-                if (unownedPoints.Count > 0)
-                {
-                    TargetPoint = unownedPoints[rand.Next(unownedPoints.Count)]; // randomly select a capture point that is not owned by the squad's team
-                    target = TargetPoint.Position; // set the target to the capture point's position
-                }
-                else
-                {
-                    TargetPoint = null;
-                    target = Vector3.Zero;
-                }
-            }
-            else if (Role == SquadRole.DefendCapturePoint)
-            {
-                for (int i = 0; i < capturePoints.Count; i++)
-                {
-                    if (capturePoints[i] != null && capturePoints[i].Owner == Owner)
-                    {
-                        TargetPoint = capturePoints[i]; // set the target point to the capture point owned by the squad's team
-                        target = TargetPoint.Position;
-                    }
-                }
-            }
-            else if (Role == SquadRole.SeekAndDestroy || Role == SquadRole.VehicleSupport)
-            {
-                {
-                    target = PedAI.FindRandomEnemySpawnpoint(Owner);
-                }
-            }
-
-            // Final failsafe: ensure a non-zero target is returned
-            if (target == Vector3.Zero)
-            {
-                target = PedAI.FindRandomEnemySpawnpoint(Owner);
-
-                // Still can't find one? Fallback solution
-                if (target == Vector3.Zero)
-                {
-                    Logger.LogError("A squad failed to find a valid target.");
-                    GTA.UI.Screen.ShowSubtitle("A squad failed to find a valid target. This is a bug, please report it to the developer.");
-                }
-            }
-
-
-            SetTarget(target);
-            return target;
-        }
-
-
-        public bool SquadAIHandler()
-        {
-            if (IsEmpty())
-            {
-                Destroy();
-                return false;
-            }
-
-            if (Waypoints.Count == 0) Waypoints.Add(Vector3.Zero);
-
-            if (JustSpawned) JustSpawned = false;
-
-            if (SquadLeader == null || SquadLeader.IsDead || !SquadLeader.Exists())
-                PromoteLeader();
-
-            bool isCloseEnough = (SquadLeader.Position.DistanceTo(Waypoints[0]) < 15f) || (SquadVehicle != null && SquadVehicle.Position.DistanceTo(Waypoints[0]) < 40f);
-            bool waypointSkipped = Waypoints.Count > 1 && Waypoints[1] != null && Waypoints[1] != Vector3.Zero && SquadLeader.Position.DistanceTo(Waypoints[1]) < 50f &&
-                Waypoints[0].DistanceTo(SquadLeader.Position) > Waypoints[1].DistanceTo(SquadLeader.Position);
-
-            // Clear nearby waypoints
-            if (isCloseEnough || waypointSkipped)
-            {
-                Waypoints.RemoveAt(0);
-                foreach (var ped in Members)
-                {
-                    if (PedAssignments[ped] == PedAssignment.RunToPosition || PedAssignments[ped] == PedAssignment.DriveToPosition)
-                    {
-                        PedAssignments[ped] = PedAssignment.None;
-                    }
-                }
-            }
-
-            for (int i = 0; i < Members.Count; i++)
-            {
-                Ped ped = Members[i];
-                ped.AttachedBlip.Alpha = GetDesiredBlipVisibility(ped, Owner);
-
-                if (ped == null || !ped.Exists() || !ped.IsAlive) continue; // skip to the next ped
-
-                // Handle logic with enemy detection, combat, etc.
-                bool combat = PedAI_Combat(ped);
-
-                // Handle logic on defending or assaulting capture points
-                PedAI_CapturePoint(ped);
-
-                if ((ped.IsShooting && ped.IsInCombat) || ped.IsBeingStunned || PedAssignments[ped] == PedAssignment.AttackNearby || combat) continue;
-
-                // Handle logic with ped moving to and from its target
-                bool movementChecked = PedAI_Driving(ped);
-                if (!movementChecked) PedAI_Movement(ped);
-            }
-
-            return true;
         }
 
         private void PedAI_CapturePoint(Ped ped)
@@ -241,14 +120,14 @@ namespace GangWarSandbox.Peds
                 if (PedAI.HasLineOfSight(ped, nearbyEnemy))
                 {
                     // if the ped is in a vehicle with its squadleader and they are close to their destination, attack
-                    if (ped.IsInVehicle() && PedAssignments[ped] != PedAssignment.DriveByInVehicle)
+                    if (ped.IsInVehicle() && PedAssignments[ped] != PedAssignment.ExitVehicle)
                     {
-                        PedAI.DriveBy(ped, nearbyEnemy);
-                        PedAssignments[ped] = PedAssignment.DriveByInVehicle; // set the ped to drive by the enemy
+                        ped.Task.LeaveVehicle(LeaveVehicleFlags.LeaveDoorOpen);
+                        PedAssignments[ped] = PedAssignment.ExitVehicle; // set the ped to drive by the enemy
 
                         return true;
                     }
-                    else if (PedAssignments[ped] != PedAssignment.AttackNearby && PedAssignments[ped] != PedAssignment.DriveByInVehicle)
+                    else if (PedAssignments[ped] != PedAssignment.AttackNearby)
                     {
                         PedAI.AttackEnemy(ped, nearbyEnemy);
                         PedAssignments[ped] = PedAssignment.AttackNearby;
@@ -263,8 +142,8 @@ namespace GangWarSandbox.Peds
                 }
                 else if (ped.IsInVehicle() && nearbyEnemy.Position.DistanceTo(ped.Position) < 60f) // alternatively, if the ped is in a vehicle and there are enemies nearby, try to fight them even if they can't be "seen"
                 {
-                    ped.Task.FightAgainstHatedTargets(80f);
-                    PedAssignments[ped] = PedAssignment.AttackNearby;
+                    ped.Task.LeaveVehicle();
+                    PedAssignments[ped] = PedAssignment.ExitVehicle;
                 }
 
                 return true;
@@ -307,6 +186,13 @@ namespace GangWarSandbox.Peds
             if (SquadVehicle == null || !SquadVehicle.Exists() || !SquadVehicle.IsAlive) return false;
 
             if (CanGetOutVehicle()) Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 3, true); // if a ped is the last ped in a weaponized vehicle, ensure they are allowed to get out
+
+            if (ped.IsInVehicle())
+            {
+                Ped nearbyEnemy = FindNearbyEnemy(ped.Position, Owner, squadAttackRange); // find a nearby enemy
+
+                if (nearbyEnemy != null) ped.Task.LeaveVehicle(LeaveVehicleFlags.LeaveDoorOpen);
+            }
 
             if (ped == SquadLeader)
             {

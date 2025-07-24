@@ -30,7 +30,7 @@ namespace GangWarSandbox
         private readonly Random rand = new Random();
 
         // Debug Utilities
-        public int DEBUG = 0;
+        public int DEBUG = 1;
 
         // Constants
         private const int AI_UPDATE_FREQUENCY = 250; // How often squad AI will be updated, in milliseconds
@@ -181,7 +181,7 @@ namespace GangWarSandbox
                     // Ped AI
                     if ((squad.SquadVehicle != null && GameTime % VEHICLE_AI_UPDATE_FREQUENCY == 0) || (squad.SquadVehicle == null && GameTime % AI_UPDATE_FREQUENCY == 0) || squad.JustSpawned)
                     {
-                        squad.SquadAIHandler();
+                        squad.Update();
                         CurrentGamemode.OnSquadUpdate(squad);
                     }
 
@@ -235,6 +235,7 @@ namespace GangWarSandbox
 
             foreach (var team in Teams)
             {
+                Logger.Log("Team Loaded: " + team.Name);
                 team.RecolorBlips();
             }
 
@@ -479,6 +480,8 @@ namespace GangWarSandbox
 
                 SetColors(team);
             }
+
+            GTA.UI.Screen.ShowSubtitle($"Faction '{factionName}' applied to {team.Name} team.");
         }
 
         public void SetColors(Team team)
@@ -512,10 +515,27 @@ namespace GangWarSandbox
             if (PlayerTeam < 0)
             {
                 Game.Player.Character.RelationshipGroup = "PLAYER";
+
+                if (PlayerTeam == -1)
+                {
+                    foreach (var team in Teams)
+                    {
+                        Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Respect, Game.Player.Character.RelationshipGroup, team.Group);
+                        Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Respect, team.Group, Game.Player.Character.RelationshipGroup);
+                    }
+                }
+                else if (PlayerTeam == -2) {
+                    foreach (var team in Teams)
+                    {
+                        Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, Game.Player.Character.RelationshipGroup, team.Group);
+                        Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, team.Group, Game.Player.Character.RelationshipGroup);
+                    }
+                }
             }
             else
             {
-                Game.Player.Character.RelationshipGroup = Teams[PlayerTeam].Group;
+                Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Companion, Game.Player.Character.RelationshipGroup, Teams[PlayerTeam].Group);
+                Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Companion, Teams[PlayerTeam].Group, Game.Player.Character.RelationshipGroup);
                 Teams[PlayerTeam].Tier4Ped = Player; // Assign player to be their team's "strong npc"
                 Teams[PlayerTeam].IsPlayerTeam = true;
 
