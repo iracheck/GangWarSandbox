@@ -20,14 +20,14 @@ namespace GangWarSandbox.Gamemodes
         protected static GangWarSandbox Mod { get; set; }
 
         public enum GamemodeBool { PlayerChoice = -1, False = 0, True = 1 }
-        public enum SpawnMethod { Spawnpoint, Random }
+        public enum GamemodeSpawnMethod { Spawnpoint, Random }
 
         public string Name { get; private set; } = "no_name";
         public string Description { get; private set; } = "no_desc";
         public int MaxTeams { get; private set; } = GangWarSandbox.NUM_TEAMS;
 
         // Gamemode Settings
-        public SpawnMethod GMSpawnMethod = SpawnMethod.Spawnpoint; // options: "Spawnpoint", "Random"
+        public GamemodeSpawnMethod SpawnMethod = GamemodeSpawnMethod.Spawnpoint; // options: "Spawnpoint", "Random"
 
         // Treat these ints as a bool --> 0 = false, 1 = true, -1 = player choice
         public GamemodeBool EnableParameter_AllowVehicles { get; set; } = GamemodeBool.PlayerChoice;
@@ -266,7 +266,10 @@ namespace GangWarSandbox.Gamemodes
         public virtual bool ShouldSpawnSquad(Team team, int squadSize)
         {
             // SAFETY CHECKS: Prevent crashes and ensure team is even capable of spawning squads
-            if (team.SpawnPoints.Count == 0 || team.Models.Length == 0)
+            if (
+                (SpawnMethod == GamemodeSpawnMethod.Spawnpoint && (team.SpawnPoints == null || team.SpawnPoints.Count == 0)) ||
+                team.Models.Length == 0
+            )
             {
                 return false;
             }
@@ -285,7 +288,6 @@ namespace GangWarSandbox.Gamemodes
             }
 
             if (numAlive + squadSize <= team.GetMaxNumPeds() &&
-                team.SpawnPoints != null && team.SpawnPoints.Count > 0 &&
                 team.Models != null && team.Models.Length > 0) return true;
             else return false;
         }

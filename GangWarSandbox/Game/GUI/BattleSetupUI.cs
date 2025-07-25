@@ -118,7 +118,7 @@ namespace GangWarSandbox
 
             var stop = new NativeItem("Stop Battle", "Stop the battle and automatically clean up all peds and vehicles.");
 
-            var reload = new NativeItem("Reload Config", "Reload all configuration files. Note that some of your chosen settings will be lost.");
+            var reload = new NativeItem("Reload Config", "Reload all configuration files. This includes Factions, VehicleSets, and the base Configuration file. Note that some of your chosen settings may be lost.");
 
             start.Enabled = Mod.IsBattleRunning == false;
             stop.Enabled = Mod.IsBattleRunning == true;
@@ -155,7 +155,7 @@ namespace GangWarSandbox
         {
             if (oldGM == null) oldGM = Mod.CurrentGamemode;
 
-            TeamSetupMenu = new NativeMenu("Team Setup", "Configure Teams");
+            TeamSetupMenu = new NativeMenu("Team Setup", "Configure Teams", "Configure player team and the faction that each of the teams uses.");
             MenuPool.Add(TeamSetupMenu);
 
             // PLAYER TEAM SETUP
@@ -217,7 +217,7 @@ namespace GangWarSandbox
 
         public static NativeMenu CreateBattleOptionsMenu(Gamemode gm, Gamemode oldGM)
         {
-            BattleOptionsMenu = new NativeMenu("Battle Options", "Configure Battle Options");
+            BattleOptionsMenu = new NativeMenu("Battle Options", "Configure Battle Options", "Configure battle options, such as fog of war, vehicles, or ped count multipliers.");
             MenuPool.Add(BattleOptionsMenu);
 
             // A multiplier from the value located in the faction settings, max of 10x
@@ -260,7 +260,7 @@ namespace GangWarSandbox
         public static NativeMenu CreatePointSetupMenu(Gamemode gm, Gamemode oldGM)
         {
             // Submenu: POINT SETUP
-            SpawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers");
+            SpawnpointMenu = new NativeMenu("Map Markers", "Manage Map Markers", "Place down team spawnpoints and capture points.");
             MenuPool.Add(SpawnpointMenu);
 
 

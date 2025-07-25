@@ -323,7 +323,7 @@ namespace GangWarSandbox.Peds
             int pedValue = 0;
             int baseAccuracy = 15;
 
-            if (team.SpawnPoints.Count == 0 || team.Models.Length == 0)
+            if (team.Models.Length == 0)
                 return null;
 
             bool hasAnyWeapons = team.Tier1Weapons.Length > 0 || team.Tier2Weapons.Length > 0 || team.Tier3Weapons.Length > 0;
@@ -500,7 +500,7 @@ namespace GangWarSandbox.Peds
 
 
 
-            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 70f);
+            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 125f);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
             Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 1);
             Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 1); // 0 = near, 1 = medium, 2 = far

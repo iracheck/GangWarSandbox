@@ -106,11 +106,13 @@ namespace GangWarSandbox.Peds
             // First, determine a spawnpoint
             Vector3 spawnpoint = Vector3.Zero;
 
-            if (CurrentGamemode.GMSpawnMethod == Gamemode.SpawnMethod.Spawnpoint && owner.SpawnPoints.Count > 0)
+            Logger.Log("Trying to find a spawnpoint");
+
+            if (CurrentGamemode.SpawnMethod == Gamemode.GamemodeSpawnMethod.Spawnpoint && owner.SpawnPoints.Count > 0)
             {
                 spawnpoint = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
             }
-            else if (CurrentGamemode.GMSpawnMethod == Gamemode.SpawnMethod.Random)
+            else if (CurrentGamemode.SpawnMethod == Gamemode.GamemodeSpawnMethod.Random)
             {
                 spawnpoint = FindRandomPositionAroundPlayer(200);
             }
@@ -119,10 +121,16 @@ namespace GangWarSandbox.Peds
             {
                 return;
             }
+
+            Logger.Log("Found spawnpoint: " + spawnpoint.ToString());
+
             // Find a random point around the spawn position to actually spawn in
             SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
             if (IsSpawnPositionCrowded(SpawnPos)) return;
+
+            Logger.Log("RAND#: " + rand.Next() + " Spawn position: " + SpawnPos.ToString());
+            Game.Player.Character.Position = SpawnPos;
 
             if (vehicle != 1)
             {

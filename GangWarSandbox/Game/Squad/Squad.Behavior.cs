@@ -239,7 +239,7 @@ namespace GangWarSandbox.Peds
 
             // Get all enemy squads from other teams
             var enemyPeds = ModData.Teams
-                .Where(t => t != team)
+                .Where(t => t != team && !team.AlliedIndexes.Contains(t.TeamIndex))
                 .SelectMany(t => t.Squads).SelectMany(s => s.Members).ToList();
 
             if (ModData.PlayerTeam != -1 && Owner.TeamIndex != ModData.PlayerTeam)

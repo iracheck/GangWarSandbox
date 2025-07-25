@@ -38,6 +38,8 @@ namespace GangWarSandbox
         public Ped Tier4Ped = null;
 
         public int TeamIndex;
+        public List<int> AlliedIndexes = new List<int>();
+
         public bool IsPlayerTeam;
 
 
@@ -93,6 +95,7 @@ namespace GangWarSandbox
 
         public int GetMaxNumPeds()
         {
+            if (IsPlayerTeam) return (int)(MAX_SOLDIERS * ModData.CurrentGamemode.UnitCountMultiplier * 0.8);
             return (int) (MAX_SOLDIERS * ModData.CurrentGamemode.UnitCountMultiplier);
         }
 

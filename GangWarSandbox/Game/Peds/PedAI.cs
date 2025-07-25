@@ -253,7 +253,6 @@ namespace GangWarSandbox.Peds
 
             foreach (var team in ModData.Teams)
             {
-                if (team.SpawnPoints.Count == 0) continue;
                 PedsNearby[team] = 0; // Initialize count for each team
 
                 List<Ped> allTeamPeds = team.GetAllPeds(); // Get all peds for this team
