@@ -155,6 +155,19 @@ namespace GangWarSandbox.Gamemodes
         public virtual void OnSquadUpdate(Squad squad) { }
 
         /// <summary>
+        /// Runs at the beginning, and sets up relationships. By default, this resets everything.
+        /// </summary>
+        public virtual void SetRelationships()
+        {
+            foreach (var team in Mod.Teams)
+            {
+                team.AlliedIndexes.Clear();
+            }
+
+            Mod.ResetPlayerRelations();
+        }
+
+        /// <summary>
         /// Runs once when the battle ends. This method should clean up any UI modifications, if applicable.
         /// </summary>
         public virtual void OnEnd() { }
@@ -216,8 +229,6 @@ namespace GangWarSandbox.Gamemodes
                     target = PedAI.FindRandomEnemySpawnpoint(s.Owner);
                 }
             }
-
-            Logger.Log("Target: " + target.ToString());
 
             // Final failsafe: ensure a non-zero target is returned
             if (target == Vector3.Zero)
@@ -301,8 +312,6 @@ namespace GangWarSandbox.Gamemodes
         {
             if (Helpers.RandomChance(50)) return false;
 
-            if (!ShouldSpawnSquad(team, team.GetSquadSize())) return false;
-
             int members = GetMemberCountByType(team, team.VehicleSquads);
 
             if (members >= (team.GetMaxNumPeds() * 0.10f)) // 10%
@@ -322,9 +331,6 @@ namespace GangWarSandbox.Gamemodes
         {
             if (Helpers.RandomChance(30)) return false;
 
-            if (!ShouldSpawnSquad(team, team.GetSquadSize())) return false;
-
-
             int members = GetMemberCountByType(team, team.WeaponizedVehicleSquads);
 
             if (members >= (team.GetMaxNumPeds() * 0.10f)) // 10%
@@ -343,8 +349,6 @@ namespace GangWarSandbox.Gamemodes
         public virtual bool ShouldSpawnHelicopterSquad(Team team)
         {
             if (Helpers.RandomChance(20)) return false;
-
-            if (!ShouldSpawnSquad(team, team.GetSquadSize())) return false;
 
             int members = GetMemberCountByType(team, team.HelicopterSquads);
 

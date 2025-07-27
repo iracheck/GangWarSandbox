@@ -29,7 +29,7 @@ namespace GangWarSandbox.Peds
         private Gamemode CurrentGamemode => ModData.CurrentGamemode;
 
         // Constants
-        public const float SQUAD_ATTACK_RANGE = 55f;
+        public const float SQUAD_ATTACK_RANGE = 60f;
 
         // Squad Logic begins here
 
@@ -84,7 +84,7 @@ namespace GangWarSandbox.Peds
         /// <param name="role"></param>
         /// <param name="type"></param>
         /// <param name="personality"></param>
-        public Squad(Team owner, int vehicle = 0, SquadRole role = 0, SquadType type = 0, SquadPersonality personality = 0)
+        public Squad(Team owner, SquadType type = 0, SquadRole role = 0,  SquadPersonality personality = 0)
         {
             Owner = owner;
             Role = role;

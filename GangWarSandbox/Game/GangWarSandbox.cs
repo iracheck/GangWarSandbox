@@ -271,7 +271,9 @@ namespace GangWarSandbox
 
                 if (squadSize <= 0) continue;
 
-                if (CurrentGamemode.ShouldSpawnSquad(team, team.GetSquadSize()) && Game.GameTime - LastSquadSpawnTime[team] >= TIME_BETWEEN_SQUAD_SPAWNS)
+                if (Game.GameTime - LastSquadSpawnTime[team] >= TIME_BETWEEN_SQUAD_SPAWNS &&
+                    CurrentGamemode.ShouldSpawnSquad(team, squadSize)
+                    )
                 {
                     LastSquadSpawnTime[team] = Game.GameTime;
 
@@ -279,19 +281,19 @@ namespace GangWarSandbox
 
                     if (CurrentGamemode.ShouldSpawnVehicleSquad(team))
                     {
-                        new Squad(team, 1);
+                        new Squad(team, Squad.SquadType.CarVehicle);
                     }
                     else if (CurrentGamemode.ShouldSpawnWeaponizedVehicleSquad(team))
                     {
-                        new Squad(team, 2);
+                        new Squad(team, Squad.SquadType.WeaponizedVehicle);
                     }
                     else if (CurrentGamemode.ShouldSpawnHelicopterSquad(team))
                     {
-                        new Squad(team, 3);
+                        new Squad(team, Squad.SquadType.AirHeli);
                     }
-                    else
+                    else 
                     {
-                        new Squad(team, 0);
+                        new Squad(team, Squad.SquadType.Infantry);
                     }
 
                     if (squad != null) CurrentGamemode.OnSquadSpawn(squad);
@@ -503,7 +505,7 @@ namespace GangWarSandbox
             }
         }
 
-        private void ResetPlayerRelations()
+        public void ResetPlayerRelations()
         {
             foreach (var team in Teams)
             {

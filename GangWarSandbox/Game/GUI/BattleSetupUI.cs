@@ -189,7 +189,7 @@ namespace GangWarSandbox
 
                 // Use saved faction name if available
                 string savedFaction = SavedFactions[teamIndex];
-                if (!string.IsNullOrEmpty(savedFaction) && Mod.Factions.ContainsKey(savedFaction))
+                if (!string.IsNullOrEmpty(savedFaction))
                 {
                     teamFactionItem.SelectedItem = savedFaction;
                 }
