@@ -28,7 +28,7 @@ namespace GangWarSandbox.Gamemodes
 
         // Each threat level, and how it scales for the player.
         // Each numerical index represents a value
-        // index 0 => max number of peds
+        // index 0 => max number of squads
         // index 1 => max number of vehicles
         // index 2 => max number of weaponized vehicles
         // index 3 => max number of helicopters
@@ -36,23 +36,22 @@ namespace GangWarSandbox.Gamemodes
         // index 5 => threat "weight" (described in a comment below) to reach this point --> tl;dr a combination of multiple factors to determine how progressed the gamemode is
         List<int[]> ThreatLevelSettings = new List<int[]>
         {
-            // peds(0) - vehicles(1) - weaponized vehicles(2) - helicopters(3) - max faction tier(4) - threat weight(5)
-            new int[] { 3, 0, 0, 0, 1, 0 }, // 1
-            new int[] { 6, 1, 0, 0, 1, 50 }, // 2
-            new int[] { 10, 1, 0, 0, 1, 200 }, // 3
-            new int[] { 10, 2, 0, 0, 1, 500 }, // 4
-            new int[] { 15, 2, 0, 0, 1, 850 }, // 5
-            new int[] { 15, 2, 1, 0, 2, 1200 }, // 6
-            new int[] { 20, 3, 1, 0, 2, 1700 }, // 7
-            new int[] { 20, 3, 1, 1, 2, 2400 }, // 8
-            new int[] { 25, 4, 1, 1, 3, 3600 }, // 9
-            new int[] { 30, 4, 1, 1, 3, 4500 }, // 10
-            new int[] { 30, 4, 1, 2, 3, 5600 }, // 11
-            new int[] { 30, 4, 1, 2, 3, 7000 }, // 12
-            new int[] { 30, 4, 1, 2, 3, 9000 }, // 13
-            new int[] { 30, 5, 1, 2, 3, 11000 }, // 14
-            new int[] { 30, 5, 2, 2, 3, 20000 }, // 15
-
+            // squads (0) - vehicles (1) - weaponized vehicles (2) - helicopters (3) - max faction tier[1-3] (4) - threat weight (5)
+            new int[] { 1, 0, 0, 0, 1, 0 }, // 1
+            new int[] { 1, 1, 0, 0, 1, 50 }, // 2
+            new int[] { 2, 1, 0, 0, 1, 200 }, // 3
+            new int[] { 2, 2, 0, 0, 1, 500 }, // 4
+            new int[] { 3, 2, 0, 0, 1, 850 }, // 5
+            new int[] { 3, 2, 1, 0, 2, 1200 }, // 6
+            new int[] { 4, 3, 1, 0, 2, 1700 }, // 7
+            new int[] { 5, 3, 1, 1, 2, 2400 }, // 8
+            new int[] { 5, 4, 1, 1, 3, 3600 }, // 9
+            new int[] { 5, 4, 1, 1, 3, 4500 }, // 10
+            new int[] { 6, 4, 1, 2, 3, 5600 }, // 11
+            new int[] { 6, 4, 1, 2, 3, 7000 }, // 12
+            new int[] { 7, 4, 1, 2, 3, 9000 }, // 13
+            new int[] { 7, 5, 1, 2, 3, 11000 }, // 14
+            new int[] { 7, 5, 2, 2, 3, 20000 }, // 15
         };
 
         int Combo = 1;
@@ -198,7 +197,7 @@ namespace GangWarSandbox.Gamemodes
 
         public override bool ShouldSpawnSquad(Team team, int squadSize)
         {
-            if (team.Squads.Count * squadSize >= ThreatLevelSettings[CurrentThreatLevel][0])
+            if (team.Squads.Count >= ThreatLevelSettings[CurrentThreatLevel][0])
             {
                 return false;
             }
