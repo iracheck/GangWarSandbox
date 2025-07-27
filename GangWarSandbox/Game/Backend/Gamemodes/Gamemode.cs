@@ -71,7 +71,7 @@ namespace GangWarSandbox.Gamemodes
             Mod = GangWarSandbox.Instance;
 
             Name = name;
-            Description = description;
+            Description = "DESCRIPTION: " + description;
             MaxTeams = maxFactions;
         }
 
@@ -118,7 +118,7 @@ namespace GangWarSandbox.Gamemodes
         public virtual void InitializeGamemode() { }
 
         /// <summary>
-        /// Executes when the game mode is first selected by the player. This is the best place to initialize certain Gamemode attributes, such as CaptureProgressMultiplier or PedHealthMultiplier. Of course, you can still modify them later.
+        /// Executes when the game mode is first selected by the player. This is where you should remove all irrelevant data from the previous gamemode, such as clearing out capture points or spawnpoints.
         /// </summary>
         public virtual void TerminateGamemode() { }
 
