@@ -22,11 +22,14 @@ namespace GangWarSandbox.Peds
 {
     public partial class Squad
     {
-        Random rand = new Random();
-        PedAI pedAI = new PedAI();
+        static Random rand = new Random();
+        static PedAI pedAI = new PedAI();
 
-        GangWarSandbox ModData = GangWarSandbox.Instance;
-        Gamemode CurrentGamemode;
+        static GangWarSandbox ModData = GangWarSandbox.Instance;
+        private Gamemode CurrentGamemode => ModData.CurrentGamemode;
+
+        // Constants
+        public const float SQUAD_ATTACK_RANGE = 55f;
 
         // Squad Logic begins here
 
@@ -38,7 +41,6 @@ namespace GangWarSandbox.Peds
         public Team Owner;
 
         public int squadValue; // lower value squads may be assigned to less important tasks
-        public float squadAttackRange = 55f;
 
 
         public List<Vector3> Waypoints = new List<Vector3>();
@@ -59,31 +61,19 @@ namespace GangWarSandbox.Peds
         public Vehicle SquadVehicle = null;
         public bool IsWeaponizedVehicle;
 
-        // Squad roles are the command to the squad from AI overseer
-
+        // Squad type is only used for spawning the squad.
         public enum SquadType
         {
-            InfantryRandom = 0,
-            Infantry = 1,
-            Sniper = 2,
-            Garrison = 3,
+            Infantry = 0,
+            Sniper = 1,
+            Garrison = 2,
 
-            VehicleRandom = 10,
             CarVehicle = 11,
             WeaponizedVehicle = 12,
 
             AirHeli = 20,
-            AirHeliReinforce = 21,
-            AirPlane = 22,
 
             Naval = 30,
-        }
-
-        // Personality -- how a squad reacts to certain situations, gives a dynamic feel to the battlefield
-        public enum SquadPersonality
-        {
-            Normal = 0, // the squad will not act in any particular way. the majority of squads
-            Aggressive = 1, // the squad will act more aggressively, and move more quickly
         }
 
         /// <summary>
@@ -101,96 +91,82 @@ namespace GangWarSandbox.Peds
             Personality = personality;
             Type = type;
 
-            CurrentGamemode = ModData.CurrentGamemode;
-
             // First, determine a spawnpoint
             Vector3 spawnpoint = Vector3.Zero;
-
-            Logger.Log("Trying to find a spawnpoint");
 
             if (CurrentGamemode.SpawnMethod == Gamemode.GamemodeSpawnMethod.Spawnpoint && owner.SpawnPoints.Count > 0)
             {
                 spawnpoint = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
+
+                if (spawnpoint == null || spawnpoint == Vector3.Zero) return;
+                SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
             }
             else if (CurrentGamemode.SpawnMethod == Gamemode.GamemodeSpawnMethod.Random)
             {
                 spawnpoint = FindRandomPositionAroundPlayer(200);
             }
 
-            if (spawnpoint == Vector3.Zero)
-            {
-                return;
-            }
-
-            Logger.Log("Found spawnpoint: " + spawnpoint.ToString());
+            if (spawnpoint == null || spawnpoint == Vector3.Zero) return;
 
             // Find a random point around the spawn position to actually spawn in
             SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
 
             if (IsSpawnPositionCrowded(SpawnPos)) return;
 
-            Logger.Log("RAND#: " + rand.Next() + " Spawn position: " + SpawnPos.ToString());
-            Game.Player.Character.Position = SpawnPos;
 
-            if (vehicle != 1)
-            {
-                if (Owner.TeamVehicles == null || Owner.TeamVehicles.Vehicles.Count == 0)
-                {
-                    vehicle = 0; // no vehicles available, set to regular squad
-                }
-            }
-
-            if (vehicle == 3 && ModData.CurrentGamemode.SpawnHelicopters) // helicopter
+            if (Type == SquadType.AirHeli && ModData.CurrentGamemode.SpawnHelicopters) // helicopter
             {
                 SpawnPos.Z += 95;
 
                 SpawnVehicle(VehicleSet.Type.Helicopter, SpawnPos);
                 Owner.HelicopterSquads.Add(this);
             }
-            else if (vehicle == 2 && ModData.CurrentGamemode.SpawnWeaponizedVehicles) // weaponized vehicle
+            else if (Type == SquadType.WeaponizedVehicle && ModData.CurrentGamemode.SpawnWeaponizedVehicles) // weaponized vehicle
             {
                 IsWeaponizedVehicle = true;
                 SpawnVehicle(VehicleSet.Type.WeaponizedVehicle, SpawnPos);
                 Owner.WeaponizedVehicleSquads.Add(this);
             }
-            else if (vehicle == 1 && ModData.CurrentGamemode.SpawnVehicles) // reg vehicle
+            else if (Type == SquadType.CarVehicle && ModData.CurrentGamemode.SpawnVehicles) // reg vehicle
             {
                 SpawnVehicle(VehicleSet.Type.Vehicle, SpawnPos);
                 Owner.VehicleSquads.Add(this);
             }
-            else
+            else // infantry
             {
                 Owner.Squads.Add(this);
             }
 
             if (role == 0)
             {
-                if (vehicle != 0 || SquadVehicle != null)
+                if (SquadVehicle != null)
                 {
                     Role = SquadRole.VehicleSupport;
                 }
-
-                int max = 20; // weights for seek and destroy included in the max
-                int assault = 0;
-                int defend = 0;
-
-                assault += StrategyAIHelpers.CalculateNeedToAssaultPoint(Owner);
-                defend += StrategyAIHelpers.CalculateNeedToDefendPoint(Owner);
-                max += assault + defend;
-
-                int randNum = rand.Next(0, max);
-
-                if (randNum <= assault) // Assault
-                {
-                    Role = SquadRole.AssaultCapturePoint;
-                }
-                else if (randNum <= defend + assault) // Defend
-                {
-                    Role = SquadRole.DefendCapturePoint;
-                }
                 else
                 {
-                    Role = SquadRole.SeekAndDestroy; // default role if no other roles are available
+                    int max = 20; // base weight of seek and destroy is 20
+                    int assault = 0;
+                    int defend = 0;
+
+                    assault += StrategyAIHelpers.CalculateNeedToAssaultPoint(Owner);
+                    defend += StrategyAIHelpers.CalculateNeedToDefendPoint(Owner);
+                    max += assault + defend;
+
+                    int randNum = rand.Next(0, max);
+
+                    if (randNum <= assault) // Assault
+                    {
+                        Role = SquadRole.AssaultCapturePoint;
+                    }
+                    else if (randNum <= defend + assault) // Defend
+                    {
+                        Role = SquadRole.DefendCapturePoint;
+                    }
+                    else
+                    {
+                        Role = SquadRole.SeekAndDestroy; // default role if no other roles are available
+                    }
                 }
             }
 
@@ -209,6 +185,9 @@ namespace GangWarSandbox.Peds
 
             Vector3 target = CurrentGamemode.GetTarget(this); // get a random target for the squad to attack
             SetTarget(target);
+
+            // Update as soon as they are spawned, to avoid them "looking dumb" for ~half a second.
+            Update();
         }
 
         // Runs every 200ms (default) and updates all AI, squad states, etc.
@@ -220,34 +199,47 @@ namespace GangWarSandbox.Peds
                 return false;
             }
 
-            if (Waypoints.Count == 0) Waypoints.Add(Vector3.Zero);
+            // If at the last waypoint, get a new target!
+            if (Waypoints.Count == 0) SetTarget(CurrentGamemode.GetTarget(this));
 
             if (JustSpawned) JustSpawned = false;
 
             if (SquadLeader == null || SquadLeader.IsDead || !SquadLeader.Exists())
                 PromoteLeader();
 
-            bool isCloseEnough = (SquadLeader.Position.DistanceTo(Waypoints[0]) < 15f) || (SquadVehicle != null && SquadVehicle.Position.DistanceTo(Waypoints[0]) < 40f);
-            bool waypointSkipped = Waypoints.Count > 1 && Waypoints[1] != null && Waypoints[1] != Vector3.Zero && SquadLeader.Position.DistanceTo(Waypoints[1]) < 50f &&
-                Waypoints[0].DistanceTo(SquadLeader.Position) > Waypoints[1].DistanceTo(SquadLeader.Position);
-
-            // Clear nearby waypoints
-            if (isCloseEnough || waypointSkipped)
+            if (Waypoints != null && Waypoints.Count > 0)
             {
-                Waypoints.RemoveAt(0);
-                foreach (var ped in Members)
+                bool isCloseEnough = Waypoints.Count > 0 &&
+                    (SquadLeader.Position.DistanceTo(Waypoints[0]) < 15f) ||
+                    (SquadVehicle != null && SquadVehicle.Position.DistanceTo(Waypoints[0]) < 40f);
+
+                bool waypointSkipped = Waypoints.Count > 1 &&
+                    Waypoints[1] != null && Waypoints[1] != Vector3.Zero &&
+                    SquadLeader.Position.DistanceTo(Waypoints[1]) < 50f &&
+                    Waypoints[0].DistanceTo(SquadLeader.Position) > Waypoints[1].DistanceTo(SquadLeader.Position);
+
+                if (isCloseEnough || waypointSkipped)
                 {
-                    if (PedAssignments[ped] == PedAssignment.RunToPosition || PedAssignments[ped] == PedAssignment.DriveToPosition)
+                    Waypoints.RemoveAt(0);
+                    foreach (var ped in Members)
                     {
-                        PedAssignments[ped] = PedAssignment.None;
+                        if (PedAssignments[ped] == PedAssignment.RunToPosition || PedAssignments[ped] == PedAssignment.DriveToPosition)
+                        {
+                            PedAssignments[ped] = PedAssignment.None;
+                        }
                     }
+                }
+
+                if (Waypoints.Count > 0 && Waypoints[0] == Vector3.Zero)
+                {
+                    Waypoints.RemoveAt(0);
                 }
             }
 
             // Gamemode: should try to get a new target?
             if (CurrentGamemode.ShouldGetNewTarget(this))
             {
-                CurrentGamemode.GetTarget(this);
+                SetTarget(CurrentGamemode.GetTarget(this));
             }
 
             for (int i = 0; i < Members.Count; i++)
@@ -326,7 +318,7 @@ namespace GangWarSandbox.Peds
 
             if (team.TeamIndex == ModData.PlayerTeam || ModData.PlayerTeam == -1) return maxAlpha;
 
-            if (ModData.DEBUG == 1 || CurrentGamemode.FogOfWar == false) return 255;
+            if (ModData.DEBUG == 1 || CurrentGamemode.FogOfWar == false) return maxAlpha;
 
             // Relative conditions
             float healthPercent = (float)ped.Health / (float)ped.MaxHealth;

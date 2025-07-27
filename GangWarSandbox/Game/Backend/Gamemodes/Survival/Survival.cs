@@ -36,7 +36,9 @@ namespace GangWarSandbox.Gamemodes
             EnableParameter_AllowWeaponizedVehicles = GamemodeBool.True;
             EnableParameter_AllowVehicles = GamemodeBool.True;
             EnableParameter_AllowHelicopters = GamemodeBool.True;
+
             EnableParameter_FogOfWar = GamemodeBool.False;
+            FogOfWar = true;
 
             EnableParameter_CapturePoints = GamemodeBool.False;
             EnableParameter_Spawnpoints = GamemodeBool.False;
@@ -54,26 +56,32 @@ namespace GangWarSandbox.Gamemodes
 
             InitializeUI();
 
+            // Assign team relationships
             foreach (var team in Mod.Teams)
             {
-                if (team.TeamIndex == 1) continue;
+                if (team.TeamIndex == 1)
+                {
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Companion, team.Group, Game.Player.Character.RelationshipGroup);
+                    continue;
+                }
 
                 if (team.TeamIndex != 2)
                 {
-                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Respect, team.Group, Mod.Teams[1].Group);
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Companion, team.Group, Mod.Teams[1].Group);
                     team.AlliedIndexes.Add(2);
                 }
                 if (team.TeamIndex != 3)
                 {
-                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Respect, team.Group, Mod.Teams[2].Group);
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Companion, team.Group, Mod.Teams[2].Group);
                     team.AlliedIndexes.Add(3);
                 }
                 if (team.TeamIndex != 4)
                 {
-                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Respect, team.Group, Mod.Teams[3].Group);
+                    Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Companion, team.Group, Mod.Teams[3].Group);
                     team.AlliedIndexes.Add(4);
                 }
 
+                Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, team.Group, Game.Player.Character.RelationshipGroup);
 
             }
         }
@@ -159,6 +167,16 @@ namespace GangWarSandbox.Gamemodes
         public override bool CanStartBattle()
         {
             return true;
+        }
+
+        public override bool ShouldGetNewTarget(Squad s)
+        {
+            if (s.Waypoints.Count == 0) return true;
+
+            if (s.SquadLeader.IsInCombat) return false;
+
+            if (s.Waypoints.Last().DistanceTo(Game.Player.Character.Position) > 20f) return true;
+            else return false;
         }
 
         public override Vector3 GetTarget(Squad s)

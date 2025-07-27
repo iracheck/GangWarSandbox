@@ -21,10 +21,10 @@ namespace GangWarSandbox.Peds
         {
             Idle = 0,
 
-            DefendCapturePoint = 1,
-            AssaultCapturePoint = 2,
+            DefendCapturePoint = 1, // defend a capture point from enemies trying to take it
+            AssaultCapturePoint = 2, // capture a capture point by attacking it and any squads nearby
             ReinforceAllies = 3,
-            SeekAndDestroy = 4,
+            SeekAndDestroy = 4, // assault a random enemy spawn point
             ChargeCapturePoint = 5,
 
             VehicleSupport = 21,
@@ -33,6 +33,13 @@ namespace GangWarSandbox.Peds
             //AirDrop = 32,
 
 
+        }
+
+        // Personality -- how a squad reacts to certain situations, gives a dynamic feel to the battlefield
+        public enum SquadPersonality
+        {
+            Normal = 0, // the squad will not act in any particular way. the majority of squads
+            Aggressive = 1, // the squad will act more aggressively, and move more quickly
         }
 
         // Ped Assignnment -- what each ped is doing
@@ -56,6 +63,8 @@ namespace GangWarSandbox.Peds
         public void SetTarget(Vector3 target)
         {
             if (target == Vector3.Zero) return;
+
+            if (SquadLeader.Position.DistanceTo(target) < 5f) return;
 
             bool hasVehicle = SquadVehicle != null && SquadVehicle.Exists() && SquadVehicle.IsAlive;
             Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target, hasVehicle); // set the waypoints to the target position
@@ -103,12 +112,12 @@ namespace GangWarSandbox.Peds
             Ped nearbyEnemy = cachedEnemy;
 
             // Handle ped target caching and refinding
-            if (Game.GameTime - lastCheckedTime > 1000 || cachedEnemy == null || cachedEnemy.IsDead || cachedEnemy.Position.DistanceTo(ped.Position) > squadAttackRange)
+            if (Game.GameTime - lastCheckedTime > 1000 || cachedEnemy == null || cachedEnemy.IsDead || cachedEnemy.Position.DistanceTo(ped.Position) > SQUAD_ATTACK_RANGE)
             {
                 Vector3 source = ped.Position;
                 if (ped.IsInVehicle()) source = ped.CurrentVehicle.Position;
 
-                nearbyEnemy = FindNearbyEnemy(source, Owner, squadAttackRange); // search for a nearby enemy
+                nearbyEnemy = FindNearbyEnemy(source, Owner, SQUAD_ATTACK_RANGE); // search for a nearby enemy
                 if (nearbyEnemy == null || !nearbyEnemy.Exists() || nearbyEnemy.IsDead || nearbyEnemy.Position.DistanceTo(ped.Position) >= 90f)
                     
                 PedTargetCache[ped] = (nearbyEnemy, Game.GameTime); // update the cache with the new target and timestamp
@@ -189,7 +198,7 @@ namespace GangWarSandbox.Peds
 
             if (ped.IsInVehicle())
             {
-                Ped nearbyEnemy = FindNearbyEnemy(ped.Position, Owner, squadAttackRange); // find a nearby enemy
+                Ped nearbyEnemy = FindNearbyEnemy(ped.Position, Owner, SQUAD_ATTACK_RANGE); // find a nearby enemy
 
                 if (nearbyEnemy != null) ped.Task.LeaveVehicle(LeaveVehicleFlags.LeaveDoorOpen);
             }
@@ -245,7 +254,7 @@ namespace GangWarSandbox.Peds
             if (ModData.PlayerTeam != -1 && Owner.TeamIndex != ModData.PlayerTeam)
                 enemyPeds.Add(Game.Player.Character); // add the player's squad to the list of enemy squads if the squad is not on the player's team
 
-            foundEnemy = enemyPeds.Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(selfPosition) <= squadAttackRange)
+            foundEnemy = enemyPeds.Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(selfPosition) <= SQUAD_ATTACK_RANGE)
                     .OrderBy(p => p.Position.DistanceTo(selfPosition))
                     .FirstOrDefault();
 

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using GangWarSandbox;
 using GangWarSandbox.Peds;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace GangWarSandbox
 {
@@ -23,6 +24,8 @@ namespace GangWarSandbox
         public Blip PointBlip;
         public Team Owner;
         public Vector3 Position;
+
+        public Color GenericColor = Color.White;
 
         public static float Radius = 10f; // Radius of the capture point area
 
@@ -117,6 +120,8 @@ namespace GangWarSandbox
                 Owner = nearbyTeam; // Set the owner to the capturing team
 
                 PointBlip.Color = Owner.BlipColor;
+                GenericColor = Owner.GenericColor;
+
                 ResetCaptureProgress(); // Reset capture progress after capture is complete
 
                 return;
@@ -151,7 +156,10 @@ namespace GangWarSandbox
         public void BattleStart()
         {
             Owner = null;
+
             PointBlip.Color = BlipColor.White; // Reset blip color to white
+            GenericColor = Color.White; // Reset generic color
+
             ResetCaptureProgress();
         }
 

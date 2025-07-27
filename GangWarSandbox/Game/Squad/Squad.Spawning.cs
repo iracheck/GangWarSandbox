@@ -320,11 +320,13 @@ namespace GangWarSandbox.Peds
         // SpawnPed -- Spawns a ped based on the team, with a given loadout.
         public Ped SpawnPed(Team team, bool isSquadLeader)
         {
-            int pedValue = 0;
-            int baseAccuracy = 15;
-
             if (team.Models.Length == 0)
                 return null;
+
+
+            int pedValue = 0;
+            int baseAccuracy = 15;
+            int tier;
 
             bool hasAnyWeapons = team.Tier1Weapons.Length > 0 || team.Tier2Weapons.Length > 0 || team.Tier3Weapons.Length > 0;
 
@@ -333,18 +335,14 @@ namespace GangWarSandbox.Peds
 
             bool shouldSpawnTier4 = (team.Tier4Ped == null || !team.Tier4Ped.Exists() || team.Tier4Ped.IsDead) && !playerHasNoTeam;
 
-            int tier;
             int rnum = rand.Next(0, 100);
 
             rnum = (int)(rnum * team.TierUpgradeMultiplier);
 
-            if (isSquadLeader || rnum >= 95) tier = 3;
+            if (shouldSpawnTier4) tier = 4;
+            else if (isSquadLeader || rnum >= 95) tier = 3;
             else if (rnum >= 60) tier = 2;
             else tier = 1;
-
-
-            if (shouldSpawnTier4)
-                tier = 4;
 
             var model = new Model(team.Models[rand.Next(team.Models.Length)]);
             if (tier == 4 && !string.IsNullOrEmpty(team.Faction.Tier4Model)) model = new Model(team.Faction.Tier4Model);

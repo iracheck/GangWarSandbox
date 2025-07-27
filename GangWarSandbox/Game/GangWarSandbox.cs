@@ -27,8 +27,6 @@ namespace GangWarSandbox
     {
         public static GangWarSandbox Instance { get; private set; }
 
-        private readonly Random rand = new Random();
-
         // Debug Utilities
         public int DEBUG = 1;
 
@@ -104,7 +102,7 @@ namespace GangWarSandbox
         public GangWarSandbox()
         {
             Instance = this;
-
+            
             // Ensure valid directories exist on startup
             ModFiles.EnsureDirectoriesExist();
 
@@ -255,6 +253,7 @@ namespace GangWarSandbox
             if (IsBattleRunning == false) return;
 
             IsBattleRunning = false;
+
             CurrentGamemode.OnEnd();
 
             GTA.UI.Screen.ShowSubtitle("Battle Ended!");
@@ -481,7 +480,7 @@ namespace GangWarSandbox
                 SetColors(team);
             }
 
-            GTA.UI.Screen.ShowSubtitle($"Faction '{factionName}' applied to {team.Name} team.");
+            if (DEBUG == 1) GTA.UI.Screen.ShowSubtitle($"Faction '{factionName}' applied to {team.Name} team.");
         }
 
         public void SetColors(Team team)
@@ -556,7 +555,7 @@ namespace GangWarSandbox
             foreach (var point in CapturePoints)
             {
                 Color color = point.Owner?.GenericColor ?? Color.White;
-                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(CapturePoint.Radius, CapturePoint.Radius, 1f), color);
+                World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(CapturePoint.Radius, CapturePoint.Radius, 1f), point.GenericColor);
             }
 
             if (DEBUG == 1 && Teams != null)

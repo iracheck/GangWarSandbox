@@ -60,7 +60,7 @@ namespace GangWarSandbox.Core.StrategyAI
             {
                 return 60;
             }
-            else if (squadsWithRole < 1) // try to have atleast one squad that is assaulting
+            else if (squadsWithRole == 0) // try to have atleast one squad that is assaulting
             {
                 return 50;
             }
@@ -116,16 +116,16 @@ namespace GangWarSandbox.Core.StrategyAI
                 }
                 else
                 {
-                    return 0; // More than 80% owned, no need for additional focus
+                    return 0;
                 }
             }
             else if (percentOwned >= 50 && squadsWithRole < 3)
             {
                 return 15;
             }
-            else if (percentOwned >= 30 && squadsWithRole < 2)
+            else if (percentOwned >= 30 && squadsWithRole == 1)
             {
-                return 5;
+                return 5; // not much to defend, so no prioritization neded
             }
             else
             {
