@@ -33,12 +33,25 @@ namespace GangWarSandbox.Gamemodes
         // index 2 => max number of weaponized vehicles
         // index 3 => max number of helicopters
         // index 4 => max faction tier that can spawn
-        // index 5 => threat "weight" (described in a comment below) to reach this point
+        // index 5 => threat "weight" (described in a comment below) to reach this point --> tl;dr a combination of multiple factors to determine how progressed the gamemode is
         List<int[]> ThreatLevelSettings = new List<int[]>
         {
-            new int[] { 3, 0, 0, 0, 1, 0 },
-            new int[] { 6, 1, 0, 0, 1, 100 },
-            new int[] { 10, 1, 0, 0, 1, 250 },
+            // peds(0) - vehicles(1) - weaponized vehicles(2) - helicopters(3) - max faction tier(4) - threat weight(5)
+            new int[] { 3, 0, 0, 0, 1, 0 }, // 1
+            new int[] { 6, 1, 0, 0, 1, 50 }, // 2
+            new int[] { 10, 1, 0, 0, 1, 200 }, // 3
+            new int[] { 10, 2, 0, 0, 1, 500 }, // 4
+            new int[] { 15, 2, 0, 0, 1, 850 }, // 5
+            new int[] { 15, 2, 1, 0, 2, 1200 }, // 6
+            new int[] { 20, 3, 1, 0, 2, 1700 }, // 7
+            new int[] { 20, 3, 1, 1, 2, 2400 }, // 8
+            new int[] { 25, 4, 1, 1, 3, 3600 }, // 9
+            new int[] { 30, 4, 1, 1, 3, 4500 }, // 10
+            new int[] { 30, 4, 1, 2, 3, 5600 }, // 11
+            new int[] { 30, 4, 1, 2, 3, 7000 }, // 12
+            new int[] { 30, 4, 1, 2, 3, 9000 }, // 13
+            new int[] { 30, 5, 1, 2, 3, 11000 }, // 14
+            new int[] { 30, 5, 2, 2, 3, 20000 }, // 15
 
         };
 
@@ -137,6 +150,7 @@ namespace GangWarSandbox.Gamemodes
         public override void OnTickGameRunning()
         {
             TimeElapsed = Game.GameTime - TimeStart;
+            UpdateThreatLevel();
         }
 
         public override void OnPedKilled(Ped ped, Team teamOfPed)
@@ -172,8 +186,6 @@ namespace GangWarSandbox.Gamemodes
         public override bool ShouldGetNewTarget(Squad s)
         {
             if (s.Waypoints.Count == 0) return true;
-
-            if (s.SquadLeader.IsInCombat) return false;
 
             if (s.Waypoints.Last().DistanceTo(Game.Player.Character.Position) > 20f) return true;
             else return false;
@@ -251,8 +263,28 @@ namespace GangWarSandbox.Gamemodes
                 }
 
                 Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, team.Group, Game.Player.Character.RelationshipGroup);
+                Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, Game.Player.Character.RelationshipGroup, team.Group);
+
 
             }
+        }
+
+        public bool UpdateThreatLevel()
+        {
+            // Threat level uses two factors:
+            // - Time (1s:1pt)
+            // - Player Score (1pt:0.2pt)
+            // This combined score is used to determine the current threat level, which is then used to scale the difficulty of the gamemode.
+
+            double threatWeight = TimeElapsed + (PlayerScore * 0.2);
+
+            if (CurrentThreatLevel < ThreatLevelSettings.Count - 1 && threatWeight > ThreatLevelSettings[CurrentThreatLevel + 1][5])
+            {
+                CurrentThreatLevel++;
+                return true;
+            }
+
+            return false;
         }
 
     }
