@@ -19,15 +19,15 @@ namespace GangWarSandbox.Peds
     {
         public enum SquadRole
         {
-            Idle = 0,
+            Idle,
 
-            DefendCapturePoint = 1, // defend a capture point from enemies trying to take it
-            AssaultCapturePoint = 2, // capture a capture point by attacking it and any squads nearby
-            ReinforceAllies = 3,
-            SeekAndDestroy = 4, // assault a random enemy spawn point
-            ChargeCapturePoint = 5,
+            DefendCapturePoint, // defend a capture point from enemies trying to take it
+            AssaultCapturePoint, // capture a capture point by attacking it and any squads nearby
+            ReinforceAllies,
+            SeekAndDestroy, // assault a random enemy spawn point
+            ChargeCapturePoint,
 
-            VehicleSupport = 21,
+            VehicleSupport,
 
             //AirSupport = 31,
             //AirDrop = 32,
@@ -38,8 +38,8 @@ namespace GangWarSandbox.Peds
         // Personality -- how a squad reacts to certain situations, gives a dynamic feel to the battlefield
         public enum SquadPersonality
         {
-            Normal = 0, // the squad will not act in any particular way. the majority of squads
-            Aggressive = 1, // the squad will act more aggressively, and move more quickly
+            Normal, // the squad will not act in any particular way. the majority of squads
+            Aggressive, // the squad will act more aggressively, and move more quickly
         }
 
         // Ped Assignnment -- what each ped is doing
@@ -57,6 +57,20 @@ namespace GangWarSandbox.Peds
             GetIntoVehicle,
             ExitVehicle,
             DriveToPosition,
+            VehicleChase,
+
+            // These are all reserved for gamemode AI overrides, and aren't going to be used within this file.
+            // Essentially, this is a way to account for AI assignments for gamemodes that may use unique ones
+            GamemodeReserved1,
+            GamemodeReserved2,
+            GamemodeReserved3,
+            GamemodeReserved4,
+            GamemodeReserved5,
+            GamemodeReserved6,
+            GamemodeReserved7,
+            GamemodeReserved8,
+            GamemodeReserved9,
+            GamemodeReserved10,
         }
 
 
@@ -149,6 +163,11 @@ namespace GangWarSandbox.Peds
                     PedAI.RunToFarAway(ped, nearbyEnemy.Position);
                     PedAssignments[ped] = PedAssignment.RunToPosition;
                 }
+                else if (ped.IsInVehicle() && nearbyEnemy.IsInVehicle())
+                {
+                    ped.Task.VehicleChase(nearbyEnemy); // chase the enemy vehicle if the ped is in a vehicle and the enemy is in a vehicle
+                    PedAssignments[ped] = PedAssignment.VehicleChase;
+                }
                 else if (ped.IsInVehicle() && nearbyEnemy.Position.DistanceTo(ped.Position) < 60f) // alternatively, if the ped is in a vehicle and there are enemies nearby, try to fight them even if they can't be "seen"
                 {
                     ped.Task.LeaveVehicle();
@@ -196,13 +215,6 @@ namespace GangWarSandbox.Peds
 
             if (CanGetOutVehicle()) Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 3, true); // if a ped is the last ped in a weaponized vehicle, ensure they are allowed to get out
 
-            if (ped.IsInVehicle())
-            {
-                Ped nearbyEnemy = FindNearbyEnemy(ped.Position, Owner, SQUAD_ATTACK_RANGE); // find a nearby enemy
-
-                if (nearbyEnemy != null) ped.Task.LeaveVehicle(LeaveVehicleFlags.LeaveDoorOpen);
-            }
-
             if (ped == SquadLeader)
             {
                 // IF the ped is not in a vehicle, has waypoints, and is not currently entering a vehicle, enter a vehicle
@@ -213,12 +225,11 @@ namespace GangWarSandbox.Peds
                 }
                 else if (ped.IsInVehicle() && Waypoints.Count > 0)
                 {
-                    if (ped.IsInPoliceVehicle && !SquadVehicle.IsSirenActive && SquadVehicle.Velocity.Length() > 20) SquadVehicle.IsSirenActive = true; // activate the siren if the ped is in a police vehicle
-
+                    if (ped.IsInPoliceVehicle && !SquadVehicle.IsSirenActive && SquadVehicle.Velocity.Length() > 5) SquadVehicle.IsSirenActive = true; // activate the siren if the ped is in a police vehicle
 
                     if (PedAssignments[ped] != PedAssignment.DriveToPosition)
                     {
-                        bool squadInside = Members.All(m => m.IsInVehicle() && m.CurrentVehicle == SquadLeader.CurrentVehicle);
+                        bool squadInside = IsSquadInsideVehicle();
 
                         if (Waypoints.Count == 0 || Waypoints[0] == Vector3.Zero) return false; // no waypoints? can't do anything
 
@@ -239,6 +250,11 @@ namespace GangWarSandbox.Peds
             }
 
             return true;
+        }
+
+        public bool IsSquadInsideVehicle()
+        {
+            return Members.All(m => m.IsInVehicle() && m.CurrentVehicle == SquadLeader.CurrentVehicle);
         }
 
 

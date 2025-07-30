@@ -59,10 +59,11 @@ namespace GangWarSandbox
                 var selectedGamemode = Mod.AvaliableGamemodes.FirstOrDefault(g => g.Name == gamemodeItem.SelectedItem);
                 if (selectedGamemode != null)
                 {
+                    Gamemode oldGM = Mod.CurrentGamemode;
                     Mod.CurrentGamemode.TerminateGamemode();
 
                     Mod.CurrentGamemode = selectedGamemode;
-                    Mod.CurrentGamemode.InitializeGamemode();
+                    Mod.CurrentGamemode.InitializeGamemode(oldGM);
                     gamemodeItem.Description = Mod.CurrentGamemode.Description;
 
                     RebuildMenu();
@@ -243,6 +244,7 @@ namespace GangWarSandbox
             allowWeaponizedVehicles.CheckboxChanged += (item, args) => { gm.SpawnWeaponizedVehicles = allowWeaponizedVehicles.Checked; };
             allowHelicopters.CheckboxChanged += (item, args) => { gm.SpawnHelicopters = allowHelicopters.Checked; };
 
+            unitCountMultiplier.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_UnitCountMultiplier);
             fogOfWar.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_FogOfWar);
             allowVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowVehicles);
             allowWeaponizedVehicles.Enabled = Gamemode.ShouldBeEnabled(gm.EnableParameter_AllowWeaponizedVehicles);

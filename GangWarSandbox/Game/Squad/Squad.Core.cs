@@ -91,7 +91,7 @@ namespace GangWarSandbox.Peds
             Personality = personality;
             Type = type;
 
-            // First, determine a spawnpoint
+            // determine a spawnpoint
             Vector3 spawnpoint = Vector3.Zero;
 
             if (CurrentGamemode.SpawnMethod == Gamemode.GamemodeSpawnMethod.Spawnpoint && owner.SpawnPoints.Count > 0)
@@ -249,6 +249,9 @@ namespace GangWarSandbox.Peds
 
                 if (ped == null || !ped.Exists() || !ped.IsAlive || ped.IsRagdoll) continue; // skip to the next ped
 
+                // Gamemode based overrides
+                if (CurrentGamemode.AIOverride(this, ped)) continue;
+
                 // Handle logic with enemy detection, combat, etc.
                 bool combat = PedAI_Combat(ped);
 
@@ -338,6 +341,11 @@ namespace GangWarSandbox.Peds
 
             return maxAlpha;
 
+        }
+
+        public bool IsVehicleSquad()
+        {
+            return Type == SquadType.CarVehicle || Type == SquadType.WeaponizedVehicle || Type == SquadType.AirHeli;
         }
 
     }

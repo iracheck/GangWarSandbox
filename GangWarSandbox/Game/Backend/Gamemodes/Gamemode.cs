@@ -34,6 +34,7 @@ namespace GangWarSandbox.Gamemodes
         public GamemodeBool EnableParameter_AllowWeaponizedVehicles { get; set; } = GamemodeBool.PlayerChoice;
         public GamemodeBool EnableParameter_AllowHelicopters { get; set; } = GamemodeBool.PlayerChoice;
         public GamemodeBool EnableParameter_FogOfWar { get; set; } = GamemodeBool.PlayerChoice;
+        public GamemodeBool EnableParameter_UnitCountMultiplier { get; set; } = GamemodeBool.False;
 
 
         public GamemodeBool EnableParameter_Spawnpoints { get; set; } = GamemodeBool.PlayerChoice;
@@ -44,9 +45,15 @@ namespace GangWarSandbox.Gamemodes
         public bool SpawnWeaponizedVehicles { get; set; } = false;
         public bool SpawnHelicopters { get; set; } = false;
         public bool FogOfWar { get; set; } = true;
-        
+
+        /// <summary>
+        /// This value directly multiplies the maximum number of units for each faction on the battlefield. It can be modified by the user in the gamemode menu, or by the gamemode itself.
+        /// </summary>
+        public float UnitCountMultiplier = 1; // Multiplier for unit count, used to scale the number of soldiers per team based on faction settings
+
 
         // Gamemode Attributes
+        // These are a list of attributes that are 
         /// <summary>
         /// Higher values decrease the time it takes to capture a capture point. Default: 1.0f. 
         /// </summary>
@@ -56,11 +63,6 @@ namespace GangWarSandbox.Gamemodes
         /// A direct multiple of the maximum ped health. Generally suggested to remain quite low (or around the default) Default: 1.0f.
         /// </summary>
         public float PedHealthMultiplier { get; set; } = 1.0f;
-
-        /// <summary>
-        /// This value directly multiplies the maximum number of units for each faction on the battlefield. It can be modified by the user in the gamemode menu, or by the gamemode itself.
-        /// </summary>
-        public float UnitCountMultiplier = 1; // Multiplier for unit count, used to scale the number of soldiers per team based on faction settings
 
         public bool HasTier4Ped = true;
 
@@ -113,19 +115,21 @@ namespace GangWarSandbox.Gamemodes
         }
 
         /// <summary>
-        /// Executes when the game mode is first selected by the player. This is the best place to initialize certain Gamemode attributes, such as CaptureProgressMultiplier or PedHealthMultiplier. Of course, you can still modify them later.
+        /// Executes when the game mode is first selected by the player. This is the best place to initialize certain Gamemode attributes, such as CaptureProgressMultiplier or PedHealthMultiplier. Of course, you can still modify them later. It also includes a variable, "oldGM" that allows you to retain data from the previously selected gamemode, which is what the unoverriden version of this method does.
         /// </summary>
-        public virtual void InitializeGamemode() { }
+        public virtual void InitializeGamemode(Gamemode oldGM)
+        {
+            if (ShouldBeEnabled(EnableParameter_UnitCountMultiplier)) UnitCountMultiplier = oldGM.UnitCountMultiplier;
+            if (ShouldBeEnabled(EnableParameter_AllowVehicles)) SpawnVehicles = oldGM.SpawnVehicles;
+            if (ShouldBeEnabled(EnableParameter_AllowWeaponizedVehicles)) SpawnWeaponizedVehicles = oldGM.SpawnWeaponizedVehicles;
+            if (ShouldBeEnabled(EnableParameter_AllowHelicopters)) SpawnHelicopters = oldGM.SpawnHelicopters;
+            if (ShouldBeEnabled(EnableParameter_FogOfWar)) FogOfWar = oldGM.FogOfWar;
+        }
 
         /// <summary>
-        /// Executes when the game mode is first selected by the player. This is where you should remove all irrelevant data from the previous gamemode, such as clearing out capture points or spawnpoints.
+        /// Executes when the game mode is unselected in the GUI. This is where you should remove all irrelevant data from the previous gamemode, such as clearing out capture points or spawnpoints.
         /// </summary>
         public virtual void TerminateGamemode() { }
-
-        /// <summary>
-        /// Initializes the UI for the gamemode, such as setting up menus or HUD elements. Executes once when battle begins.
-        /// </summary>
-        public virtual void InitializeUI() { }
 
         /// <summary>
         /// Executes every game tick, regardless of if the battle is running or not.
@@ -138,7 +142,7 @@ namespace GangWarSandbox.Gamemodes
         public virtual void OnTickGameRunning() { }
 
         /// <summary>
-        /// Runs once when the battle begins. Seperate from UI logic. This specifically executes immediately after teams are initialized with factions, but before spawning begins.
+        /// Runs once when the battle begins. This specifically executes immediately after teams are initialized with factions, but before spawning begins.
         /// </summary>
         public virtual void OnStart() { }
 
@@ -153,6 +157,15 @@ namespace GangWarSandbox.Gamemodes
         /// </summary>
         /// <param name="squad">The squad that was updated.</param>
         public virtual void OnSquadUpdate(Squad squad) { }
+
+        /// <summary>
+        /// Runs every time a squad is updated (default: 200ms), or when it first spawns. Return true to ignore any additional AI logic.
+        /// </summary>
+        /// <param name="ped">The ped that is being possibly overriden</param>
+        public virtual bool AIOverride(Squad squad, Ped ped)
+        {
+            return false;
+        } 
 
         /// <summary>
         /// Runs at the beginning, and sets up relationships. By default, this resets everything.

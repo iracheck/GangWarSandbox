@@ -31,8 +31,8 @@ namespace GangWarSandbox
         public int DEBUG = 1;
 
         // Constants
-        private const int AI_UPDATE_FREQUENCY = 250; // How often squad AI will be updated, in milliseconds
-        private const int VEHICLE_AI_UPDATE_FREQUENCY = 100; // How often squad AI will be updated, in milliseconds
+        private const int AI_UPDATE_FREQUENCY = 150; // How often squad AI will be updated, in milliseconds
+        private const int VEHICLE_AI_UPDATE_FREQUENCY = 75; // How often squad AI will be updated, in milliseconds
         private const int POINT_UPDATE_FREQUENCY = 1000; // How often capture points will be updated, in milliseconds
         private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
         public const int NUM_TEAMS = 4; // How many teams? In the future, it will be loaded from a settings file, but for now it's constant to keep stability
@@ -237,8 +237,6 @@ namespace GangWarSandbox
                 team.RecolorBlips();
             }
 
-            CurrentGamemode.InitializeUI();
-
             CurrentGamemode.OnStart();
 
             // Spawn squads for each team
@@ -271,9 +269,11 @@ namespace GangWarSandbox
 
                 if (squadSize <= 0) continue;
 
-                if (Game.GameTime - LastSquadSpawnTime[team] >= TIME_BETWEEN_SQUAD_SPAWNS &&
+                if 
+                (
+                    Game.GameTime - LastSquadSpawnTime[team] >= TIME_BETWEEN_SQUAD_SPAWNS &&
                     CurrentGamemode.ShouldSpawnSquad(team, squadSize)
-                    )
+                )
                 {
                     LastSquadSpawnTime[team] = Game.GameTime;
 

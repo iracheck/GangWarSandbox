@@ -159,6 +159,8 @@ namespace GangWarSandbox.Peds
 
             SquadVehicle = World.CreateVehicle(model, position);
 
+            if (SquadVehicle == null) return;
+
             SquadVehicle.AddBlip();
 
             if (type == VehicleSet.Type.Vehicle && (SquadVehicle.IsBicycle || SquadVehicle.IsMotorcycle) ) 
@@ -189,18 +191,56 @@ namespace GangWarSandbox.Peds
 
         public Vector3 FindRandomPositionAroundPlayer(int radius = 200, int minRadius = 100)
         {
-            Vector3 playerPos = Game.Player.Character.Position;
+            Ped player = Game.Player.Character;
+            Vector3 playerPos = player.Position;
             Vector3 newSpawnPoint = playerPos;
             int attempts = 0;
+
+            // Adjust radius if in vehicle
+            bool playerInVehicle = player.IsInVehicle();
+            if (playerInVehicle)
+            {
+                radius *= 2;
+                minRadius *= 3;
+            }
+
+            if (radius < minRadius) radius = minRadius;
+
+            Vector3 forward = player.ForwardVector.Normalized;
 
             while (true)
             {
                 attempts++;
 
-                // Get random angle and distance
-                float angle = (float)(rand.NextDouble() * Math.PI * 2);
                 float distance = (float)(minRadius + rand.NextDouble() * (radius - minRadius));
+                float angle;
 
+                // the only thing GPT helped me with :) should i be proud or ashamed?
+                if (playerInVehicle)
+                {
+                    if (rand.NextDouble() < 0.8) // 80% chance to spawn forward-biased
+                    {
+                        // Tight forward cone
+                        float cone = 25f * (float)Math.PI / 180f;
+                        float forwardAngle = (float)Math.Atan2(forward.Y, forward.X);
+                        angle = forwardAngle + (float)(rand.NextDouble() * cone - cone / 2f);
+
+                        // Extend forward spawns slightly for realism
+                        distance *= 1.3f;
+                    }
+                    else
+                    {
+                        // 20% chance of a surprise spawn anywhere
+                        angle = (float)(rand.NextDouble() * Math.PI * 2);
+                    }
+                }
+                else
+                {
+                    // On foot: normal circular spawn
+                    angle = (float)(rand.NextDouble() * Math.PI * 2);
+                }
+
+                // Calculate offset from player
                 Vector3 offset = new Vector3(
                     (float)(Math.Cos(angle) * distance),
                     (float)(Math.Sin(angle) * distance),
@@ -209,19 +249,24 @@ namespace GangWarSandbox.Peds
 
                 newSpawnPoint = playerPos + offset;
 
-                // Snap to street (or keep raw offset if not found)
-                Vector3 testSpot = World.GetNextPositionOnStreet(newSpawnPoint, true);
-                if (testSpot != Vector3.Zero)
-                    newSpawnPoint = testSpot;
+                // Snap to street if possible
+                Vector3 streetPos = World.GetNextPositionOnStreet(newSpawnPoint, true);
+                if (streetPos != Vector3.Zero)
+                    newSpawnPoint = streetPos;
 
-                // Avoid crowded or blocked areas
+                // Avoid crowded/blocked areas
                 bool noEntitiesNearby = World.GetNearbyEntities(newSpawnPoint, 5f).Length == 0;
                 bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, 5f).Length == 0;
 
-                if (!noEntitiesNearby || !noPedsNearby)
+                if (!(noEntitiesNearby && noPedsNearby))
                 {
-                    if (attempts >= 10)
-                        return playerPos + Game.Player.Character.ForwardVector * 10f; // fallback
+                    if (attempts >= 10) return Vector3.Zero;
+                    continue;
+                }
+
+                if (newSpawnPoint.Z < player.Position.Z - 10f || newSpawnPoint.Z > player.Position.Z + 10f)
+                {
+                    if (attempts >= 10) return Vector3.Zero;
                     continue;
                 }
 
@@ -239,6 +284,7 @@ namespace GangWarSandbox.Peds
                 return newSpawnPoint;
             }
         }
+
 
         public Vector3 FindRandomPositionAroundSpawnpoint(Vector3 spawnpoint)
         {

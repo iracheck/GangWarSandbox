@@ -33,11 +33,6 @@ namespace GangWarSandbox
                 Log(data, "DEBUG");
         }
 
-        public static void LogEvent(String data)
-        {
-            Log(data, "LOG");
-        }
-
         public static void Parser(String data)
         {
             Log(data, "PARSER");

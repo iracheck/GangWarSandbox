@@ -292,11 +292,5 @@ namespace GangWarSandbox.Peds
             return new Vector3(offsetX, offsetY, 0);
         }
 
-        // AI STREAMING
-        public static void CreateStreamVolumeAt(Vector3 position, float radius = 100f)
-        {
-            int vol = Function.Call<int>(Hash.STREAMVOL_CREATE_SPHERE, position.X, position.Y, position.Z, radius, 0, 0);
-        }
-
     }
 }
