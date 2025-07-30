@@ -43,11 +43,11 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [x] Peds use line of sight targetting
 - [x] Waypoint Movement System (Allow peds to move >150m distances)
 - [x] Custom AI-- Squad system where one "squad leader" represents multiple AIs --> larger battlefield
-- [ ] Battle Type: Skirmish
-- [x] Battle Type: Endless
+- [x] Gamemode: Survival
+- [x] Gamemode: Endless
 - [x] Capture Points
-- [ ] Vehicle Support
-- [ ] Helicopter Support
+- [x] Vehicle Support
+- [x] Helicopter Support
 - [x] Decrease performance overhead of large squad/ped counts
 - [x] Rework file structure, with two INIs-- one for faction setup, one for mod options
 
