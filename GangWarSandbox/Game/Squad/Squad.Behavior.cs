@@ -131,9 +131,7 @@ namespace GangWarSandbox.Peds
                 Vector3 source = ped.Position;
                 if (ped.IsInVehicle()) source = ped.CurrentVehicle.Position;
 
-                nearbyEnemy = FindNearbyEnemy(source, Owner, SQUAD_ATTACK_RANGE); // search for a nearby enemy
-                if (nearbyEnemy == null || !nearbyEnemy.Exists() || nearbyEnemy.IsDead || nearbyEnemy.Position.DistanceTo(ped.Position) >= 90f)
-                    
+                nearbyEnemy = FindNearbyEnemy(source, Owner, SQUAD_ATTACK_RANGE); // search for a nearby enemy                    
                 PedTargetCache[ped] = (nearbyEnemy, Game.GameTime); // update the cache with the new target and timestamp
             }
 
@@ -176,7 +174,6 @@ namespace GangWarSandbox.Peds
 
                 return true;
             }
-
             else if (nearbyEnemy == null && PedAssignments[ped] == PedAssignment.AttackNearby)
             {
                 PedAssignments[ped] = PedAssignment.None;

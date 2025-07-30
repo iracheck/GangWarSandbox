@@ -161,6 +161,7 @@ namespace GangWarSandbox.Peds
 
             if (SquadVehicle == null) return;
 
+            CurrentGamemode.OnVehicleSpawn(SquadVehicle);
             SquadVehicle.AddBlip();
 
             if (SquadVehicle.AttachedBlip == null) return;
@@ -196,7 +197,9 @@ namespace GangWarSandbox.Peds
             Ped player = Game.Player.Character;
             Vector3 playerPos = player.Position;
             Vector3 newSpawnPoint = playerPos;
+
             int attempts = 0;
+            int MAX_ATTEMPTS = 15;
 
             // Adjust radius if in vehicle
             bool playerInVehicle = player.IsInVehicle();
@@ -217,32 +220,26 @@ namespace GangWarSandbox.Peds
                 float distance = (float)(minRadius + rand.NextDouble() * (radius - minRadius));
                 float angle;
 
-                // the only thing GPT helped me with :) should i be proud or ashamed?
+                // Forward bias for vehicle mode
                 if (playerInVehicle)
                 {
-                    if (rand.NextDouble() < 0.8) // 80% chance to spawn forward-biased
+                    if (rand.NextDouble() < 0.8)
                     {
-                        // Tight forward cone
                         float cone = 25f * (float)Math.PI / 180f;
                         float forwardAngle = (float)Math.Atan2(forward.Y, forward.X);
                         angle = forwardAngle + (float)(rand.NextDouble() * cone - cone / 2f);
-
-                        // Extend forward spawns slightly for realism
                         distance *= 1.3f;
                     }
                     else
                     {
-                        // 20% chance of a surprise spawn anywhere
                         angle = (float)(rand.NextDouble() * Math.PI * 2);
                     }
                 }
                 else
                 {
-                    // On foot: normal circular spawn
                     angle = (float)(rand.NextDouble() * Math.PI * 2);
                 }
 
-                // Calculate offset from player
                 Vector3 offset = new Vector3(
                     (float)(Math.Cos(angle) * distance),
                     (float)(Math.Sin(angle) * distance),
@@ -251,24 +248,57 @@ namespace GangWarSandbox.Peds
 
                 newSpawnPoint = playerPos + offset;
 
-                // Snap to street if possible
-                Vector3 streetPos = World.GetNextPositionOnStreet(newSpawnPoint, true);
-                if (streetPos != Vector3.Zero)
-                    newSpawnPoint = streetPos;
+                // ✅ Use GET_CLOSEST_VEHICLE_NODE_WITH_HEADING for precise lane snapping
+                OutputArgument outCoords = new OutputArgument();
+                OutputArgument outHeading = new OutputArgument();
 
-                // Avoid crowded/blocked areas
+                Function.Call(Hash.GET_CLOSEST_VEHICLE_NODE_WITH_HEADING,
+                    newSpawnPoint.X, newSpawnPoint.Y, newSpawnPoint.Z,
+                    outCoords, outHeading, 1, 3.0f, 0);
+
+                Vector3 roadPos = outCoords.GetResult<Vector3>();
+                float roadHeading = outHeading.GetResult<float>();
+
+                if (roadPos != Vector3.Zero)
+                {
+                    newSpawnPoint = roadPos;
+
+                    // Move slightly toward lane center using perpendicular to road heading
+                    Vector3 perpendicular = new Vector3(
+                        (float)-Math.Sin(roadHeading * Math.PI / 180f),
+                        (float)Math.Cos(roadHeading * Math.PI / 180f),
+                        0f
+                    ).Normalized;
+
+                    newSpawnPoint += perpendicular * 1.5f; // tweak as needed
+                }
+
+                // Avoid crowded areas
                 bool noEntitiesNearby = World.GetNearbyEntities(newSpawnPoint, 5f).Length == 0;
                 bool noPedsNearby = World.GetNearbyPeds(newSpawnPoint, 5f).Length == 0;
-
                 if (!(noEntitiesNearby && noPedsNearby))
                 {
-                    if (attempts >= 10) return Vector3.Zero;
+                    if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
                     continue;
                 }
 
+                // Z-level check
                 if (newSpawnPoint.Z < player.Position.Z - 10f || newSpawnPoint.Z > player.Position.Z + 10f)
                 {
-                    if (attempts >= 10) return Vector3.Zero;
+                    if (attempts >= MAX_ATTEMPTS - 3)
+                    {
+                        if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
+                        if (newSpawnPoint.Z < player.Position.Z - 50f || newSpawnPoint.Z > player.Position.Z + 50f)
+                        {
+                            continue;
+                        }
+                    }
+                    else continue;
+                }
+
+                if (newSpawnPoint.DistanceTo2D(playerPos) < (IsVehicleSquad() ? 150f : 100f))
+                {
+                    if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
                     continue;
                 }
 
@@ -286,6 +316,8 @@ namespace GangWarSandbox.Peds
                 return newSpawnPoint;
             }
         }
+
+
 
 
         public Vector3 FindRandomPositionAroundSpawnpoint(Vector3 spawnpoint)
@@ -561,9 +593,8 @@ namespace GangWarSandbox.Peds
             // This can be used to fully customize the AI. Two options: Either completely rewrite AI, or use it for custom AI actions (e.g. pushing toward a target)
             //Function.Call(Hash.SET_BLOCKING_OF_NON_TEMPORARY_EVENTS, ped, true);
 
-
-
-            // Fight against any nearby targets, at an even greater range than normal behavior
+            ped.DrivingStyle = DrivingStyle.Rushed;
+            ped.VehicleDrivingFlags = VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.AllowGoingWrongWay;
 
             PedTargetCache[ped] = (null, 0);
             PedAssignments[ped] = PedAssignment.None;

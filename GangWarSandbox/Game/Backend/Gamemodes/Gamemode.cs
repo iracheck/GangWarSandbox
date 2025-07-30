@@ -153,6 +153,12 @@ namespace GangWarSandbox.Gamemodes
         public virtual void OnSquadSpawn(Squad squad) { }
 
         /// <summary>
+        /// Runs immediately after a squad is spawned.
+        /// </summary>
+        /// <param name="squad">The squad that spawned</param>
+        public virtual void OnVehicleSpawn(Vehicle vehicle) { }
+
+        /// <summary>
         /// Runs every time a squad is updated (default: 200ms), or when it first spawns. Grants access to all squad data. Example usage: Applying new weapons to squad based on gamemode state
         /// </summary>
         /// <param name="squad">The squad that was updated.</param>

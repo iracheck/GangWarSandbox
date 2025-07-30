@@ -431,6 +431,8 @@ namespace GangWarSandbox
                 {
                     vehicle.AttachedBlip?.Delete(); // Remove blip if it exists
 
+                    if (vehicle == Player.CurrentVehicle) continue;
+
                     try
                     {
                         if (vehicle.Exists())

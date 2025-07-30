@@ -265,7 +265,8 @@ namespace GangWarSandbox.Peds
                 if (!movementChecked) PedAI_Movement(ped);
             }
 
-            if (SquadVehicle != null && SquadVehicle.Exists()) SquadVehicle.AttachedBlip.Alpha = GetDesiredVehicleBlipVisiblity(SquadVehicle, Owner);
+            if (SquadVehicle != null && SquadVehicle.Exists() && SquadVehicle.AttachedBlip != null && SquadVehicle.AttachedBlip.Exists()) 
+                    SquadVehicle.AttachedBlip.Alpha = GetDesiredVehicleBlipVisiblity(SquadVehicle, Owner);
 
             return true;
         }

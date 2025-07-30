@@ -95,7 +95,7 @@ namespace GangWarSandbox
 
         public int GetMaxNumPeds()
         {
-            if (IsPlayerTeam) return (int)(MAX_SOLDIERS * ModData.CurrentGamemode.UnitCountMultiplier * 0.8);
+            if (IsPlayerTeam) return (int)(MAX_SOLDIERS * ModData.CurrentGamemode.UnitCountMultiplier * 0.8); // player team is "nerfed" in ped count
             return (int) (MAX_SOLDIERS * ModData.CurrentGamemode.UnitCountMultiplier);
         }
 

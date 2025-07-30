@@ -210,15 +210,16 @@ namespace GangWarSandbox.Gamemodes
             Ped player = Game.Player.Character;
             var assignments = squad.PedAssignments;
 
-            if (ped.Position.DistanceTo(player.Position) < 20f && assignments[ped] != Squad.PedAssignment.GamemodeReserved1)
+            if (!ped.IsInVehicle() && (ped.Position.DistanceTo(player.Position) < 50f || (!ped.IsInCombatAgainst(player) && PedAI.HasLineOfSight(ped, player)) && assignments[ped] != Squad.PedAssignment.GamemodeReserved1))
             {
                 ped.Task.FightAgainst(player);
                 assignments[ped] = Squad.PedAssignment.GamemodeReserved1; // attack player on foot
                 return true;
             }
-            else if (assignments[ped] == Squad.PedAssignment.GamemodeReserved1 && ped.Position.DistanceTo(player.Position) > 25f)
+            else if (assignments[ped] == Squad.PedAssignment.GamemodeReserved1)
             {
-                return false;
+                if (ped.Position.DistanceTo(player.Position) > 60f) return false;
+                else return true;
             }
 
             if (player.IsInVehicle() && squad.SquadVehicle != null && squad.IsSquadInsideVehicle())
@@ -240,10 +241,12 @@ namespace GangWarSandbox.Gamemodes
             {
                 ped.Task.LeaveVehicle();
                 assignments[ped] = Squad.PedAssignment.ExitVehicle;
+                return true;
             }
-            else if (!player.IsInVehicle() && assignments[ped] == Squad.PedAssignment.GamemodeReserved2)
+            else if (assignments[ped] == Squad.PedAssignment.GamemodeReserved2)
             {
-                return false;
+                if (!player.IsInVehicle() || player.Position.DistanceTo(ped.Position) > 100f) return false;
+                else return true;
             }
 
 
@@ -302,10 +305,19 @@ namespace GangWarSandbox.Gamemodes
         {
             foreach (var ped in squad.Members)
             {
-                if (ped.Health > 200) ped.Health = 200;
+                ped.Health = 100 + (CurrentThreatLevel * 5);
+                ped.Accuracy = (int) (ped.Accuracy * 0.5);
 
                 if (ped.AttachedBlip != null) ped.AttachedBlip.Color = BlipColor.Red;
             }
+            if (squad.SquadVehicle != null && squad.SquadVehicle.AttachedBlip != null) squad.SquadVehicle.AttachedBlip.Color = BlipColor.Red;
+        }
+
+        public override void OnVehicleSpawn(Vehicle vehicle)
+        {
+            vehicle.EnginePowerMultiplier = 1.5f;   // Acceleration boost
+            vehicle.MaxSpeed = 180f;                // Cap speed (m/s)
+            vehicle.EngineTorqueMultiplier = 1.5f;  // Extra pulling power
         }
 
         // ALL NON-OVERRIDEN METHODS BEGIN HERE
@@ -374,7 +386,7 @@ namespace GangWarSandbox.Gamemodes
 
             string[] text =
             {
-                $"Threat Level: {CurrentThreatLevel}",
+                $"Threat Level: {CurrentThreatLevel + 1}",
                 $"Score: {PlayerScore}",
                 $"Combo: {Combo}",
                 $"Time Survived: {FormatTimeSurvived()}"
@@ -391,11 +403,6 @@ namespace GangWarSandbox.Gamemodes
 
                 new GTA.UI.TextElement($"{data}", new System.Drawing.PointF(x, y), 0.35f, color, GTA.UI.Font.ChaletLondon).Draw();
             }
-
-            //new GTA.UI.TextElement($"{text[0]}", new System.Drawing.PointF(x, y), 0.35f, System.Drawing.Color.Red, GTA.UI.Font.ChaletLondon).Draw();
-            //new GTA.UI.TextElement($"{text[1]}", new System.Drawing.PointF(x + 110f, y), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
-            //new GTA.UI.TextElement($"{text[2]}", new System.Drawing.PointF(x + 180f, y), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
-            //new GTA.UI.TextElement($"{text[3]}: {FormatTimeSurvived()}", new System.Drawing.PointF(x + 250f, y), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
         }
 
         public string FormatTimeSurvived()
