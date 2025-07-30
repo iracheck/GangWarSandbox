@@ -217,8 +217,8 @@ namespace GangWarSandbox.Peds
 
             if (ped == SquadLeader)
             {
-                // IF the ped is not in a vehicle, has waypoints, and is not currently entering a vehicle, enter a vehicle
-                if (!ped.IsInVehicle() && Waypoints.Count > 0 && PedAssignments[ped] != PedAssignment.GetIntoVehicle)
+                // IF the ped is not in a vehicle, has more than one waypoint (not almost at its target), and is not currently entering a vehicle, enter a vehicle
+                if (!ped.IsInVehicle() && Waypoints.Count > 1 && PedAssignments[ped] != PedAssignment.GetIntoVehicle)
                 {
                     PedAI.EnterVehicle(ped, SquadVehicle);
                     PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
@@ -270,7 +270,10 @@ namespace GangWarSandbox.Peds
             if (ModData.PlayerTeam != -1 && Owner.TeamIndex != ModData.PlayerTeam)
                 enemyPeds.Add(Game.Player.Character); // add the player's squad to the list of enemy squads if the squad is not on the player's team
 
-            foundEnemy = enemyPeds.Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(selfPosition) <= SQUAD_ATTACK_RANGE)
+            float range = SQUAD_ATTACK_RANGE;
+            if (infiniteSearch) range = 999f;
+
+            foundEnemy = enemyPeds.Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(selfPosition) <= range)
                     .OrderBy(p => p.Position.DistanceTo(selfPosition))
                     .FirstOrDefault();
 

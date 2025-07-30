@@ -265,6 +265,8 @@ namespace GangWarSandbox.Peds
                 if (!movementChecked) PedAI_Movement(ped);
             }
 
+            if (SquadVehicle != null && SquadVehicle.Exists()) SquadVehicle.AttachedBlip.Alpha = GetDesiredVehicleBlipVisiblity(SquadVehicle, Owner);
+
             return true;
         }
 
@@ -341,6 +343,13 @@ namespace GangWarSandbox.Peds
 
             return maxAlpha;
 
+        }
+
+        private int GetDesiredVehicleBlipVisiblity(Vehicle vehicle, Team team)
+        {
+            if (Game.Player.Character.CurrentVehicle == vehicle) return 0; // hide players current vehicle
+            if (vehicle.Passengers.Count() != 0) return 255;
+            else return 0; // hide empty vehicles
         }
 
         public bool IsVehicleSquad()

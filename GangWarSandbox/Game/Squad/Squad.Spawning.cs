@@ -163,6 +163,8 @@ namespace GangWarSandbox.Peds
 
             SquadVehicle.AddBlip();
 
+            if (SquadVehicle.AttachedBlip == null) return;
+
             if (type == VehicleSet.Type.Vehicle && (SquadVehicle.IsBicycle || SquadVehicle.IsMotorcycle) ) 
                 SquadVehicle.AttachedBlip.Sprite = BlipSprite.Motorcycle;
             else if (type == VehicleSet.Type.Vehicle)
@@ -554,7 +556,10 @@ namespace GangWarSandbox.Peds
             Function.Call(Hash.SET_ENTITY_LOAD_COLLISION_FLAG, ped, true);
 
             Function.Call(Hash.SET_PED_PATH_MAY_ENTER_WATER, ped, true);
-            Function.Call(Hash.SET_PED_PATH_PREFER_TO_AVOID_WATER, ped, false);
+            Function.Call(Hash.SET_PED_PATH_PREFER_TO_AVOID_WATER, ped, true);
+
+            // This can be used to fully customize the AI. Two options: Either completely rewrite AI, or use it for custom AI actions (e.g. pushing toward a target)
+            //Function.Call(Hash.SET_BLOCKING_OF_NON_TEMPORARY_EVENTS, ped, true);
 
 
 

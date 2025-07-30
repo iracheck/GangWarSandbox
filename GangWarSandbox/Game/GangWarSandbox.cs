@@ -281,19 +281,19 @@ namespace GangWarSandbox
 
                     if (CurrentGamemode.ShouldSpawnVehicleSquad(team))
                     {
-                        new Squad(team, Squad.SquadType.CarVehicle);
+                        squad = new Squad(team, Squad.SquadType.CarVehicle);
                     }
                     else if (CurrentGamemode.ShouldSpawnWeaponizedVehicleSquad(team))
                     {
-                        new Squad(team, Squad.SquadType.WeaponizedVehicle);
+                        squad = new Squad(team, Squad.SquadType.WeaponizedVehicle);
                     }
                     else if (CurrentGamemode.ShouldSpawnHelicopterSquad(team))
                     {
-                        new Squad(team, Squad.SquadType.AirHeli);
+                        squad = new Squad(team, Squad.SquadType.AirHeli);
                     }
                     else 
                     {
-                        new Squad(team, Squad.SquadType.Infantry);
+                        squad = new Squad(team, Squad.SquadType.Infantry);
                     }
 
                     if (squad != null) CurrentGamemode.OnSquadSpawn(squad);

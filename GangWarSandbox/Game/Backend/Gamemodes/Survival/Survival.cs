@@ -14,10 +14,6 @@ namespace GangWarSandbox.Gamemodes
 {
     internal class SurvivalGamemode : Gamemode
     {
-        public Team enemyTeam1;
-        public Team enemyTeam2;
-        public Team enemyTeam3;
-
         int PlayerScore;
 
         double TimeStart;
@@ -41,27 +37,27 @@ namespace GangWarSandbox.Gamemodes
         List<int[]> ThreatLevelSettings = new List<int[]>
         {
             // max squads(total) (0) - vehicles (1) - weaponized vehicles (2) - helicopters (3) - max faction tier[1-3] (4) - threat weight (5)
-            new int[] { 1, 1, 0, 0, 1, 0 }, // 1
-            new int[] { 2, 2, 0, 0, 1, 60 }, // 2
-            new int[] { 3, 2, 0, 0, 1, 240 }, // 3
-            new int[] { 4, 2, 0, 0, 1, 540 }, // 4
-            new int[] { 4, 3, 0, 0, 1, 850 }, // 5
-            new int[] { 4, 3, 0, 1, 2, 1200 }, // 6
-            new int[] { 5, 3, 0, 1, 2, 1700 }, // 7
-            new int[] { 5, 3, 1, 1, 2, 2400 }, // 8
-            new int[] { 5, 4, 1, 1, 3, 3600 }, // 9
-            new int[] { 5, 4, 1, 1, 3, 4500 }, // 10
-            new int[] { 6, 4, 1, 2, 3, 5600 }, // 11
-            new int[] { 6, 4, 1, 2, 3, 7000 }, // 12
-            new int[] { 6, 4, 1, 2, 3, 9000 }, // 13
-            new int[] { 7, 5, 1, 2, 3, 12000 }, // 14
-            new int[] { 7, 5, 2, 2, 3, 22000 }, // 15
+            new int[] { 2, 2, 0, 0, 1, 0 }, // 1
+            new int[] { 3, 2, 0, 0, 1, 60 }, // 2
+            new int[] { 4, 3, 0, 0, 1, 240 }, // 3
+            new int[] { 4, 3, 0, 0, 1, 540 }, // 4
+            new int[] { 5, 3, 0, 1, 1, 850 }, // 5
+            new int[] { 5, 3, 0, 1, 2, 1200 }, // 6
+            new int[] { 6, 3, 0, 1, 2, 1700 }, // 7
+            new int[] { 6, 3, 1, 1, 2, 2400 }, // 8
+            new int[] { 7, 4, 1, 1, 2, 3600 }, // 9
+            new int[] { 7, 4, 1, 1, 3, 5000 }, // 10
+            new int[] { 8, 4, 1, 2, 3, 5800 }, // 11
+            new int[] { 8, 4, 1, 2, 3, 7200 }, // 12
+            new int[] { 9, 4, 1, 2, 3, 9400 }, // 13
+            new int[] { 9, 5, 1, 2, 3, 12000 }, // 14
+            new int[] { 10, 5, 2, 2, 3, 20000 }, // 15
         };
 
         int Combo;
         int ComboLastTime;
 
-        public SurvivalGamemode() : base("Survival", "Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can! Just like trying to get five stars.", 0)
+        public SurvivalGamemode() : base("Survival", "Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can! Just like trying to get five stars.\n\nBETA GAMEMODE", 0)
         {
             SpawnMethod = GamemodeSpawnMethod.Random;
 
@@ -83,7 +79,7 @@ namespace GangWarSandbox.Gamemodes
             TimeStart = Game.GameTime;
             
             PlayerScore = 0;
-            Combo = 1;
+            Combo = 0;
             ComboLastTime = 0;
 
             CurrentThreatLevel = 0;
@@ -157,22 +153,28 @@ namespace GangWarSandbox.Gamemodes
             UpdateGameUI();
 
             KillFarAwaySquads();
+
+            if (ComboLastTime < Game.GameTime - 7000)
+            {
+                Combo = 0;
+                ComboLastTime = Game.GameTime;
+            }
         }
 
         public override void OnPedKilled(Ped ped, Team teamOfPed)
         {
-            float multiplier = 0.2f;
+            float multiplier = 0.5f;
             Entity killer = ped.Killer;
 
             if (killer != Game.Player.Character) multiplier *= 0.75f;
 
-            // Increase combo if the player has killed another ped within 2 seconds
-            if (ComboLastTime > Game.GameTime - 2000)
+            // Increase combo if the player has killed another ped within 7 seconds
+            if (ComboLastTime > Game.GameTime - 7000)
             {
                 Combo++;
             }
-            else Combo = 1;
 
+            // Get 50% of the max health of the ped, scaled by the current threat level and how deep the combo is
             PlayerScore += (int) (multiplier * ped.MaxHealth * Math.Pow(Combo, 0.25) * Math.Pow(CurrentThreatLevel + 1, 0.1));
             Logger.Log("Current Score: " + PlayerScore.ToString() + "| Combo: " + Combo.ToString());
 
@@ -234,6 +236,11 @@ namespace GangWarSandbox.Gamemodes
 
                 return true;
             }
+            else if (!player.IsInVehicle() && ped.IsInVehicle() && ped.Position.DistanceTo(player.Position) < 40f)
+            {
+                ped.Task.LeaveVehicle();
+                assignments[ped] = Squad.PedAssignment.ExitVehicle;
+            }
             else if (!player.IsInVehicle() && assignments[ped] == Squad.PedAssignment.GamemodeReserved2)
             {
                 return false;
@@ -260,10 +267,11 @@ namespace GangWarSandbox.Gamemodes
 
         public override bool ShouldSpawnVehicleSquad(Team team)
         {
-            // If the player is in a vehicle, always spawn a vehicle squad
+            // If the player is in a vehicle, always spawn a vehicle squad. NOTE: This will *try* to spawn weaponized vehicle & helicopter squads first.
             if (Game.Player.Character.IsInVehicle()) return true;
 
-            if (team.VehicleSquads.Count >= ThreatLevelSettings[CurrentThreatLevel][1])
+            int maxForTeam = ThreatLevelSettings[CurrentThreatLevel][1] / ThreatLevelSettings[CurrentThreatLevel][4];
+            if (team.VehicleSquads.Count >= maxForTeam)
             {
                 return false; 
             }
@@ -272,7 +280,8 @@ namespace GangWarSandbox.Gamemodes
 
         public override bool ShouldSpawnWeaponizedVehicleSquad(Team team)
         {
-            if (team.WeaponizedVehicleSquads.Count >= ThreatLevelSettings[CurrentThreatLevel][2])
+            int maxForTeam = ThreatLevelSettings[CurrentThreatLevel][2] / ThreatLevelSettings[CurrentThreatLevel][4];
+            if (team.WeaponizedVehicleSquads.Count >= maxForTeam)
             {
                 return false; 
             }
@@ -281,11 +290,22 @@ namespace GangWarSandbox.Gamemodes
 
         public override bool ShouldSpawnHelicopterSquad(Team team)
         {
-            if (team.HelicopterSquads.Count >= ThreatLevelSettings[CurrentThreatLevel][3])
+            int maxForTeam = ThreatLevelSettings[CurrentThreatLevel][3] / ThreatLevelSettings[CurrentThreatLevel][4];
+            if (team.HelicopterSquads.Count >= maxForTeam)
             {
                 return false;
             }
             else return true;
+        }
+
+        public override void OnSquadSpawn(Squad squad)
+        {
+            foreach (var ped in squad.Members)
+            {
+                if (ped.Health > 200) ped.Health = 200;
+
+                if (ped.AttachedBlip != null) ped.AttachedBlip.Color = BlipColor.Red;
+            }
         }
 
         // ALL NON-OVERRIDEN METHODS BEGIN HERE
@@ -329,7 +349,7 @@ namespace GangWarSandbox.Gamemodes
         {
             // Threat level uses two factors:
             // - Time (1s:1pt)
-            // - Player Score (1pt:0.3pt)
+            // - Player Score (1pt:0.2pt)
             // This combined score is used to determine the current threat level, which is then used to scale the difficulty of the gamemode.
 
             double threatWeight = (TimeElapsed / 1000) + (PlayerScore * 0.2);
@@ -346,13 +366,36 @@ namespace GangWarSandbox.Gamemodes
 
         public void UpdateGameUI()
         {
-            float x = 640f;
-            float y = 0f;
+            if (BattleSetupUI.MenuPool.AreAnyVisible) return;
 
-            new GTA.UI.TextElement($"Threat Level: {CurrentThreatLevel}", new System.Drawing.PointF(x, y), 0.35f, System.Drawing.Color.Red, GTA.UI.Font.ChaletLondon).Draw();
-            new GTA.UI.TextElement($"Score: {PlayerScore:D0}", new System.Drawing.PointF(x - 120f, y), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
-            new GTA.UI.TextElement($"Time Survived: {FormatTimeSurvived()}", new System.Drawing.PointF(x + 120f, y), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
-            new GTA.UI.TextElement($"Current Combo: {Combo}", new System.Drawing.PointF(x, y + 60f), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
+            float initialX = 5f;
+            float initialY = 5f;
+            float lineSpacing = 15f; // distance between columns
+
+            string[] text =
+            {
+                $"Threat Level: {CurrentThreatLevel}",
+                $"Score: {PlayerScore}",
+                $"Combo: {Combo}",
+                $"Time Survived: {FormatTimeSurvived()}"
+            };
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                string data = text[i];
+
+                float x = initialX; // temp
+                float y = initialY + (i * lineSpacing);
+                System.Drawing.Color color = System.Drawing.Color.White;
+                if (i == 0) color = System.Drawing.Color.Coral;
+
+                new GTA.UI.TextElement($"{data}", new System.Drawing.PointF(x, y), 0.35f, color, GTA.UI.Font.ChaletLondon).Draw();
+            }
+
+            //new GTA.UI.TextElement($"{text[0]}", new System.Drawing.PointF(x, y), 0.35f, System.Drawing.Color.Red, GTA.UI.Font.ChaletLondon).Draw();
+            //new GTA.UI.TextElement($"{text[1]}", new System.Drawing.PointF(x + 110f, y), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
+            //new GTA.UI.TextElement($"{text[2]}", new System.Drawing.PointF(x + 180f, y), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
+            //new GTA.UI.TextElement($"{text[3]}: {FormatTimeSurvived()}", new System.Drawing.PointF(x + 250f, y), 0.35f, System.Drawing.Color.White, GTA.UI.Font.ChaletLondon).Draw();
         }
 
         public string FormatTimeSurvived()
@@ -374,7 +417,7 @@ namespace GangWarSandbox.Gamemodes
 
                 foreach (var squad in team.VehicleSquads)
                 {
-                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 500f) squad.Destroy();
+                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 400f) squad.Destroy();
                 }
 
                 foreach (var squad in team.WeaponizedVehicleSquads)
@@ -384,7 +427,7 @@ namespace GangWarSandbox.Gamemodes
 
                 foreach (var squad in team.HelicopterSquads)
                 {
-                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 800f) squad.Destroy();
+                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 600f) squad.Destroy();
                 }
             }
         }
