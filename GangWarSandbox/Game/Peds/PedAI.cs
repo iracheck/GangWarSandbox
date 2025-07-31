@@ -101,7 +101,7 @@ namespace GangWarSandbox.Peds
 
         public static void DriveTo(Ped ped, Vehicle vehicle, Vector3 target)
         {
-            ped.Task.DriveTo(vehicle, target, 20f, 40f);
+            ped.Task.DriveTo(vehicle, target, 20f, 60f, DrivingStyle.Rushed);
         }
 
         public static void DriveBy(Ped ped, Ped target)
@@ -170,15 +170,18 @@ namespace GangWarSandbox.Peds
         {
             List<Vector3> points = new List<Vector3>();
 
-            float maxStepSize = 50f;
+            float maxStepSize = hasVehicle ? 80f : 50f;
 
-            if (hasVehicle) maxStepSize = 80f;
-
-            // Convert END to a temporary road-based destination
+            // Find a road near the target
             Vector3 endRoad = World.GetNextPositionOnStreet(end);
 
-            // If the end road is a valid target, use that instead, to help with routing around buildings.
-            Vector3 navTarget = endRoad != Vector3.Zero ? endRoad : end;
+            // Only use the road if it is closer to the squad than the end point (on the way)
+            bool useEndRoad = hasVehicle &&
+                              endRoad != Vector3.Zero &&
+                              start.DistanceTo(endRoad) <= start.DistanceTo(end);
+
+            // Intermediate navigation target
+            Vector3 navTarget = useEndRoad ? endRoad : end;
 
             Vector3 direction = navTarget - start;
             float distance = direction.Length();
@@ -191,7 +194,7 @@ namespace GangWarSandbox.Peds
                 Vector3 step = start + direction * (i * maxStepSize);
                 Vector3 safeStep = World.GetSafeCoordForPed(step, true);
 
-                // Fallback 2: Use nearest road
+                // Vehicles or invalid pedestrian spots fall back to road
                 if (safeStep == Vector3.Zero || hasVehicle)
                 {
                     safeStep = World.GetNextPositionOnStreet(step);
@@ -208,14 +211,11 @@ namespace GangWarSandbox.Peds
                 }
             }
 
-            // If we routed to the road near the end, add final leg to the real endpoint
-            if (endRoad != Vector3.Zero)
-            {
-                points.Add(end);
-            }
+            points.Add(end);
 
             return points;
         }
+
 
         public static Vector3 FindRandomEnemySpawnpoint(Team team)
         {

@@ -199,15 +199,10 @@ namespace GangWarSandbox.Peds
             Vector3 newSpawnPoint = playerPos;
 
             int attempts = 0;
-            int MAX_ATTEMPTS = 15;
+            int MAX_ATTEMPTS = 80;
 
-            // Adjust radius if in vehicle
+            // Adjustments if the player is in a vehicle
             bool playerInVehicle = player.IsInVehicle();
-            if (playerInVehicle)
-            {
-                radius *= 2;
-                minRadius *= 3;
-            }
 
             if (radius < minRadius) radius = minRadius;
 
@@ -248,7 +243,6 @@ namespace GangWarSandbox.Peds
 
                 newSpawnPoint = playerPos + offset;
 
-                // ✅ Use GET_CLOSEST_VEHICLE_NODE_WITH_HEADING for precise lane snapping
                 OutputArgument outCoords = new OutputArgument();
                 OutputArgument outHeading = new OutputArgument();
 
@@ -270,7 +264,7 @@ namespace GangWarSandbox.Peds
                         0f
                     ).Normalized;
 
-                    newSpawnPoint += perpendicular * 1.5f; // tweak as needed
+                    newSpawnPoint -= perpendicular * 4f; // tweak as needed
                 }
 
                 // Avoid crowded areas
@@ -296,7 +290,7 @@ namespace GangWarSandbox.Peds
                     else continue;
                 }
 
-                if (newSpawnPoint.DistanceTo2D(playerPos) < (IsVehicleSquad() ? 150f : 100f))
+                if (newSpawnPoint.DistanceTo2D(playerPos) < (IsVehicleSquad() ? 110f : 85f))
                 {
                     if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
                     continue;
@@ -578,7 +572,7 @@ namespace GangWarSandbox.Peds
 
 
 
-            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 125f);
+            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, SQUAD_ATTACK_RANGE);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
             Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 1);
             Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 1); // 0 = near, 1 = medium, 2 = far
@@ -594,7 +588,9 @@ namespace GangWarSandbox.Peds
             //Function.Call(Hash.SET_BLOCKING_OF_NON_TEMPORARY_EVENTS, ped, true);
 
             ped.DrivingStyle = DrivingStyle.Rushed;
-            ped.VehicleDrivingFlags = VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.AllowGoingWrongWay;
+            ped.VehicleDrivingFlags = VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.DrivingModeAvoidVehicles;
+
+            ped.IsPersistent = true;
 
             PedTargetCache[ped] = (null, 0);
             PedAssignments[ped] = PedAssignment.None;

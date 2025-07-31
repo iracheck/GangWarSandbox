@@ -78,8 +78,6 @@ namespace GangWarSandbox.Peds
         {
             if (target == Vector3.Zero) return;
 
-            if (SquadLeader.Position.DistanceTo(target) < 5f) return;
-
             bool hasVehicle = SquadVehicle != null && SquadVehicle.Exists() && SquadVehicle.IsAlive;
             Waypoints = PedAI.GetIntermediateWaypoints(SpawnPos, target, hasVehicle); // set the waypoints to the target position
         }
@@ -215,7 +213,7 @@ namespace GangWarSandbox.Peds
             if (ped == SquadLeader)
             {
                 // IF the ped is not in a vehicle, has more than one waypoint (not almost at its target), and is not currently entering a vehicle, enter a vehicle
-                if (!ped.IsInVehicle() && Waypoints.Count > 1 && PedAssignments[ped] != PedAssignment.GetIntoVehicle)
+                if (!ped.IsInVehicle() && Waypoints.Count > 0 && Waypoints[0].DistanceTo(ped.Position) > 30f && PedAssignments[ped] != PedAssignment.GetIntoVehicle)
                 {
                     PedAI.EnterVehicle(ped, SquadVehicle);
                     PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
@@ -233,18 +231,18 @@ namespace GangWarSandbox.Peds
                         if (squadInside && Waypoints.Count > 0)
                         {
                             PedAI.DriveTo(ped, SquadVehicle, Waypoints[0]);
+                            PedAssignments[ped] = PedAssignment.DriveToPosition; // set the ped to drive to the target position
                         }
-
-                        PedAssignments[ped] = PedAssignment.DriveToPosition; // set the ped to drive to the target position
                     }
-                }
-                else if (SquadLeader.IsInVehicle() && ped.CurrentVehicle != SquadLeader.CurrentVehicle)
-                {
-                    PedAI.EnterVehicle(ped, SquadLeader.CurrentVehicle);
-                    PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
                 }
                 else return false;
             }
+            else if (SquadLeader.IsInVehicle() && ped.CurrentVehicle != SquadLeader.CurrentVehicle)
+            {
+                PedAI.EnterVehicle(ped, SquadLeader.CurrentVehicle);
+                PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
+            }
+            else if (SquadLeader.IsInVehicle() && ped.IsInVehicle() && ped.CurrentVehicle == SquadLeader.CurrentVehicle) return true;
 
             return true;
         }

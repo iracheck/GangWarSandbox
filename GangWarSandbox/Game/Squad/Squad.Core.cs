@@ -188,12 +188,14 @@ namespace GangWarSandbox.Peds
 
             // Update as soon as they are spawned, to avoid them "looking dumb" for ~half a second.
             Update();
+
+            if (SquadVehicle != null && SquadVehicle.Exists()) EnsureCorrectRotationTowardTarget();
         }
 
         // Runs every 200ms (default) and updates all AI, squad states, etc.
         public bool Update()
         {
-            if (IsEmpty())
+            if (IsEmpty() || Members.Count == 0)
             {
                 Destroy();
                 return false;
@@ -245,9 +247,9 @@ namespace GangWarSandbox.Peds
             for (int i = 0; i < Members.Count; i++)
             {
                 Ped ped = Members[i];
-                ped.AttachedBlip.Alpha = GetDesiredBlipVisibility(ped, Owner);
-
                 if (ped == null || !ped.Exists() || !ped.IsAlive || ped.IsRagdoll) continue; // skip to the next ped
+
+                ped.AttachedBlip.Alpha = GetDesiredBlipVisibility(ped, Owner);
 
                 // Gamemode based overrides
                 if (CurrentGamemode.AIOverride(this, ped)) continue;

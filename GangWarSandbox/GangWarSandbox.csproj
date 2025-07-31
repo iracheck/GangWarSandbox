@@ -63,6 +63,7 @@
     <Compile Include="Game\Backend\Utilities\Logger.cs" />
     <Compile Include="Game\Backend\Utilities\Helpers.cs" />
     <Compile Include="Game\GUI\BattleSetupUI.cs" />
+    <Compile Include="Game\Squad\Squad.Helpers.cs" />
     <Compile Include="Game\World\MapElements\CapturePoint.cs" />
     <Compile Include="Game\Backend\Gameplay\Faction.cs" />
     <Compile Include="Game\GangWarSandbox.cs" />
