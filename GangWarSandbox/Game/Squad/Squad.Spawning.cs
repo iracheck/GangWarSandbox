@@ -180,18 +180,6 @@ namespace GangWarSandbox.Peds
 
         }
 
-        public bool IsSpawnPositionCrowded(Vector3 pos, float minDistance = 5f)
-        {
-            var nearbyPeds = World.GetAllPeds().Where(p => p.Exists() && p.Position.DistanceTo(pos) < minDistance);
-
-            if (nearbyPeds.Count() > 10)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
         public Vector3 FindRandomPositionAroundPlayer(int radius = 200, int minRadius = 100)
         {
             Ped player = Game.Player.Character;
@@ -199,10 +187,15 @@ namespace GangWarSandbox.Peds
             Vector3 newSpawnPoint = playerPos;
 
             int attempts = 0;
-            int MAX_ATTEMPTS = 80;
+            int MAX_ATTEMPTS = 15;
 
-            // Adjustments if the player is in a vehicle
+            // Adjust radius if in vehicle
             bool playerInVehicle = player.IsInVehicle();
+            if (playerInVehicle)
+            {
+                radius *= 2;
+                minRadius *= 3;
+            }
 
             if (radius < minRadius) radius = minRadius;
 
@@ -264,7 +257,7 @@ namespace GangWarSandbox.Peds
                         0f
                     ).Normalized;
 
-                    newSpawnPoint -= perpendicular * 4f; // tweak as needed
+                    newSpawnPoint += perpendicular * 1.5f; // tweak as needed
                 }
 
                 // Avoid crowded areas
@@ -279,10 +272,11 @@ namespace GangWarSandbox.Peds
                 // Z-level check
                 if (newSpawnPoint.Z < player.Position.Z - 10f || newSpawnPoint.Z > player.Position.Z + 10f)
                 {
-                    if (attempts >= MAX_ATTEMPTS - 3)
+                    // Slightly increase the tolerance for "bad z-level" checks at the last few stages, to prevent situations with bad spawns
+                    if (attempts >= MAX_ATTEMPTS - 2)
                     {
                         if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
-                        if (newSpawnPoint.Z < player.Position.Z - 50f || newSpawnPoint.Z > player.Position.Z + 50f)
+                        if (newSpawnPoint.Z < player.Position.Z - 20f || newSpawnPoint.Z > player.Position.Z + 20f)
                         {
                             continue;
                         }
@@ -290,7 +284,22 @@ namespace GangWarSandbox.Peds
                     else continue;
                 }
 
-                if (newSpawnPoint.DistanceTo2D(playerPos) < (IsVehicleSquad() ? 110f : 85f))
+
+                float minDistance;
+
+                if (player.IsInVehicle())
+                {
+                    minDistance = 120f;
+                }
+                else
+                {
+                    minDistance = IsVehicleSquad() ? 120f : 90f;
+                }
+
+                if (player.IsInCombat) minDistance += 10f;
+
+
+                if (newSpawnPoint.DistanceTo2D(playerPos) < minDistance)
                 {
                     if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
                     continue;
@@ -572,7 +581,7 @@ namespace GangWarSandbox.Peds
 
 
 
-            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, SQUAD_ATTACK_RANGE);
+            Function.Call(Hash.SET_PED_SEEING_RANGE, ped, 125f);
             Function.Call(Hash.SET_PED_COMBAT_ABILITY, ped, 1); // medium
             Function.Call(Hash.SET_PED_TARGET_LOSS_RESPONSE, ped, 1);
             Function.Call(Hash.SET_PED_COMBAT_RANGE, ped, 1); // 0 = near, 1 = medium, 2 = far
@@ -588,9 +597,7 @@ namespace GangWarSandbox.Peds
             //Function.Call(Hash.SET_BLOCKING_OF_NON_TEMPORARY_EVENTS, ped, true);
 
             ped.DrivingStyle = DrivingStyle.Rushed;
-            ped.VehicleDrivingFlags = VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.AllowGoingWrongWay | VehicleDrivingFlags.DrivingModeAvoidVehicles;
-
-            ped.IsPersistent = true;
+            ped.VehicleDrivingFlags = VehicleDrivingFlags.UseShortCutLinks | VehicleDrivingFlags.AllowGoingWrongWay;
 
             PedTargetCache[ped] = (null, 0);
             PedAssignments[ped] = PedAssignment.None;

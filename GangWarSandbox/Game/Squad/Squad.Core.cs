@@ -76,126 +76,10 @@ namespace GangWarSandbox.Peds
             Naval = 30,
         }
 
-        /// <summary>
-        /// Creates a new squad belonging to a given team, with spawn location depending on the current gamemode.
-        /// </summary>
-        /// <param name="owner">The team that the squad spawns for</param>
-        /// <param name="vehicle">0=infantry,1=vehicle,2=wep. vehicle,3=helicopter</param>
-        /// <param name="role"></param>
-        /// <param name="type"></param>
-        /// <param name="personality"></param>
-        public Squad(Team owner, SquadType type = 0, SquadRole role = 0,  SquadPersonality personality = 0)
-        {
-            Owner = owner;
-            Role = role;
-            Personality = personality;
-            Type = type;
-
-            // determine a spawnpoint
-            Vector3 spawnpoint = Vector3.Zero;
-
-            if (CurrentGamemode.SpawnMethod == Gamemode.GamemodeSpawnMethod.Spawnpoint && owner.SpawnPoints.Count > 0)
-            {
-                spawnpoint = Owner.SpawnPoints[rand.Next(Owner.SpawnPoints.Count)];
-
-                if (spawnpoint == null || spawnpoint == Vector3.Zero) return;
-                SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
-            }
-            else if (CurrentGamemode.SpawnMethod == Gamemode.GamemodeSpawnMethod.Random)
-            {
-                spawnpoint = FindRandomPositionAroundPlayer(200);
-            }
-
-            if (spawnpoint == null || spawnpoint == Vector3.Zero) return;
-
-            // Find a random point around the spawn position to actually spawn in
-            SpawnPos = FindRandomPositionAroundSpawnpoint(spawnpoint);
-
-            if (IsSpawnPositionCrowded(SpawnPos)) return;
-
-
-            if (Type == SquadType.AirHeli && ModData.CurrentGamemode.SpawnHelicopters) // helicopter
-            {
-                SpawnPos.Z += 95;
-
-                SpawnVehicle(VehicleSet.Type.Helicopter, SpawnPos);
-                Owner.HelicopterSquads.Add(this);
-            }
-            else if (Type == SquadType.WeaponizedVehicle && ModData.CurrentGamemode.SpawnWeaponizedVehicles) // weaponized vehicle
-            {
-                IsWeaponizedVehicle = true;
-                SpawnVehicle(VehicleSet.Type.WeaponizedVehicle, SpawnPos);
-                Owner.WeaponizedVehicleSquads.Add(this);
-            }
-            else if (Type == SquadType.CarVehicle && ModData.CurrentGamemode.SpawnVehicles) // reg vehicle
-            {
-                SpawnVehicle(VehicleSet.Type.Vehicle, SpawnPos);
-                Owner.VehicleSquads.Add(this);
-            }
-            else // infantry
-            {
-                Owner.Squads.Add(this);
-            }
-
-            if (role == 0)
-            {
-                if (SquadVehicle != null)
-                {
-                    Role = SquadRole.VehicleSupport;
-                }
-                else
-                {
-                    int max = 20; // base weight of seek and destroy is 20
-                    int assault = 0;
-                    int defend = 0;
-
-                    assault += StrategyAIHelpers.CalculateNeedToAssaultPoint(Owner);
-                    defend += StrategyAIHelpers.CalculateNeedToDefendPoint(Owner);
-                    max += assault + defend;
-
-                    int randNum = rand.Next(0, max);
-
-                    if (randNum <= assault) // Assault
-                    {
-                        Role = SquadRole.AssaultCapturePoint;
-                    }
-                    else if (randNum <= defend + assault) // Defend
-                    {
-                        Role = SquadRole.DefendCapturePoint;
-                    }
-                    else
-                    {
-                        Role = SquadRole.SeekAndDestroy; // default role if no other roles are available
-                    }
-                }
-            }
-
-            if (personality == 0)
-            {
-                int randNum = rand.Next(0, 101);
-
-                if (randNum <= 50) // 50% chance to be aggressive
-                    Personality = SquadPersonality.Aggressive;
-                else
-                    Personality = SquadPersonality.Normal;
-            }
-
-            PedTargetCache = new Dictionary<Ped, (Ped enemy, int timestamp)>();
-            SpawnSquadPeds(GetSquadSizeByType(Type));
-
-            Vector3 target = CurrentGamemode.GetTarget(this); // get a random target for the squad to attack
-            SetTarget(target);
-
-            // Update as soon as they are spawned, to avoid them "looking dumb" for ~half a second.
-            Update();
-
-            if (SquadVehicle != null && SquadVehicle.Exists()) EnsureCorrectRotationTowardTarget();
-        }
-
         // Runs every 200ms (default) and updates all AI, squad states, etc.
         public bool Update()
         {
-            if (IsEmpty() || Members.Count == 0)
+            if (IsEmpty())
             {
                 Destroy();
                 return false;
@@ -247,9 +131,9 @@ namespace GangWarSandbox.Peds
             for (int i = 0; i < Members.Count; i++)
             {
                 Ped ped = Members[i];
-                if (ped == null || !ped.Exists() || !ped.IsAlive || ped.IsRagdoll) continue; // skip to the next ped
-
                 ped.AttachedBlip.Alpha = GetDesiredBlipVisibility(ped, Owner);
+
+                if (ped == null || !ped.Exists() || !ped.IsAlive || ped.IsRagdoll) continue; // skip to the next ped
 
                 // Gamemode based overrides
                 if (CurrentGamemode.AIOverride(this, ped)) continue;
@@ -358,6 +242,11 @@ namespace GangWarSandbox.Peds
         public bool IsVehicleSquad()
         {
             return Type == SquadType.CarVehicle || Type == SquadType.WeaponizedVehicle || Type == SquadType.AirHeli;
+        }
+
+        public bool IsSquadInsideVehicle()
+        {
+            return Members.All(m => m.IsInVehicle() && m.CurrentVehicle == SquadLeader.CurrentVehicle);
         }
 
     }

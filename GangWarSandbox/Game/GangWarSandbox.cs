@@ -176,8 +176,6 @@ namespace GangWarSandbox
 
                 foreach (var squad in allSquads)
                 {
-                    if (squad == null) continue;
-
                     // Ped AI
                     if ((squad.SquadVehicle != null && GameTime % VEHICLE_AI_UPDATE_FREQUENCY == 0) || (squad.SquadVehicle == null && GameTime % AI_UPDATE_FREQUENCY == 0) || squad.JustSpawned)
                     {
