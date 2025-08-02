@@ -61,21 +61,6 @@ namespace GangWarSandbox.Peds
         public Vehicle SquadVehicle = null;
         public bool IsWeaponizedVehicle;
 
-        // Squad type is only used for spawning the squad.
-        public enum SquadType
-        {
-            Infantry = 0,
-            Sniper = 1,
-            Garrison = 2,
-
-            CarVehicle = 11,
-            WeaponizedVehicle = 12,
-
-            AirHeli = 20,
-
-            Naval = 30,
-        }
-
         // Runs every 200ms (default) and updates all AI, squad states, etc.
         public bool Update()
         {
@@ -242,11 +227,6 @@ namespace GangWarSandbox.Peds
         public bool IsVehicleSquad()
         {
             return Type == SquadType.CarVehicle || Type == SquadType.WeaponizedVehicle || Type == SquadType.AirHeli;
-        }
-
-        public bool IsSquadInsideVehicle()
-        {
-            return Members.All(m => m.IsInVehicle() && m.CurrentVehicle == SquadLeader.CurrentVehicle);
         }
 
     }

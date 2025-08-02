@@ -236,6 +236,7 @@ namespace GangWarSandbox.Peds
 
                 newSpawnPoint = playerPos + offset;
 
+                // ✅ Use GET_CLOSEST_VEHICLE_NODE_WITH_HEADING for precise lane snapping
                 OutputArgument outCoords = new OutputArgument();
                 OutputArgument outHeading = new OutputArgument();
 
@@ -272,11 +273,10 @@ namespace GangWarSandbox.Peds
                 // Z-level check
                 if (newSpawnPoint.Z < player.Position.Z - 10f || newSpawnPoint.Z > player.Position.Z + 10f)
                 {
-                    // Slightly increase the tolerance for "bad z-level" checks at the last few stages, to prevent situations with bad spawns
-                    if (attempts >= MAX_ATTEMPTS - 2)
+                    if (attempts >= MAX_ATTEMPTS - 3)
                     {
                         if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
-                        if (newSpawnPoint.Z < player.Position.Z - 20f || newSpawnPoint.Z > player.Position.Z + 20f)
+                        if (newSpawnPoint.Z < player.Position.Z - 50f || newSpawnPoint.Z > player.Position.Z + 50f)
                         {
                             continue;
                         }
@@ -284,22 +284,7 @@ namespace GangWarSandbox.Peds
                     else continue;
                 }
 
-
-                float minDistance;
-
-                if (player.IsInVehicle())
-                {
-                    minDistance = 120f;
-                }
-                else
-                {
-                    minDistance = IsVehicleSquad() ? 120f : 90f;
-                }
-
-                if (player.IsInCombat) minDistance += 10f;
-
-
-                if (newSpawnPoint.DistanceTo2D(playerPos) < minDistance)
+                if (newSpawnPoint.DistanceTo2D(playerPos) < (IsVehicleSquad() ? 150f : 100f))
                 {
                     if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
                     continue;

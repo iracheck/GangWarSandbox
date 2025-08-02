@@ -17,31 +17,6 @@ namespace GangWarSandbox.Peds
 {
     public partial class Squad
     {
-        public enum SquadRole
-        {
-            Idle,
-
-            DefendCapturePoint, // defend a capture point from enemies trying to take it
-            AssaultCapturePoint, // capture a capture point by attacking it and any squads nearby
-            ReinforceAllies,
-            SeekAndDestroy, // assault a random enemy spawn point
-            ChargeCapturePoint,
-
-            VehicleSupport,
-
-            //AirSupport = 31,
-            //AirDrop = 32,
-
-
-        }
-
-        // Personality -- how a squad reacts to certain situations, gives a dynamic feel to the battlefield
-        public enum SquadPersonality
-        {
-            Normal, // the squad will not act in any particular way. the majority of squads
-            Aggressive, // the squad will act more aggressively, and move more quickly
-        }
-
         // Ped Assignnment -- what each ped is doing
         // the squad will behave in a similar way-- inheriting their leader's assignment
         public enum PedAssignment
@@ -248,6 +223,12 @@ namespace GangWarSandbox.Peds
 
             return true;
         }
+
+        public bool IsSquadInsideVehicle()
+        {
+            return Members.All(m => m.IsInVehicle() && m.CurrentVehicle == SquadLeader.CurrentVehicle);
+        }
+
 
         private Ped FindNearbyEnemy(Vector3 selfPosition, Team team, float distance, bool infiniteSearch = false)
         {
