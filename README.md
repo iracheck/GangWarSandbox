@@ -21,16 +21,21 @@ A copy of these dependencies are included with the mod file. Only use them if yo
 3. Run GTAV.exe, and press F10 (or optionally configured key) to open the mod menu.
 
 ## Customization Instructions
-Currently, you can customize Factions and their VehicleSets. The mod checks everything within the given folder (e.g. ...scripts/GangWarSandbox/Factions), and then parses out any .ini files inside of it. To create a new Faction or VehicleSet, create a new .ini file and follow the instructions given in the Creation Guide given in each folder.
+Currently, you can create your own custom Factions and Vehicle Sets for those faction. The mod tries to parse everything within a given folder (e.g. ...scripts/GangWarSandbox/Factions), so be sure you are using the correctly provided folders. To create a new Faction or VehicleSet, create a new .ini file and follow the instructions given in the Creation Guide given in each folder.<br>
+
+File Paths:
 > scripts/GangWarSandbox/Factions  
 > scripts/GangWarSandbox/VehicleSets
 
-You can use the following links to find ped or vehicle models:
-https://docs.fivem.net/docs/game-references/vehicle-references/vehicle-models/  
+You can use the following links to find ped or vehicle models: <br>
+https://docs.fivem.net/docs/game-references/vehicle-references/vehicle-models/  <br>
 https://wiki.rage.mp/wiki/Peds
+https://docs.fivem.net/docs/game-references/weapon-models/
 
 
-__Note__ Use the name of the model, e.g. "hc_driver" or "issi2"
+__Note__ <br>
+Use the name of the model for peds and vehicles, e.g. "hc_driver" or "issi2"
+Use the name of the hash for weapons: e.g. "WEAPON_PISTOL" "WEAPON_MINIGUN"
 
 # Features
 All of these features are __planned__. When or in what state they arrive in is unknown. Anything marked in bold is a priority.
@@ -51,18 +56,6 @@ All of these features are __planned__. When or in what state they arrive in is u
 - [x] Decrease performance overhead of large squad/ped counts
 - [x] Rework file structure, with two INIs-- one for faction setup, one for mod options
 
-### "Beyond 1.0" Features
-Features that may not fit into Version 1, but I want to include.
-- [ ] Load Custom Battles from XML + Menyoo XMLs
-- [ ] Performance Mode (alternatively, limit # of peds in mod INI)
-- [ ] Squads Retreat
-- [ ] Radio System (call for reinforcements, air strikes, etc)
-- [ ] Battle Type: Defend the Point
-- [ ] Battle Type: Gun Game
-- [ ] Advanced Custom AI Behaviors
-- [ ] Strategy AI-- Order squads to go to places around the map to achieve victory conditions
-
-
 
 ## Known Bugs / Issues to Squash
 - [ ] Placing victory points/spawn points in an unloaded area causes them to be placed underneath the map
@@ -72,8 +65,3 @@ Features that may not fit into Version 1, but I want to include.
 - [x] Ped limits per faction is ~25 default, but only 13-16 peds spawn (why?)
 - [x] NPCs far from the player don't have their AI update
 - [x] Incomplete .ini files cause a crash
-
-## Dev Notes
-Much of this mod will be rewritten over time. I started it just for fun, until it became something more substantial, so much of the early code is written poorly. As a result, some of the first things I worked on will be rewritten, in some cases to be more modular/customizable by the end user (you!).
-
-This mod is still in active development, so things are due to change, and VehicleSet/Faction definitions may break in future versions. They're not difficult to create, but you have been warned.
