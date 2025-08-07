@@ -198,7 +198,7 @@ namespace GangWarSandbox.Peds
 
             if (team.TeamIndex == ModData.PlayerTeam || ModData.PlayerTeam == -1) return maxAlpha;
 
-            if (ModData.DEBUG == 1 || CurrentGamemode.FogOfWar == false) return maxAlpha;
+            if (ModData.DEBUG || CurrentGamemode.FogOfWar == false) return maxAlpha;
 
             // Relative conditions
             float healthPercent = (float)ped.Health / (float)ped.MaxHealth;

@@ -20,6 +20,7 @@ using GangWarSandbox.Gamemodes;
 using System.Runtime.InteropServices;
 using GangWarSandbox.Core;
 using System.Runtime.Remoting.Messaging;
+using GangWarSandbox.Utilities;
 
 namespace GangWarSandbox
 {
@@ -28,7 +29,7 @@ namespace GangWarSandbox
         public static GangWarSandbox Instance { get; private set; }
 
         // Debug Utilities
-        public int DEBUG = 1;
+        public bool DEBUG = GWSettings.DEBUG;
 
         // Constants
         private const int AI_UPDATE_FREQUENCY = 150; // How often squad AI will be updated, in milliseconds
@@ -109,6 +110,20 @@ namespace GangWarSandbox
             // Try to load the configuration files
             Factions = ConfigParser.LoadFactions();
             ConfigParser.LoadConfiguration();
+
+            if (Factions.Count == 0)
+            {
+                NotificationHandler.Send("~r~Warning: ~w~GangWarSandbox requires at least one faction in order to load. Please create one, or use one of the default ones provided.");
+                return;
+            }
+            else if (Factions.Count == 1)
+            {
+                NotificationHandler.Send("~r~Warning: ~w~GangWarSandbox works best with more than one faction. While you can play, it's suggested to add more.");
+            }
+            else
+            {
+                NotificationHandler.Send("GangWarSandbox loaded. Press " + GWSettings.OpenMenuKeybind + " to begin! :)");
+            }
 
             Tick += OnTick;
             KeyDown += OnKeyDown;
@@ -209,7 +224,7 @@ namespace GangWarSandbox
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.F10)
+            if (e.KeyCode == GWSettings.OpenMenuKeybind)
             {
                 if (!BattleSetupUI.MenuPool.AreAnyVisible)
                     BattleSetupUI.Show();
@@ -483,8 +498,6 @@ namespace GangWarSandbox
 
                 SetColors(team);
             }
-
-            if (DEBUG == 1) GTA.UI.Screen.ShowSubtitle($"Faction '{factionName}' applied to {team.Name} team.");
         }
 
         public void SetColors(Team team)
@@ -562,7 +575,7 @@ namespace GangWarSandbox
                 World.DrawMarker(MarkerType.VerticalCylinder, point.Position, Vector3.Zero, Vector3.Zero, new Vector3(CapturePoint.Radius, CapturePoint.Radius, 1f), point.GenericColor);
             }
 
-            if (DEBUG == 1 && Teams != null)
+            if (DEBUG && Teams != null)
             {
                 foreach (var team in Teams)
                 {

@@ -12,6 +12,7 @@ using System.Runtime.Serialization;
 using GTA.Native;
 using System.Drawing;
 using System.Runtime.InteropServices.WindowsRuntime;
+using GangWarSandbox.Utilities;
 
 namespace GangWarSandbox.Peds
 {
@@ -122,11 +123,6 @@ namespace GangWarSandbox.Peds
 
             if (nearbyEnemy != null)
             {
-                if (ped.IsInVehicle())
-                {
-                    Logger.LogDebug(Owner.Name + " | " + nearbyEnemy.ToString() + " | " + nearbyEnemy.Position.DistanceTo(ped.Position).ToString());
-                }
-
                 // First, let's make sure the ped attacks any enemies that are nearby that he can see
                 if (PedAI.HasLineOfSight(ped, nearbyEnemy))
                 {

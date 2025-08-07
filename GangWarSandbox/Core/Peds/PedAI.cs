@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Runtime.Serialization;
 using GangWarSandbox.Core;
+using GangWarSandbox.Utilities;
 
 namespace GangWarSandbox.Peds
 {

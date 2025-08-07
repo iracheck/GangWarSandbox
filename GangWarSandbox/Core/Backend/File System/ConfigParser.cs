@@ -1,4 +1,5 @@
 ﻿using GangWarSandbox.Core;
+using GangWarSandbox.Utilities;
 using GTA;
 using System;
 using System.Collections.Generic;
@@ -206,6 +207,10 @@ namespace GangWarSandbox.Core
                                 if (VehicleSets.TryGetValue(value.ToLower(), out var vehicleSet))
                                 {
                                     faction.VehicleSet = vehicleSet;
+                                }
+                                else
+                                {
+                                    Logger.ParserError("Error in faction definition of " + currentFaction + "! VehicleSet " + value + " is not a valid VehicleSet.");
                                 }
                                 break;
                             case "BaseHealth":

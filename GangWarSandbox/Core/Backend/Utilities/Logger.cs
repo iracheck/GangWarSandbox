@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GangWarSandbox
+namespace GangWarSandbox.Utilities
 {
     static class Logger
     {
@@ -29,7 +29,7 @@ namespace GangWarSandbox
 
         public static void LogDebug(String data)
         {
-            if (ModData.DEBUG == 1)
+            if (ModData.DEBUG)
                 Log(data, "DEBUG");
         }
 

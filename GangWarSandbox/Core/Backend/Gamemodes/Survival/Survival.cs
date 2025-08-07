@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using LemonUI.Menus;
 using GTA.Native;
 using GTA.Math;
+using GangWarSandbox.Utilities;
 
 namespace GangWarSandbox.Gamemodes
 {
@@ -58,7 +59,7 @@ namespace GangWarSandbox.Gamemodes
         int Combo;
         int ComboLastTime;
 
-        public SurvivalGamemode() : base("Survival", "Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can! Just like trying to get five stars.\n\nBETA GAMEMODE", 0)
+        public SurvivalGamemode() : base("Survival", "Survive as long as possible. Kill enemies to earn points, and try to achieve the highest score you can! Just like trying to survive against the cops for as long as possible.\n\n[WORK IN PROGRESS]", 0)
         {
             SpawnMethod = GamemodeSpawnMethod.Random;
 
@@ -92,6 +93,11 @@ namespace GangWarSandbox.Gamemodes
         {
             Mod = GangWarSandbox.Instance;
 
+            string preferredFaction1 = "LSPD";
+            string preferredFaction2 = "SWAT";
+            string preferredFaction3 = "Army";
+
+
             if (Mod == null) return null;
 
             NativeMenu gamemodeMenu = new NativeMenu("Survival Settings", "Survival Settings", "Modify the settings of your Survival gamemode, such as the factions hunting you.");
@@ -100,7 +106,9 @@ namespace GangWarSandbox.Gamemodes
             var level1Enemy = new NativeListItem<string>($"Tier 1 Hunter Faction", Mod.Factions.Keys.ToArray());
             level1Enemy.Description = "The primary team that appears to hunt you. These will always appear.";
 
-            level1Enemy.SelectedItem = Mod.Teams[1].Faction?.Name ?? Mod.Factions.Keys.FirstOrDefault();
+            level1Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction1)
+                ? preferredFaction1
+                : Mod.Factions.Keys.FirstOrDefault();
             level1Enemy.ItemChanged += (item, args) =>
             {
                 var selectedFaction = level1Enemy.SelectedItem;
@@ -113,7 +121,9 @@ namespace GangWarSandbox.Gamemodes
             var level2Enemy = new NativeListItem<string>($"Tier 2 Hunter Faction", Mod.Factions.Keys.ToArray());
             level2Enemy.Description = "The second team that appears to hunt you. These will only appear starting in later rounds.";
 
-            level2Enemy.SelectedItem = Mod.Teams[2].Faction?.Name ?? Mod.Factions.Keys.FirstOrDefault();
+            level2Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction2)
+                ? preferredFaction2
+                : Mod.Factions.Keys.FirstOrDefault();
             level2Enemy.ItemChanged += (item, args) =>
             {
                 var selectedFaction = level2Enemy.SelectedItem;
@@ -126,7 +136,9 @@ namespace GangWarSandbox.Gamemodes
             var level3Enemy = new NativeListItem<string>($"Tier 3 Hunter Faction", Mod.Factions.Keys.ToArray());
             level3Enemy.Description = "The last team that appears to hunt you. These will only appear after you have survived for a long time.";
 
-            level3Enemy.SelectedItem = Mod.Teams[3].Faction?.Name ?? Mod.Factions.Keys.FirstOrDefault();
+            level3Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction3)
+                ? preferredFaction3
+                : Mod.Factions.Keys.FirstOrDefault(); 
             level3Enemy.ItemChanged += (item, args) =>
             {
                 var selectedFaction = level3Enemy.SelectedItem;

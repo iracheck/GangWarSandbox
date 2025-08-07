@@ -148,7 +148,8 @@ namespace GangWarSandbox
 
             MainMenu.Add(start);
             MainMenu.Add(stop);
-            MainMenu.Add(reload);
+
+            if (Mod.DEBUG) MainMenu.Add(reload);
 
             MenuPool.RefreshAll();
         }
@@ -196,7 +197,8 @@ namespace GangWarSandbox
                 }
                 else
                 {
-                    teamFactionItem.SelectedIndex = teamIndex;
+                    if (factionNames.Length - 1 >= teamIndex) teamFactionItem.SelectedIndex = teamIndex;
+                    else teamFactionItem.SelectedIndex = 0;
                     Mod.ApplyFactionToTeam(Mod.Teams[teamIndex], teamFactionItem.SelectedItem); // Apply default faction
                     SavedFactions[teamIndex] = teamFactionItem.SelectedItem; // Save random selection
                 }
