@@ -56,6 +56,11 @@ namespace GangWarSandbox
         public BlipSprite BlipSprite { get; set; } = BlipSprite.Standard;
 
 
+        // CONSTANT PARAMETERS
+        const int DEFAULT_SQUAD_SIZE = 5;
+        const int MAX_SQUAD_SIZE = 7;
+        const int MIN_SQUAD_SIZE = 3;
+        const float SQUAD_SIZE_MULT = 0.2f;
 
 
 
@@ -70,22 +75,22 @@ namespace GangWarSandbox
             if (Faction == null || Faction.MaxSoldiers <= 0)
             {
                 GTA.UI.Screen.ShowSubtitle("Faction is not set or has no soldiers available.");
-                return 5; // default
+                return DEFAULT_SQUAD_SIZE; // default
             }
 
-            int squadSize = (int) (Faction.MaxSoldiers * ModData.CurrentGamemode.UnitCountMultiplier) / 5;
+            int squadSize = (int) ( (Faction.MaxSoldiers * ModData.CurrentGamemode.UnitCountMultiplier) * SQUAD_SIZE_MULT);
 
-            if (squadSize > 6) squadSize = 6;
-            if (squadSize < 2) squadSize = 2;
+            if (squadSize > MAX_SQUAD_SIZE) squadSize = MAX_SQUAD_SIZE;
+            if (squadSize < MIN_SQUAD_SIZE) squadSize = MIN_SQUAD_SIZE;
 
             return squadSize;
         }
 
-        public List<Squad> GetAllSquads()
+        public List<Squad> GetAllSquads(bool vehicleOnly = false)
         {
             List<Squad> squads = new List<Squad>();
 
-            squads.AddRange(Squads);
+            if (!vehicleOnly) squads.AddRange(Squads);
             squads.AddRange(VehicleSquads);
             squads.AddRange(WeaponizedVehicleSquads);
             squads.AddRange(HelicopterSquads);

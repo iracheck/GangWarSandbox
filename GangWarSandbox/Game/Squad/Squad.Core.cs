@@ -120,6 +120,9 @@ namespace GangWarSandbox.Peds
 
                 if (ped == null || !ped.Exists() || !ped.IsAlive || ped.IsRagdoll) continue; // skip to the next ped
 
+                // Block permanent events (e.g. automatic AI takeover in gta) when in vehicles
+                ped.BlockPermanentEvents = ped.IsInVehicle() && !ped.IsInCombat;
+
                 // Gamemode based overrides
                 if (CurrentGamemode.AIOverride(this, ped)) continue;
 

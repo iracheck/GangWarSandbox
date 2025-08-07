@@ -93,7 +93,7 @@ namespace GangWarSandbox.Peds
 
         private bool PedAI_Combat(Ped ped)
         {
-            if (!PedTargetCache.ContainsKey(ped)) PedTargetCache.Add(ped, (null, 0)); // ped target cache: (current ped, (cached target, timestamp))
+            if (!PedTargetCache.ContainsKey(ped)) PedTargetCache.Add(ped, (null, 0)); // ped target cache usage: (current ped, (cached target, timestamp))
 
             Ped cachedEnemy = PedTargetCache[ped].enemy;
             int lastCheckedTime = PedTargetCache[ped].timestamp;
@@ -101,37 +101,53 @@ namespace GangWarSandbox.Peds
             Ped nearbyEnemy = cachedEnemy;
 
             // Handle ped target caching and refinding
-            if (Game.GameTime - lastCheckedTime > 1000 || cachedEnemy == null || cachedEnemy.IsDead || cachedEnemy.Position.DistanceTo(ped.Position) > SQUAD_ATTACK_RANGE)
+            if (Game.GameTime - lastCheckedTime > 1000 || ped.IsInVehicle() || nearbyEnemy == null || nearbyEnemy.IsDead || nearbyEnemy.Position.DistanceTo(ped.Position) > SQUAD_ATTACK_RANGE)
             {
                 Vector3 source = ped.Position;
                 if (ped.IsInVehicle()) source = ped.CurrentVehicle.Position;
-
-                nearbyEnemy = FindNearbyEnemy(source, Owner, SQUAD_ATTACK_RANGE); // search for a nearby enemy                    
+                nearbyEnemy = FindNearbyEnemy(source, Owner, SQUAD_ATTACK_RANGE); // search for a nearby enemy
+                                                                                  
                 PedTargetCache[ped] = (nearbyEnemy, Game.GameTime); // update the cache with the new target and timestamp
+            }
+
+            bool safeToExitVehicle = CanGetOutVehicle(ped);
+
+            if ( ped.IsInVehicle() && (ped.IsInCombat || (nearbyEnemy != null && SquadVehicle.Position.DistanceTo(nearbyEnemy.Position) < 50f) && safeToExitVehicle))
+            {
+                ped.Task.LeaveVehicle();
+                PedAssignments[ped] = PedAssignment.ExitVehicle;
+
+                return true;
             }
 
             if (nearbyEnemy != null)
             {
+                if (ped.IsInVehicle())
+                {
+                    Logger.LogDebug(Owner.Name + " | " + nearbyEnemy.ToString() + " | " + nearbyEnemy.Position.DistanceTo(ped.Position).ToString());
+                }
+
                 // First, let's make sure the ped attacks any enemies that are nearby that he can see
                 if (PedAI.HasLineOfSight(ped, nearbyEnemy))
                 {
-                    // if the ped is in a vehicle with its squadleader and they are close to their destination, attack
-                    if (ped.IsInVehicle() && PedAssignments[ped] != PedAssignment.ExitVehicle)
+                    if (PedAssignments[ped] != PedAssignment.AttackNearby)
                     {
-                        ped.Task.LeaveVehicle(LeaveVehicleFlags.LeaveDoorOpen);
-                        PedAssignments[ped] = PedAssignment.ExitVehicle; // set the ped to drive by the enemy
+                        if (!ped.IsInVehicle())
+                        {
+                            PedAI.AttackEnemy(ped, nearbyEnemy);
+                            PedAssignments[ped] = PedAssignment.AttackNearby;
+                        }
+                        else
+                        {
+                            ped.Task.VehicleShootAtPed(nearbyEnemy);
+                            PedAssignments[ped] = PedAssignment.VehicleChase;
+                        }
 
-                        return true;
-                    }
-                    else if (PedAssignments[ped] != PedAssignment.AttackNearby)
-                    {
-                        PedAI.AttackEnemy(ped, nearbyEnemy);
-                        PedAssignments[ped] = PedAssignment.AttackNearby;
                     }
                 }
                 else if (PedAssignments[ped] != PedAssignment.RunToPosition && !ped.IsInVehicle())
                 {
-                    ped.Task.ClearAllImmediately(); // breaks their combat state
+                    ped.Task.ClearAll(); // breaks their combat state
 
                     PedAI.RunToFarAway(ped, nearbyEnemy.Position);
                     PedAssignments[ped] = PedAssignment.RunToPosition;
@@ -141,22 +157,27 @@ namespace GangWarSandbox.Peds
                     ped.Task.VehicleChase(nearbyEnemy); // chase the enemy vehicle if the ped is in a vehicle and the enemy is in a vehicle
                     PedAssignments[ped] = PedAssignment.VehicleChase;
                 }
-                else if (ped.IsInVehicle() && nearbyEnemy.Position.DistanceTo(ped.Position) < 60f) // alternatively, if the ped is in a vehicle and there are enemies nearby, try to fight them even if they can't be "seen"
+                else if (ped.IsInVehicle() && nearbyEnemy.Position.DistanceTo(ped.Position) < 60f)
                 {
-                    ped.Task.LeaveVehicle();
-                    PedAssignments[ped] = PedAssignment.ExitVehicle;
+                    if (PedAI.HasLineOfSight(ped, nearbyEnemy))
+                    {
+                        ped.Task.VehicleShootAtPed(nearbyEnemy);
+                        PedAssignments[ped] = PedAssignment.VehicleChase;
+                    }
+                    else if (nearbyEnemy.Position.DistanceTo(ped.Position) < 20f && safeToExitVehicle)
+                    {
+                        ped.Task.LeaveVehicle(LeaveVehicleFlags.LeaveDoorOpen);
+                        PedAssignments[ped] = PedAssignment.ExitVehicle;
+                    }
                 }
 
                 return true;
-            }
-            else if (nearbyEnemy == null && PedAssignments[ped] == PedAssignment.AttackNearby)
-            {
-                PedAssignments[ped] = PedAssignment.None;
             }
 
             return false;
         }
 
+        // AI logic relating to ground based infantry navigation
         private bool PedAI_Movement(Ped ped)
         {
             if (ped == SquadLeader)
@@ -181,11 +202,13 @@ namespace GangWarSandbox.Peds
             return true;
         }
 
+        // AI logic relating to vehicle navigation
         private bool PedAI_Driving(Ped ped)
         {
             if (SquadVehicle == null || !SquadVehicle.Exists() || !SquadVehicle.IsAlive) return false;
 
-            if (CanGetOutVehicle()) Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 3, true); // if a ped is the last ped in a weaponized vehicle, ensure they are allowed to get out
+            bool canExitVehicle = CanGetOutVehicle(ped); // check if the ped can exit the vehicle
+            if (canExitVehicle) Function.Call(Hash.SET_PED_COMBAT_ATTRIBUTES, ped, 3, canExitVehicle); // if a ped is the last ped in a weaponized vehicle, ensure they are allowed to get out
 
             if (ped == SquadLeader)
             {
@@ -197,7 +220,7 @@ namespace GangWarSandbox.Peds
                 }
                 else if (ped.IsInVehicle() && Waypoints.Count > 0)
                 {
-                    if (ped.IsInPoliceVehicle && !SquadVehicle.IsSirenActive && SquadVehicle.Velocity.Length() > 5) SquadVehicle.IsSirenActive = true; // activate the siren if the ped is in a police vehicle
+                    if (ped.CurrentVehicle.HasSiren && !SquadVehicle.IsSirenActive && SquadVehicle.Velocity.Length() > 5) SquadVehicle.IsSirenActive = true; // activate the siren if the ped is in a police vehicle
 
                     if (PedAssignments[ped] != PedAssignment.DriveToPosition)
                     {
@@ -208,17 +231,16 @@ namespace GangWarSandbox.Peds
                         if (squadInside && Waypoints.Count > 0)
                         {
                             PedAI.DriveTo(ped, SquadVehicle, Waypoints[0]);
+                            PedAssignments[ped] = PedAssignment.DriveToPosition; // set the ped to drive to the target position
                         }
-
-                        PedAssignments[ped] = PedAssignment.DriveToPosition; // set the ped to drive to the target position
                     }
                 }
-                else if (SquadLeader.IsInVehicle() && ped.CurrentVehicle != SquadLeader.CurrentVehicle)
-                {
-                    PedAI.EnterVehicle(ped, SquadLeader.CurrentVehicle);
-                    PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
-                }
                 else return false;
+            }
+            else if (SquadLeader.IsInVehicle() && ped.CurrentVehicle != SquadLeader.CurrentVehicle)
+            {
+                PedAI.EnterVehicle(ped, SquadLeader.CurrentVehicle);
+                PedAssignments[ped] = PedAssignment.GetIntoVehicle; // set the ped to follow the squad leader
             }
 
             return true;
@@ -233,11 +255,14 @@ namespace GangWarSandbox.Peds
         private Ped FindNearbyEnemy(Vector3 selfPosition, Team team, float distance, bool infiniteSearch = false)
         {
             Ped foundEnemy;
+            Vehicle foundVehicle;
+
+            List<Team> enemyTeams = ModData.Teams.Where(t => t != team && !team.AlliedIndexes.Contains(t.TeamIndex)).ToList();
 
             // Get all enemy squads from other teams
-            var enemyPeds = ModData.Teams
-                .Where(t => t != team && !team.AlliedIndexes.Contains(t.TeamIndex))
-                .SelectMany(t => t.Squads).SelectMany(s => s.Members).ToList();
+            var enemyPeds = enemyTeams.SelectMany(t => t.GetAllPeds()).ToList();
+
+            var enemyVehicles = enemyTeams.SelectMany(t => t.GetAllSquads(true)).Select(s => s.SquadVehicle).ToList();
 
             if (ModData.PlayerTeam != -1 && Owner.TeamIndex != ModData.PlayerTeam)
                 enemyPeds.Add(Game.Player.Character); // add the player's squad to the list of enemy squads if the squad is not on the player's team
@@ -249,18 +274,39 @@ namespace GangWarSandbox.Peds
                     .OrderBy(p => p.Position.DistanceTo(selfPosition))
                     .FirstOrDefault();
 
+            foundVehicle = enemyVehicles.Where(p => p != null && p.Exists() && !p.IsDead && p.Position.DistanceTo(selfPosition) <= range)
+                    .OrderBy(p => p.Position.DistanceTo(selfPosition))
+                    .FirstOrDefault();
+
+
             if (foundEnemy == null || !foundEnemy.Exists() || foundEnemy.IsDead)
             {
                 foundEnemy = null;
+            }
+            else
+            {
+                if (foundVehicle != null && foundVehicle.Driver != null &&
+                    foundVehicle.Position.DistanceTo(selfPosition) < foundEnemy.Position.DistanceTo(selfPosition)) foundEnemy = foundVehicle.Driver;
             }
 
             return foundEnemy;
         }
 
-        public bool CanGetOutVehicle()
+        public bool CanGetOutVehicle(Ped ped)
         {
-            if (IsWeaponizedVehicle && Members.Count == 1 && !Members[0].IsInCombat) return true;
-            else return false;
+            if (SquadVehicle == null || !ped.IsInVehicle() || SquadVehicle.IsDead) return true;
+
+            float healthPercent = SquadVehicle.Health / (float)SquadVehicle.MaxHealth;
+
+            // if the vehicle is heavily damaged, can always get out
+            if (SquadVehicle.IsOnFire || healthPercent < 0.1) return true;
+
+            // Don't leave weaponized vehicles, unless squad is nearly wiped out
+            if (IsWeaponizedVehicle && Members.Count(m => m.IsInVehicle() && m.CurrentVehicle == SquadVehicle) > 1) return false;
+
+            // Finally, only exit if the vehicle is stopped/moving slowly
+            if (SquadVehicle.Velocity.Length() >= 0.5 || SquadVehicle.IsStopped) return true;
+            else return false; // otherwise: probably not ok!
         }
 
     }

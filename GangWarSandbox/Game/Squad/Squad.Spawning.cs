@@ -166,18 +166,23 @@ namespace GangWarSandbox.Peds
 
             if (SquadVehicle.AttachedBlip == null) return;
 
-            if (type == VehicleSet.Type.Vehicle && (SquadVehicle.IsBicycle || SquadVehicle.IsMotorcycle) ) 
-                SquadVehicle.AttachedBlip.Sprite = BlipSprite.Motorcycle;
-            else if (type == VehicleSet.Type.Vehicle)
-                SquadVehicle.AttachedBlip.Sprite = BlipSprite.GangVehiclePolice;
-            else if (type == VehicleSet.Type.WeaponizedVehicle)
-                SquadVehicle.AttachedBlip.Sprite = BlipSprite.TechnicalAqua;
-            else if (type == VehicleSet.Type.Helicopter)
-                SquadVehicle.AttachedBlip.Sprite = BlipSprite.HelicopterAnimated;
+            GetCorrectBlipForVehicle(type, SquadVehicle);
 
             SquadVehicle.AttachedBlip.Name = $"Team {Owner.Name} Vehicle";
             SquadVehicle.AttachedBlip.Color = Owner.BlipColor;
 
+        }
+
+        public static void GetCorrectBlipForVehicle(VehicleSet.Type type, Vehicle vehicle)
+        {
+            if (type == VehicleSet.Type.Vehicle && (vehicle.IsBicycle || vehicle.IsMotorcycle))
+                vehicle.AttachedBlip.Sprite = BlipSprite.Motorcycle;
+            else if (type == VehicleSet.Type.Vehicle)
+                vehicle.AttachedBlip.Sprite = BlipSprite.GangVehiclePolice;
+            else if (type == VehicleSet.Type.WeaponizedVehicle)
+                vehicle.AttachedBlip.Sprite = BlipSprite.TechnicalAqua;
+            else if (type == VehicleSet.Type.Helicopter)
+                vehicle.AttachedBlip.Sprite = BlipSprite.HelicopterAnimated;
         }
 
         public Vector3 FindRandomPositionAroundPlayer(int radius = 200, int minRadius = 100)
@@ -187,15 +192,9 @@ namespace GangWarSandbox.Peds
             Vector3 newSpawnPoint = playerPos;
 
             int attempts = 0;
-            int MAX_ATTEMPTS = 15;
+            int MAX_ATTEMPTS = 20;
 
-            // Adjust radius if in vehicle
             bool playerInVehicle = player.IsInVehicle();
-            if (playerInVehicle)
-            {
-                radius *= 2;
-                minRadius *= 3;
-            }
 
             if (radius < minRadius) radius = minRadius;
 
@@ -216,7 +215,6 @@ namespace GangWarSandbox.Peds
                         float cone = 25f * (float)Math.PI / 180f;
                         float forwardAngle = (float)Math.Atan2(forward.Y, forward.X);
                         angle = forwardAngle + (float)(rand.NextDouble() * cone - cone / 2f);
-                        distance *= 1.3f;
                     }
                     else
                     {
@@ -236,7 +234,6 @@ namespace GangWarSandbox.Peds
 
                 newSpawnPoint = playerPos + offset;
 
-                // ✅ Use GET_CLOSEST_VEHICLE_NODE_WITH_HEADING for precise lane snapping
                 OutputArgument outCoords = new OutputArgument();
                 OutputArgument outHeading = new OutputArgument();
 
@@ -271,7 +268,7 @@ namespace GangWarSandbox.Peds
                 }
 
                 // Z-level check
-                if (newSpawnPoint.Z < player.Position.Z - 10f || newSpawnPoint.Z > player.Position.Z + 10f)
+                if (newSpawnPoint.Z < player.Position.Z - 5f || newSpawnPoint.Z > player.Position.Z + 5f)
                 {
                     if (attempts >= MAX_ATTEMPTS - 3)
                     {
@@ -284,7 +281,7 @@ namespace GangWarSandbox.Peds
                     else continue;
                 }
 
-                if (newSpawnPoint.DistanceTo2D(playerPos) < (IsVehicleSquad() ? 150f : 100f))
+                if (newSpawnPoint.DistanceTo2D(playerPos) < (IsVehicleSquad() ? 120f : 70f))
                 {
                     if (attempts >= MAX_ATTEMPTS) return Vector3.Zero;
                     continue;
@@ -486,7 +483,6 @@ namespace GangWarSandbox.Peds
                 team.Tier4Ped = ped;
 
                 ped.Armor = 350;
-                ped.CanWrithe = false;
                 ped.IsFireProof = true;
                 ped.IsInvincible = false;
                 ped.CanSufferCriticalHits = false; // ped won't die if they get shot in the head (most will anyways)
@@ -496,6 +492,9 @@ namespace GangWarSandbox.Peds
                 blip.Sprite = BlipSprite.Enemy;
                 blip.Scale = 0.5f;
             }
+
+            // cant writhe if tier 3 or 4 OR high health --> will be expanded upon later
+            ped.CanWrithe = tier < 3 || ped.MaxHealth < 300;
 
             if (Personality == SquadPersonality.Aggressive)
             {

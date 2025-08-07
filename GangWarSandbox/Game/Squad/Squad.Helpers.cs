@@ -40,9 +40,8 @@ namespace GangWarSandbox.Peds
         /// <param name="targetPos"></param>
         /// <param name="roadPosition"></param>
         /// <returns></returns>
-        public static float GetRoadDirectionByHeading(Vector3 position, Vector3 targetPos, out Vector3 roadPosition)
+        public static float GetRoadDirectionByHeading(Vector3 position, Vector3 targetPos)
         {
-            float heading = 0f;
             OutputArgument outPos = new OutputArgument();
             OutputArgument outHeading = new OutputArgument();
 
@@ -50,28 +49,27 @@ namespace GangWarSandbox.Peds
                 position.X, position.Y, position.Z,
                 outPos, outHeading, 1, 3, 0);
 
-            roadPosition = outPos.GetResult<Vector3>();
-            heading = outHeading.GetResult<float>();
+            Vector3 roadPosition = outPos.GetResult<Vector3>();
+            float heading = outHeading.GetResult<float>();
 
             Vector3 direction = targetPos - roadPosition;
             direction.Z = 0;
             direction.Normalize();
 
             float headingRad = heading * ((float)Math.PI / 180f);
-
-            // Swap sin/cos if needed based on your vehicle orientation
             Vector3 roadHeadingDir = new Vector3((float)Math.Sin(headingRad), (float)Math.Cos(headingRad), 0f);
 
             float angle = (float)(Math.Atan2(roadHeadingDir.Y, roadHeadingDir.X) - Math.Atan2(direction.Y, direction.X));
             if (angle < 0) angle += 2 * (float)Math.PI;
 
-            if (angle > Math.PI) // if more than 180 degrees difference, flip heading
+            if (angle > Math.PI) // Flip if more than 180°
             {
                 heading = (heading + 180f) % 360f;
             }
 
             return heading;
         }
+
 
 
     }

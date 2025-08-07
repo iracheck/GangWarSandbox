@@ -97,6 +97,9 @@ namespace GangWarSandbox.Peds
             Vector3 target = CurrentGamemode.GetTarget(this); // get a random target for the squad to attack
             SetTarget(target);
 
+            // Set the heading toward the location of the target/player. Not a perfect solution, but works 90% of the time and doesn't hurt.
+            //if (SquadVehicle != null) SquadVehicle.Heading = GetRoadDirectionByHeading(SquadVehicle.Position, target);
+
             // Update as soon as they are spawned, to avoid them "looking dumb" for ~half a second.
             Update();
         }

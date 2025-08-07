@@ -38,21 +38,21 @@ namespace GangWarSandbox.Gamemodes
         {
             // max squads(total) (0) - vehicles (1) - weaponized vehicles (2) - helicopters (3) - max faction tier[1-3] (4) - threat weight (5)
             new int[] { 2, 2, 0, 0, 1, 0 }, // 1
-            new int[] { 3, 2, 0, 0, 1, 400 }, // 2
-            new int[] { 4, 3, 0, 0, 1, 900 }, // 3
-            new int[] { 5, 3, 0, 0, 1, 1600 }, // 4
-            new int[] { 5, 4, 0, 1, 1, 2600 }, // 5
-            new int[] { 5, 4, 0, 1, 2, 3700 }, // 6
-            new int[] { 6, 4, 0, 1, 2, 4800 }, // 7
-            new int[] { 6, 4, 1, 1, 2, 6000 }, // 8
-            new int[] { 7, 5, 1, 1, 2, 7800 }, // 9
-            new int[] { 7, 5, 1, 1, 3, 9800 }, // 10
-            new int[] { 8, 5, 1, 2, 3, 11000 }, // 11
-            new int[] { 8, 4, 1, 2, 3, 13500 }, // 12
-            new int[] { 9, 4, 1, 2, 3, 17000 }, // 13
-            new int[] { 9, 5, 1, 2, 3, 22000 }, // 14
-            new int[] { 10, 5, 2, 2, 3, 30000 }, // 15
-            new int[] { 14, 6, 3, 3, 3, 45000 }, // GURANTEED DEATH
+            new int[] { 3, 2, 0, 0, 1, 200 }, // 2
+            new int[] { 4, 2, 0, 0, 1, 600 }, // 3
+            new int[] { 5, 3, 0, 0, 1, 1200 }, // 4
+            new int[] { 5, 3, 0, 1, 1, 1800 }, // 5
+            new int[] { 6, 4, 0, 1, 2, 2900 }, // 6
+            new int[] { 6, 3, 0, 1, 2, 4300 }, // 7
+            new int[] { 6, 3, 1, 1, 2, 5200 }, // 8
+            new int[] { 7, 4, 1, 1, 2, 6900 }, // 9
+            new int[] { 7, 3, 1, 1, 3, 8200 }, // 10
+            new int[] { 8, 3, 1, 2, 3, 9500 }, // 11
+            new int[] { 8, 3, 1, 2, 3, 11500 }, // 12
+            new int[] { 9, 4, 1, 2, 3, 14000 }, // 13
+            new int[] { 9, 4, 1, 2, 3, 18000 }, // 14
+            new int[] { 10, 4, 2, 3, 3, 24000 }, // 15
+            new int[] { 11, 5, 3, 3, 3, 40000 }, // 16 - Endgame
         };
 
         int Combo;
@@ -209,47 +209,42 @@ namespace GangWarSandbox.Gamemodes
         public override bool AIOverride(Squad squad, Ped ped)
         {
             Ped player = Game.Player.Character;
+            float distanceToPlayer = ped.Position.DistanceTo(player.Position);
             var assignments = squad.PedAssignments;
 
-            if (!ped.IsInVehicle() && (ped.Position.DistanceTo(player.Position) < 50f || (!ped.IsInCombatAgainst(player) && PedAI.HasLineOfSight(ped, player)) && assignments[ped] != Squad.PedAssignment.GamemodeReserved1))
-            {
-                ped.Task.FightAgainst(player);
-                assignments[ped] = Squad.PedAssignment.GamemodeReserved1; // attack player on foot
-                return true;
-            }
-            else if (assignments[ped] == Squad.PedAssignment.GamemodeReserved1)
-            {
-                if (ped.Position.DistanceTo(player.Position) > 60f) return false;
-                else return true;
-            }
 
-            if (player.IsInVehicle() && squad.SquadVehicle != null && squad.IsSquadInsideVehicle())
+            if (player.IsInVehicle())
             {
-                if (ped == squad.SquadLeader)
+                if (squad.SquadVehicle != null)
                 {
-                    ped.Task.VehicleChase(player);
-                    assignments[ped] = Squad.PedAssignment.GamemodeReserved2; // chase player with/in vehicle
+                    if (assignments[ped] == Squad.PedAssignment.GamemodeReserved2 && distanceToPlayer < 80f) return true;
+
+                    if (ped == squad.SquadLeader && squad.IsSquadInsideVehicle() && assignments[ped] != Squad.PedAssignment.GamemodeReserved2)
+                    {
+                        ped.Task.VehicleChase(player);
+                        assignments[ped] = Squad.PedAssignment.GamemodeReserved2; // chase player with/in vehicle
+                    }
+                    else if (assignments[ped] != Squad.PedAssignment.GamemodeReserved1)
+                    {
+                        ped.Task.VehicleShootAtPed(player);
+                        assignments[ped] = Squad.PedAssignment.GamemodeReserved1; // shoot player with/in vehicle
+                    }
+
+                    return true;
                 }
-                else
+            }
+            else
+            {
+                if (distanceToPlayer < 70f || ped.IsInCombatAgainst(player) || player.IsInCombatAgainst(ped))
                 {
-                    ped.Task.VehicleShootAtPed(player);
-                    assignments[ped] = Squad.PedAssignment.GamemodeReserved2; // chase player with/in vehicle
+                    PedAI.AttackEnemy(ped, player);
+                    assignments[ped] = Squad.PedAssignment.AttackNearby;
+                    return true;
                 }
+                else if (assignments[ped] == Squad.PedAssignment.AttackNearby) return true;
 
-                return true;
+                // replace lost conditionals as time allows
             }
-            else if (!player.IsInVehicle() && ped.IsInVehicle() && ped.Position.DistanceTo(player.Position) < 40f)
-            {
-                ped.Task.LeaveVehicle();
-                assignments[ped] = Squad.PedAssignment.ExitVehicle;
-                return true;
-            }
-            else if (assignments[ped] == Squad.PedAssignment.GamemodeReserved2)
-            {
-                if (!player.IsInVehicle() || player.Position.DistanceTo(ped.Position) > 100f) return false;
-                else return true;
-            }
-
 
             return false;
         }
@@ -306,12 +301,17 @@ namespace GangWarSandbox.Gamemodes
         {
             foreach (var ped in squad.Members)
             {
-                ped.Health = 100 + (CurrentThreatLevel * 5);
+                ped.Health = 120 + (CurrentThreatLevel * 5);
                 ped.Accuracy = (int) (ped.Accuracy * 0.5);
 
                 if (ped.AttachedBlip != null) ped.AttachedBlip.Color = BlipColor.Red;
             }
-            if (squad.SquadVehicle != null && squad.SquadVehicle.AttachedBlip != null) squad.SquadVehicle.AttachedBlip.Color = BlipColor.Red;
+            if (squad.SquadVehicle != null && squad.SquadVehicle.AttachedBlip != null)
+            {
+                squad.SquadVehicle.AttachedBlip.Sprite = BlipSprite.GangVehiclePolice;
+                squad.SquadVehicle.AttachedBlip.Color = BlipColor.Red;
+            }
+            
         }
 
         public override void OnVehicleSpawn(Vehicle vehicle)
@@ -430,7 +430,7 @@ namespace GangWarSandbox.Gamemodes
 
                 foreach (var squad in team.WeaponizedVehicleSquads)
                 {
-                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 500f) squad.Destroy();
+                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 400f) squad.Destroy();
                 }
 
                 foreach (var squad in team.HelicopterSquads)

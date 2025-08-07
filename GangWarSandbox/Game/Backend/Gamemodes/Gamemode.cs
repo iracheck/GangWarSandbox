@@ -34,7 +34,9 @@ namespace GangWarSandbox.Gamemodes
         public GamemodeBool EnableParameter_AllowWeaponizedVehicles { get; set; } = GamemodeBool.PlayerChoice;
         public GamemodeBool EnableParameter_AllowHelicopters { get; set; } = GamemodeBool.PlayerChoice;
         public GamemodeBool EnableParameter_FogOfWar { get; set; } = GamemodeBool.PlayerChoice;
-        public GamemodeBool EnableParameter_UnitCountMultiplier { get; set; } = GamemodeBool.False;
+
+        // if unit count multiplier is not "PlayerChoice," it can't be modified. Unfortunately just a small quirk with checkboxes and how they relate to Gamemodes.
+        public GamemodeBool EnableParameter_UnitCountMultiplier { get; set; } = GamemodeBool.PlayerChoice;
 
 
         public GamemodeBool EnableParameter_Spawnpoints { get; set; } = GamemodeBool.PlayerChoice;
