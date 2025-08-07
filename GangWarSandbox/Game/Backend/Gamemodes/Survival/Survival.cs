@@ -416,26 +416,27 @@ namespace GangWarSandbox.Gamemodes
 
         public void KillFarAwaySquads()
         {
+            bool playerInVehicle = Game.Player.Character.IsInVehicle();
             foreach (var team in Mod.Teams)
             {
                 foreach (var squad in team.Squads)
                 {
-                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 300f) squad.Destroy();
+                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > (playerInVehicle ? 175f : 300f) ) squad.Destroy();
                 }
 
                 foreach (var squad in team.VehicleSquads)
                 {
-                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 400f) squad.Destroy();
+                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > (playerInVehicle ? 250f : 300f)) squad.Destroy();
                 }
 
                 foreach (var squad in team.WeaponizedVehicleSquads)
                 {
-                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 400f) squad.Destroy();
+                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > (playerInVehicle ? 175f : 300f)) squad.Destroy();
                 }
 
                 foreach (var squad in team.HelicopterSquads)
                 {
-                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > 600f) squad.Destroy();
+                    if (squad.SquadLeader.Position.DistanceTo(Game.Player.Character.Position) > (playerInVehicle ? 300f : 500f)) squad.Destroy();
                 }
             }
         }
