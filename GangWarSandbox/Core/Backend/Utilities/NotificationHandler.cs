@@ -10,7 +10,7 @@ namespace GangWarSandbox.Utilities
     {
         public static void Send(string message)
         {
-            string prefixedMessage = "~y~[GangWarSandbox " + GWS_Metadata.Version + "] ~w~" + message;
+            string prefixedMessage = "~y~[GangWarSandbox " + GWSMeta.Version + "] ~w~" + message;
             GTA.UI.Notification.Show(prefixedMessage, false);
         }
     }

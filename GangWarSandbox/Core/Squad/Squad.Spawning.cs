@@ -61,7 +61,6 @@ namespace GangWarSandbox.Peds
                 {
                     SquadVehicle.AttachedBlip.Delete();
                     SquadVehicle.Health = 50;
-                    SquadVehicle.IsPersistent = false; // remove from memory
 
                     ModData.SquadlessVehicles.Add(SquadVehicle);
                     SquadVehicle = null;

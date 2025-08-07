@@ -54,7 +54,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Core\Backend\File System\ConfigParser.cs" />
+    <Compile Include="Core\Backend\File System\ConfigParser\ConfigParser.Factions.cs" />
+    <Compile Include="Core\Backend\File System\ConfigParser\ConfigParser.ModConfig.cs" />
+    <Compile Include="Core\Backend\File System\ConfigParser\ConfigParser.Helpers.cs" />
+    <Compile Include="Core\Backend\File System\ConfigParser\ConfigParser.VehicleSet.cs" />
     <Compile Include="Core\Backend\File System\ModFiles.cs" />
     <Compile Include="Core\Backend\Gamemodes\Gamemode.cs" />
     <Compile Include="Core\Backend\Gamemodes\InfiniteBattle.cs" />

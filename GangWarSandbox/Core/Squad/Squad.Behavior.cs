@@ -113,9 +113,9 @@ namespace GangWarSandbox.Peds
 
             bool safeToExitVehicle = CanGetOutVehicle(ped);
 
-            if ( ped.IsInVehicle() && (ped.IsInCombat || (nearbyEnemy != null && SquadVehicle.Position.DistanceTo(nearbyEnemy.Position) < 50f) && safeToExitVehicle))
+            if ( ped.IsInVehicle() && nearbyEnemy != null && (ped.IsInCombat || SquadVehicle.Position.DistanceTo(nearbyEnemy.Position) < 50f) && safeToExitVehicle )
             {
-                ped.Task.LeaveVehicle();
+                ped.Task.FightAgainst(nearbyEnemy);
                 PedAssignments[ped] = PedAssignment.ExitVehicle;
 
                 return true;
@@ -301,7 +301,7 @@ namespace GangWarSandbox.Peds
             if (IsWeaponizedVehicle && Members.Count(m => m.IsInVehicle() && m.CurrentVehicle == SquadVehicle) > 1) return false;
 
             // Finally, only exit if the vehicle is stopped/moving slowly
-            if (SquadVehicle.Velocity.Length() >= 0.5 || SquadVehicle.IsStopped) return true;
+            if (SquadVehicle.Velocity.Length() <= 1 || SquadVehicle.IsStopped) return true;
             else return false; // otherwise: probably not ok!
         }
 

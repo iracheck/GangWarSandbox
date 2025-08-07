@@ -39,7 +39,7 @@ namespace GangWarSandbox.Gamemodes
         {
             // max squads(total) (0) - vehicles (1) - weaponized vehicles (2) - helicopters (3) - max faction tier[1-3] (4) - threat weight (5)
             new int[] { 2, 2, 0, 0, 1, 0 }, // 1
-            new int[] { 3, 2, 0, 0, 1, 200 }, // 2
+            new int[] { 3, 2, 0, 0, 1, 120 }, // 2
             new int[] { 4, 2, 0, 0, 1, 600 }, // 3
             new int[] { 5, 3, 0, 0, 1, 1200 }, // 4
             new int[] { 5, 3, 0, 1, 1, 1800 }, // 5
@@ -106,9 +106,6 @@ namespace GangWarSandbox.Gamemodes
             var level1Enemy = new NativeListItem<string>($"Tier 1 Hunter Faction", Mod.Factions.Keys.ToArray());
             level1Enemy.Description = "The primary team that appears to hunt you. These will always appear.";
 
-            level1Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction1)
-                ? preferredFaction1
-                : Mod.Factions.Keys.FirstOrDefault();
             level1Enemy.ItemChanged += (item, args) =>
             {
                 var selectedFaction = level1Enemy.SelectedItem;
@@ -117,13 +114,14 @@ namespace GangWarSandbox.Gamemodes
                     Mod.ApplyFactionToTeam(Mod.Teams[1], selectedFaction);
                 }
             };
+            level1Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction1)
+                    ? preferredFaction1
+                    : Mod.Factions.Keys.FirstOrDefault();
+
 
             var level2Enemy = new NativeListItem<string>($"Tier 2 Hunter Faction", Mod.Factions.Keys.ToArray());
             level2Enemy.Description = "The second team that appears to hunt you. These will only appear starting in later rounds.";
 
-            level2Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction2)
-                ? preferredFaction2
-                : Mod.Factions.Keys.FirstOrDefault();
             level2Enemy.ItemChanged += (item, args) =>
             {
                 var selectedFaction = level2Enemy.SelectedItem;
@@ -132,13 +130,14 @@ namespace GangWarSandbox.Gamemodes
                     Mod.ApplyFactionToTeam(Mod.Teams[2], selectedFaction);
                 }
             };
+            level2Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction2)
+                ? preferredFaction2
+                : Mod.Factions.Keys.FirstOrDefault();
+
 
             var level3Enemy = new NativeListItem<string>($"Tier 3 Hunter Faction", Mod.Factions.Keys.ToArray());
             level3Enemy.Description = "The last team that appears to hunt you. These will only appear after you have survived for a long time.";
-
-            level3Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction3)
-                ? preferredFaction3
-                : Mod.Factions.Keys.FirstOrDefault(); 
+ 
             level3Enemy.ItemChanged += (item, args) =>
             {
                 var selectedFaction = level3Enemy.SelectedItem;
@@ -147,6 +146,9 @@ namespace GangWarSandbox.Gamemodes
                     Mod.ApplyFactionToTeam(Mod.Teams[3], selectedFaction);
                 }
             };
+            level3Enemy.SelectedItem = Mod.Factions.ContainsKey(preferredFaction3)
+                ? preferredFaction3
+                : Mod.Factions.Keys.FirstOrDefault();
 
             //var missions = new NativeCheckboxItem("Missions", "Missions are a set of objectives that can be completed to earn extra points, or weapons/ammo/vehicles.", false);
             //missions.Enabled = false; // Missions are not implemented yet
@@ -223,20 +225,19 @@ namespace GangWarSandbox.Gamemodes
             Ped player = Game.Player.Character;
             float distanceToPlayer = ped.Position.DistanceTo(player.Position);
             var assignments = squad.PedAssignments;
+            bool hasLOS = PedAI.HasLineOfSight(ped, player);
 
 
             if (player.IsInVehicle())
             {
                 if (squad.SquadVehicle != null)
                 {
-                    if (assignments[ped] == Squad.PedAssignment.GamemodeReserved2 && distanceToPlayer < 80f) return true;
-
                     if (ped == squad.SquadLeader && squad.IsSquadInsideVehicle() && assignments[ped] != Squad.PedAssignment.GamemodeReserved2)
                     {
                         ped.Task.VehicleChase(player);
                         assignments[ped] = Squad.PedAssignment.GamemodeReserved2; // chase player with/in vehicle
                     }
-                    else if (assignments[ped] != Squad.PedAssignment.GamemodeReserved1)
+                    else if (assignments[ped] != Squad.PedAssignment.GamemodeReserved1 && assignments[ped] != Squad.PedAssignment.GamemodeReserved2)
                     {
                         ped.Task.VehicleShootAtPed(player);
                         assignments[ped] = Squad.PedAssignment.GamemodeReserved1; // shoot player with/in vehicle
@@ -247,15 +248,20 @@ namespace GangWarSandbox.Gamemodes
             }
             else
             {
-                if (distanceToPlayer < 70f || ped.IsInCombatAgainst(player) || player.IsInCombatAgainst(ped))
+                if (ped.IsInCover && distanceToPlayer > 20f && !hasLOS) return false;
+
+                if ( squad.CanGetOutVehicle(ped) && (distanceToPlayer < 70f) || (hasLOS && (ped.HasBeenDamagedByAnyWeapon() || player.IsShooting)))
                 {
                     PedAI.AttackEnemy(ped, player);
                     assignments[ped] = Squad.PedAssignment.AttackNearby;
-                    return true;
+                }
+                else if (ped.IsInVehicle())
+                {
+                    PedAI.DriveBy(ped, player);
+                    assignments[ped] = Squad.PedAssignment.GamemodeReserved1;
                 }
                 else if (assignments[ped] == Squad.PedAssignment.AttackNearby) return true;
 
-                // replace lost conditionals as time allows
             }
 
             return false;
@@ -378,6 +384,7 @@ namespace GangWarSandbox.Gamemodes
             // This combined score is used to determine the current threat level, which is then used to scale the difficulty of the gamemode.
 
             double threatWeight = (TimeElapsed / 1000) + (PlayerScore * 0.2);
+            GTA.UI.Screen.ShowSubtitle("Threat Weight From Time: " + TimeElapsed / 1000 + " | From Player Score: " + (PlayerScore * 0.2) + " | Total: " + threatWeight);
 
             if (CurrentThreatLevel < ThreatLevelSettings.Count - 1 && threatWeight > ThreatLevelSettings[CurrentThreatLevel + 1][5])
             {

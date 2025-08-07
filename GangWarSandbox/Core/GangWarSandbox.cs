@@ -28,14 +28,10 @@ namespace GangWarSandbox
     {
         public static GangWarSandbox Instance { get; private set; }
 
-        // Debug Utilities
-        public bool DEBUG = GWSettings.DEBUG;
+        // Configuration
+        public bool DEBUG => GWSettings.DEBUG;
 
         // Constants
-        private const int AI_UPDATE_FREQUENCY = 150; // How often squad AI will be updated, in milliseconds
-        private const int VEHICLE_AI_UPDATE_FREQUENCY = 75; // How often squad AI will be updated, in milliseconds
-        private const int POINT_UPDATE_FREQUENCY = 1000; // How often capture points will be updated, in milliseconds
-        private const int MAX_CORPSES = 25; // Maximum number of corpses to keep in memory
         public const int NUM_TEAMS = 4; // How many teams? In the future, it will be loaded from a settings file, but for now it's constant to keep stability
         private const int TIME_BETWEEN_SQUAD_SPAWNS = 3000; // Time in milliseconds between squad spawns for each team
 
@@ -192,7 +188,7 @@ namespace GangWarSandbox
                 foreach (var squad in allSquads)
                 {
                     // Ped AI
-                    if ((squad.SquadVehicle != null && GameTime % VEHICLE_AI_UPDATE_FREQUENCY == 0) || (squad.SquadVehicle == null && GameTime % AI_UPDATE_FREQUENCY == 0) || squad.JustSpawned)
+                    if ((squad.SquadVehicle != null && GameTime % GWSettings.VEHICLE_AI_UPDATE_FREQUENCY == 0) || (squad.SquadVehicle == null && GameTime % GWSettings.AI_UPDATE_FREQUENCY == 0) || squad.JustSpawned)
                     {
                         squad.Update();
                         CurrentGamemode.OnSquadUpdate(squad);
@@ -205,7 +201,7 @@ namespace GangWarSandbox
 
                     DeadPeds.AddRange(deadPeds);
 
-                    while (DeadPeds.Count >= MAX_CORPSES)
+                    while (DeadPeds.Count >= GWSettings.MAX_CORPSES)
                     {
                         if (DeadPeds[0] != null && DeadPeds[0].Exists())
                         {
@@ -213,6 +209,15 @@ namespace GangWarSandbox
                         }
                         DeadPeds.RemoveAt(0);
                     }
+                }
+
+                while (SquadlessVehicles.Count > GWSettings.MAX_SQUADLESS_VEHICLES)
+                {
+                    if (SquadlessVehicles[0] != null &&  SquadlessVehicles[0].Exists())
+                    {
+                        SquadlessVehicles[0].Delete();
+                    }
+                    SquadlessVehicles.RemoveAt(0);
                 }
 
                 foreach (var point in CapturePoints)
