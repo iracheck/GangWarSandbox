@@ -43,9 +43,9 @@ namespace GangWarSandbox.Gamemodes
             new int[] { 4, 2, 0, 0, 1, 600 }, // 3
             new int[] { 5, 3, 0, 0, 1, 1200 }, // 4
             new int[] { 5, 3, 0, 1, 1, 1800 }, // 5
-            new int[] { 6, 4, 0, 1, 2, 2900 }, // 6
-            new int[] { 6, 3, 0, 1, 2, 4300 }, // 7
-            new int[] { 6, 3, 1, 1, 2, 5200 }, // 8
+            new int[] { 6, 4, 0, 1, 2, 2700 }, // 6
+            new int[] { 6, 3, 0, 1, 2, 3900 }, // 7
+            new int[] { 6, 3, 1, 1, 2, 5300 }, // 8
             new int[] { 7, 4, 1, 1, 2, 6900 }, // 9
             new int[] { 7, 3, 1, 1, 3, 8200 }, // 10
             new int[] { 8, 3, 1, 2, 3, 9500 }, // 11
@@ -384,7 +384,8 @@ namespace GangWarSandbox.Gamemodes
             // This combined score is used to determine the current threat level, which is then used to scale the difficulty of the gamemode.
 
             double threatWeight = (TimeElapsed / 1000) + (PlayerScore * 0.2);
-            GTA.UI.Screen.ShowSubtitle("Threat Weight From Time: " + TimeElapsed / 1000 + " | From Player Score: " + (PlayerScore * 0.2) + " | Total: " + threatWeight);
+
+            if (Game.Player.Character.IsInVehicle() && CurrentThreatLevel < 3) CurrentThreatLevel = 3;
 
             if (CurrentThreatLevel < ThreatLevelSettings.Count - 1 && threatWeight > ThreatLevelSettings[CurrentThreatLevel + 1][5])
             {

@@ -132,6 +132,8 @@ namespace GangWarSandbox
                 Teams[i].BlipSprite = BlipSprites[i]; // Assign a unique blip sprite for each team (for spawnpoints)
             }
 
+            Logger.Log(GWSettings.MAX_CORPSES.ToString() + GWSettings.MAX_SQUADLESS_VEHICLES.ToString() + GWSettings.VEHICLE_AI_UPDATE_FREQUENCY.ToString()
+                + GWSettings.AI_UPDATE_FREQUENCY.ToString() + GWSettings.DEBUG.ToString());
 
             BattleSetupUI.SetupMenu();
         }
