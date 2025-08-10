@@ -24,6 +24,8 @@ namespace GangWarSandbox
         private static NativeMenu GamemodeMenu;
         private static List<NativeListItem<string>> TeamFactionItems = new List<NativeListItem<string>>();
 
+        static int lastSelectedIndex = 0;
+
         private static string[] SavedFactions = new string[GangWarSandbox.NUM_TEAMS];
 
         // Used to access the main mod instance
@@ -33,6 +35,7 @@ namespace GangWarSandbox
         public static void Show()
         {
             RebuildMenu(null);
+            MainMenu.SelectedIndex = lastSelectedIndex;
             MainMenu.Visible = true;
         }
 
@@ -48,6 +51,11 @@ namespace GangWarSandbox
             MainMenu = new NativeMenu("Gang War Sandbox", "MAIN MENU");
             MenuPool.Add(MainMenu);
             MainMenu.Description = "Welcome to Gang War Sandbox! This menu allows you to set up and manage battles between factions. Use the options below to configure your battle settings.";
+
+            MainMenu.SelectedIndexChanged += (sender, args) =>
+            {
+                lastSelectedIndex = args.Index;
+            };
 
             // GAMEMODE SELECTOR
             var gamemodeItem = new NativeListItem<string>("Gamemode", Mod.AvaliableGamemodes.Select(g => g.Name).ToArray());
