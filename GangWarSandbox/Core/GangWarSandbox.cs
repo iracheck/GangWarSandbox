@@ -3,24 +3,25 @@
 // - ScriptHookVDotNet v3
 // - LemonUI.SHVDN3
 
+using GangWarSandbox;
+using GangWarSandbox.Core;
+using GangWarSandbox.Gamemodes;
+using GangWarSandbox.Peds;
+using GangWarSandbox.Utilities;
 using GTA;
-using GTA.Native;
 using GTA.Math;
-using System;
-using System.Drawing;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
+using GTA.Native;
 using LemonUI;
 using LemonUI.Menus;
-using GangWarSandbox;
-using GangWarSandbox.Peds;
-using GangWarSandbox.Gamemodes;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
-using GangWarSandbox.Core;
 using System.Runtime.Remoting.Messaging;
-using GangWarSandbox.Utilities;
+using System.Windows.Forms;
 
 namespace GangWarSandbox
 {
@@ -140,6 +141,8 @@ namespace GangWarSandbox
 
         private void OnTick(object sender, EventArgs e)
         {
+            Stopwatch sw = Stopwatch.StartNew();
+
             BattleSetupUI.MenuPool.Process();
 
             CurrentGamemode.OnTick();
@@ -226,6 +229,13 @@ namespace GangWarSandbox
                 {
                     point.CapturePointHandler(); // Process capture points
                 }
+            }
+
+            sw.Stop();
+
+            if (sw.ElapsedMilliseconds > 5)
+            {
+                Logger.Log($"Tick took {sw.ElapsedMilliseconds} ms");
             }
         }
 
@@ -532,6 +542,8 @@ namespace GangWarSandbox
             foreach (var team in Teams)
             {
                 team.IsPlayerTeam = false;
+                Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, Game.Player.Character.RelationshipGroup, Teams[PlayerTeam].Group);
+                Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, Teams[PlayerTeam].Group, Game.Player.Character.RelationshipGroup);
             }
 
             // Assign player to team
@@ -545,13 +557,6 @@ namespace GangWarSandbox
                     {
                         Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Respect, Game.Player.Character.RelationshipGroup, team.Group);
                         Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Respect, team.Group, Game.Player.Character.RelationshipGroup);
-                    }
-                }
-                else if (PlayerTeam == -2) {
-                    foreach (var team in Teams)
-                    {
-                        Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, Game.Player.Character.RelationshipGroup, team.Group);
-                        Function.Call(Hash.SET_RELATIONSHIP_BETWEEN_GROUPS, (int)Relationship.Hate, team.Group, Game.Player.Character.RelationshipGroup);
                     }
                 }
             }

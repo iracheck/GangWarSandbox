@@ -89,6 +89,11 @@ namespace GangWarSandbox.Gamemodes
             SetRelationships();
         }
 
+        public override void OnPlayerDeath()
+        {
+            Mod.StopBattle();
+        }
+
         public override NativeMenu ConstructGamemodeMenu()
         {
             Mod = GangWarSandbox.Instance;
