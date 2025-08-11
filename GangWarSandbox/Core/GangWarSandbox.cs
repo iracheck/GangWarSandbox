@@ -119,7 +119,7 @@ namespace GangWarSandbox
             }
             else
             {
-                NotificationHandler.Send("GangWarSandbox loaded. Press " + GWSettings.OpenMenuKeybind + " to begin! :)");
+                NotificationHandler.Send("GangWarSandbox loaded. Press " + GWSettings.OpenMenuKeybind + " to begin!");
             }
 
             Tick += OnTick;
@@ -133,7 +133,7 @@ namespace GangWarSandbox
                 Teams[i].BlipSprite = BlipSprites[i]; // Assign a unique blip sprite for each team (for spawnpoints)
             }
 
-            Logger.Log(GWSettings.MAX_CORPSES.ToString() + GWSettings.MAX_SQUADLESS_VEHICLES.ToString() + GWSettings.VEHICLE_AI_UPDATE_FREQUENCY.ToString()
+            Logger.LogDebug(GWSettings.MAX_CORPSES.ToString() + GWSettings.MAX_SQUADLESS_VEHICLES.ToString() + GWSettings.VEHICLE_AI_UPDATE_FREQUENCY.ToString()
                 + GWSettings.AI_UPDATE_FREQUENCY.ToString() + GWSettings.DEBUG.ToString());
 
             BattleSetupUI.SetupMenu();
@@ -233,9 +233,9 @@ namespace GangWarSandbox
 
             sw.Stop();
 
-            if (sw.ElapsedMilliseconds > 5)
+            if (DEBUG && sw.ElapsedMilliseconds > 5)
             {
-                Logger.Log($"Tick took {sw.ElapsedMilliseconds} ms");
+                Logger.LogDebug($"Tick took {sw.ElapsedMilliseconds} ms");
             }
         }
 

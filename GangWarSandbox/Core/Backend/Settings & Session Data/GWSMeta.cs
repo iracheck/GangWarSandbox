@@ -9,7 +9,7 @@ namespace GangWarSandbox
 {
     static class GWSMeta
     {
-        public static string Version = "V1.0.0";
-        public static DateTime BuildDate = new DateTime(2025, 8, 7);
+        public static string Version = "V1.0";
+        public static DateTime BuildDate = new DateTime(2025, 8, 11);
     }
 }

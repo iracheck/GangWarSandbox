@@ -198,7 +198,6 @@ namespace GangWarSandbox.Gamemodes
 
             // Get 50% of the max health of the ped, scaled by the current threat level and how deep the combo is
             PlayerScore += (int) (multiplier * ped.MaxHealth * Math.Pow(Combo, 0.25) * Math.Pow(CurrentThreatLevel + 1, 0.1));
-            Logger.Log("Current Score: " + PlayerScore.ToString() + "| Combo: " + Combo.ToString());
 
             ComboLastTime = Game.GameTime;
         }

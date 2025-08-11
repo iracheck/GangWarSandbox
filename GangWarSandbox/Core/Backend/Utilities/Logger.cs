@@ -29,7 +29,7 @@ namespace GangWarSandbox.Utilities
 
         public static void LogDebug(String data)
         {
-            if (ModData.DEBUG)
+            if (GWSettings.DEBUG)
                 Log(data, "DEBUG");
         }
 
