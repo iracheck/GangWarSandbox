@@ -78,6 +78,7 @@ namespace GangWarSandbox.Gamemodes
 
         public override void OnStart()
         {
+            Mod.ClearAllPoints();
             TimeStart = Game.GameTime;
             
             PlayerScore = 0;
