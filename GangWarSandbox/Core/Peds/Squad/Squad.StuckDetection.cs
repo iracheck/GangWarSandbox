@@ -22,7 +22,7 @@ namespace GangWarSandbox.Peds
 
             if (distanceToTarget <= 30f || SquadLeader.IsInCombat) return false;
 
-            if (Pos1Second.DistanceTo(Pos2Seconds) >= 2f) return false;
+            if (Pos1Second.DistanceTo(Pos2Seconds) >= 1f) return false;
 
             if (Pos2Seconds.DistanceTo(SquadLeader.CurrentVehicle.Position) >= 2f)
             {
