@@ -43,6 +43,10 @@ namespace GangWarSandbox.Peds
             if (IsStuck())
             {
                 Logger.LogDebug(">> STUCK? << Squad is potentially stuck at location: " + SquadVehicle.Position);
+
+                // Reset positions, so that Stuck Detection does not constantly try to "save" the given squad
+                Pos1Second = Vector3.Zero;
+                Pos2Seconds = Vector3.Zero;
             }
         }
     }
